@@ -14,19 +14,17 @@ export function useReducedMotion(): boolean {
   return reduced;
 }
 
-const SOUND_KEY = "panico-de-estado:som";
-
-export function readSoundPref(): boolean {
+export function readPref(key: string, fallback: string): string {
   try {
-    return window.localStorage.getItem(SOUND_KEY) !== "off";
+    return window.localStorage.getItem(key) ?? fallback;
   } catch {
-    return true;
+    return fallback;
   }
 }
 
-export function writeSoundPref(on: boolean) {
+export function writePref(key: string, value: string) {
   try {
-    window.localStorage.setItem(SOUND_KEY, on ? "on" : "off");
+    window.localStorage.setItem(key, value);
   } catch {
     // sem armazenamento: a preferência vale só nesta visita
   }

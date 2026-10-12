@@ -3,26 +3,34 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { applyEffects, INITIAL_METERS, pickEnding } from "@/game/engine";
 import { otherRoute, ROUTES } from "@/game/routes";
-import type { Choice, EndingId, Meters, RouteId } from "@/game/types";
-import { readSoundPref, writeSoundPref } from "@/lib/hooks";
+import type { EndingId, Meters, Outcome, RouteId } from "@/game/types";
+import { readPref, writePref } from "@/lib/hooks";
 import { sound } from "@/lib/sound";
 import EndingScreen from "./EndingScreen";
 import PlayScreen from "./PlayScreen";
 import RouteIntro from "./RouteIntro";
 import RouteSelect from "./RouteSelect";
-import SoundToggle from "./SoundToggle";
+import TopControls from "./SoundToggle";
 import TitleScreen from "./TitleScreen";
 
 export type Screen = "title" | "select" | "intro" | "play" | "ending";
+
+/** O que aconteceu na rodada: a ação do jogador e o resultado. */
+export interface Resolved {
+  label: string;
+  outcome: Outcome;
+}
 
 export interface GameState {
   screen: Screen;
   route: RouteId | null;
   roundIndex: number;
   meters: Meters;
+  /** Indicadores no começo da rodada (para variantes e cenas). */
+  roundStartMeters: Meters;
   ignores: number;
-  phase: "choose" | "result";
-  lastChoice: Choice | null;
+  phase: "play" | "result";
+  last: Resolved | null;
   ending: EndingId | null;
 }
 
@@ -30,7 +38,7 @@ type Action =
   | { type: "goto"; screen: Screen }
   | { type: "pickRoute"; route: RouteId }
   | { type: "begin" }
-  | { type: "choose"; choice: Choice }
+  | { type: "resolve"; resolved: Resolved }
   | { type: "next" };
 
 const initial: GameState = {
@@ -38,9 +46,10 @@ const initial: GameState = {
   route: null,
   roundIndex: 0,
   meters: INITIAL_METERS,
+  roundStartMeters: INITIAL_METERS,
   ignores: 0,
-  phase: "choose",
-  lastChoice: null,
+  phase: "play",
+  last: null,
   ending: null,
 };
 
@@ -52,14 +61,14 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...initial, screen: "intro", route: action.route };
     case "begin":
       return { ...initial, screen: "play", route: state.route };
-    case "choose":
-      if (state.phase !== "choose") return state;
+    case "resolve":
+      if (state.phase !== "play") return state;
       return {
         ...state,
         phase: "result",
-        lastChoice: action.choice,
-        meters: applyEffects(state.meters, action.choice.effects),
-        ignores: state.ignores + (action.choice.ignore ? 1 : 0),
+        last: action.resolved,
+        meters: applyEffects(state.meters, action.resolved.outcome.effects),
+        ignores: state.ignores + (action.resolved.outcome.ignore ? 1 : 0),
       };
     case "next": {
       if (!state.route) return state;
@@ -67,31 +76,43 @@ function reducer(state: GameState, action: Action): GameState {
       if (state.roundIndex + 1 >= total) {
         return { ...state, screen: "ending", ending: pickEnding(state.meters, state.ignores) };
       }
-      return { ...state, roundIndex: state.roundIndex + 1, phase: "choose", lastChoice: null };
+      return { ...state, roundIndex: state.roundIndex + 1, roundStartMeters: state.meters, phase: "play", last: null };
     }
   }
 }
 
+const SOUND_KEY = "panico-de-estado:som";
+const TIME_KEY = "panico-de-estado:tempo-extra";
+
 export default function Game() {
   const [state, dispatch] = useReducer(reducer, initial);
   const [soundOn, setSoundOn] = useState(true);
+  const [extraTime, setExtraTime] = useState(false);
 
   useEffect(() => {
-    const pref = readSoundPref();
-    setSoundOn(pref);
-    sound.setEnabled(pref);
+    const s = readPref(SOUND_KEY, "on") !== "off";
+    setSoundOn(s);
+    sound.setEnabled(s);
+    setExtraTime(readPref(TIME_KEY, "off") === "on");
   }, []);
 
   const toggleSound = useCallback(() => {
     setSoundOn((on) => {
       const next = !on;
       sound.setEnabled(next);
-      writeSoundPref(next);
+      writePref(SOUND_KEY, next ? "on" : "off");
       if (next) {
         sound.unlock();
         sound.click();
       }
       return next;
+    });
+  }, []);
+
+  const toggleTime = useCallback(() => {
+    setExtraTime((on) => {
+      writePref(TIME_KEY, on ? "off" : "on");
+      return !on;
     });
   }, []);
 
@@ -101,7 +122,7 @@ export default function Game() {
     else sound.stopDrone();
   }, [state.screen, state.meters.panico]);
 
-  // Cada troca de tela começa no topo.
+  // Cada troca de tela ou rodada começa no topo.
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [state.screen, state.roundIndex]);
@@ -115,7 +136,7 @@ export default function Game() {
 
   return (
     <div data-route={state.route ?? undefined} className="min-h-dvh">
-      <SoundToggle on={soundOn} onToggle={toggleSound} />
+      <TopControls soundOn={soundOn} onToggleSound={toggleSound} extraTime={extraTime} onToggleTime={toggleTime} />
 
       {state.screen === "title" && (
         <TitleScreen
@@ -158,11 +179,11 @@ export default function Game() {
           key={route.id}
           route={route}
           state={state}
-          onChoose={(choice) => {
+          timeScale={extraTime ? 1.75 : 1}
+          onResolve={(resolved) => {
             sound.unlock();
-            sound.click();
-            if ((choice.effects.panico ?? 0) >= 10) sound.sting(state.meters.panico);
-            dispatch({ type: "choose", choice });
+            if ((resolved.outcome.effects.panico ?? 0) >= 10) sound.sting(state.meters.panico);
+            dispatch({ type: "resolve", resolved });
           }}
           onNext={() => {
             tap();

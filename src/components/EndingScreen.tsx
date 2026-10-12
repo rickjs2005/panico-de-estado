@@ -5,6 +5,7 @@ import { METER_LABELS } from "@/game/engine";
 import { otherRoute, ROUTES } from "@/game/routes";
 import type { EndingId, MeterKey, Meters, RouteDef } from "@/game/types";
 import Disclaimer from "./Disclaimer";
+import Scene from "./Scene";
 import { MetersBar, PhoneShell, StatusBar, Ticker, ToastStack } from "./Phone";
 import { useNotifications } from "./useNotifications";
 
@@ -36,7 +37,7 @@ export default function EndingScreen({
   }, []);
 
   return (
-    <PhoneShell panico={meters.panico}>
+    <PhoneShell panico={meters.panico} caos={meters.caos}>
       <StatusBar time="03:33" panico={meters.panico} unread={unread} battery={2} />
       <MetersBar meters={meters} />
 
@@ -55,6 +56,8 @@ export default function EndingScreen({
           >
             {ending.title}
           </h1>
+
+          <Scene kind="home" cast={ending.cast} meters={meters} presidentId={route.roles.president} className="" />
 
           <div className="space-y-3">
             {ending.lines.map((l, i) => (

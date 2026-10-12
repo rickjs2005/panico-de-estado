@@ -54,6 +54,18 @@ export const sound = {
   click() {
     tone(420, 0, 0.06, "triangle", 0.05);
   },
+  tick() {
+    tone(1000, 0, 0.05, "square", 0.025);
+  },
+  success() {
+    tone(660, 0, 0.12, "triangle", 0.06);
+    tone(880, 0.1, 0.12, "triangle", 0.06);
+    tone(1320, 0.2, 0.2, "triangle", 0.05);
+  },
+  fail() {
+    tone(330, 0, 0.18, "sawtooth", 0.03);
+    tone(247, 0.16, 0.32, "sawtooth", 0.03);
+  },
   sting(intensity: number) {
     // Acorde dissonante curto; mais grave quanto maior o pânico.
     const base = 220 - intensity;

@@ -180,3 +180,92 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #2a2a35 transparent;
 }
+
+/* ----- Bonecos ----- */
+@keyframes pup-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes pup-jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes pup-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  60% {
+    transform: translateX(4px) rotate(2deg);
+  }
+}
+@keyframes pup-tremble {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, 1px);
+  }
+  75% {
+    transform: translate(1px, -1px);
+  }
+}
+.pup-idle {
+  animation: pup-idle 2.6s ease-in-out infinite;
+}
+.pup-comemora {
+  animation: pup-jump 0.7s ease-in-out 3;
+}
+.pup-susto {
+  animation: pup-shake 0.35s ease-in-out 3;
+}
+.pup-desespero {
+  animation: pup-tremble 0.18s linear infinite;
+}
+
+/* ----- Caos: a interface começa a entortar ----- */
+.phone-screen[data-caos="1"] .tilt {
+  transform: rotate(-0.6deg);
+}
+.phone-screen[data-caos="2"] .tilt {
+  transform: rotate(-1.2deg);
+}
+.crack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 28;
+  opacity: 0.35;
+}
+
+/* ----- Minijogos ----- */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-pop {
+  animation: pop-in 0.22s ease-out both;
+}
+.timer-bar {
+  transition: width 0.25s linear;
+}

@@ -1,12 +1,12 @@
 # Pânico de Estado
 
-Jogo curto (cerca de 5 minutos) de **sátira política fictícia com terror psicológico**.
+Jogo curto (cerca de 7 minutos) de **sátira política fictícia com terror psicológico**.
 O jogador escolhe entre dois Brasis hipotéticos: um em que Lula venceu e outro em que Flávio Bolsonaro venceu.
 Nos dois, ele vive um dia de pânico fabricado por boatos, cortes, lives e grupos de família.
 
 > Sátira política fictícia. Os eventos e personagens secundários foram inventados.
-> Os presidentes aparecem só como versões caricatas e hipotéticas (silhuetas), **sem falas atribuídas a eles**.
-> Os boatos centrais (o "churrasco estatizado" e o "pão francês proibido") são invenções absurdas e aparecem marcados como tal dentro do jogo.
+> Lula e Flávio aparecem só como bonecos caricatos e hipotéticos, **sem falas atribuídas a eles**: apenas reagem.
+> Os boatos são invenções para o jogo e aparecem marcados como tal.
 
 ## Stack
 
@@ -26,24 +26,35 @@ pnpm endings      # simula todos os caminhos e mostra quantos levam a cada final
 
 ## Como o jogo funciona
 
-1. **Tela inicial**: título, aviso de ficção e apresentação das duas rotas.
-2. **Escolha do Brasil**: Governo Lula (boato do churrasco) ou Governo Flávio (boato do pão francês).
-3. **7 rodadas por rota**: grupo da família, pronunciamento, live de influenciador, coletiva, sala de estar, meme contra comunicado oficial e uma ligação às 3h33. Cada rodada tem 3 reações.
-4. **Indicadores**: Pânico, Popularidade e Caos. Eles liberam linhas extras nas cenas e decidem o final.
-5. **5 finais por rota**: Calma Oficial, A Comissão da Comissão, Tudo Transmite, Saiu do Grupo e O Outro Brasil.
+1. **Tela inicial**: título, aviso de ficção, elenco de bonecos e apresentação das duas rotas.
+2. **Escolha do Brasil**: Governo Lula ou Governo Flávio. Cada rota tem os próprios boatos, personagens e piadas.
+3. **8 rodadas por rota**, alternando decisões e ações rápidas:
+   - **decisões**: escolha uma reação, às vezes contra o relógio (grupo da família, live de influenciador, ligação das 3h33);
+   - **crise tripla**: na coletiva, escolha qual das três crises atender primeiro; as outras pioram;
+   - **tocar nas notificações**: silencie o boato antes que ele cubra a tela;
+   - **cortar o sinal**: interrompa o pronunciamento antes do trecho que dá para tirar de contexto;
+   - **lixeira**: arraste o meme para o lixo (ou toque em "Lixeira"); cada um apagado pode virar cópias.
+4. **Bonecos em cena**: Lula e Flávio em caricaturas hipotéticas (sem falas, só reações), a pessoa jogadora como assessor(a), família, ministros, assessores e influenciadores fictícios. Todos reagem às decisões com expressões e poses (preocupação, deboche, susto, comemoração e desespero).
+5. **Indicadores com efeito visível**:
+   - **Pânico**: notificações chegam mais rápido, a tela escurece, o relógio trava em 03:33;
+   - **Popularidade**: muda a reação do presidente caricato e a aprovação mostrada nas cenas;
+   - **Caos**: a interface entorta, o rodapé ganha manchetes extras e, no extremo, a tela "trinca".
+6. **5 finais por rota**: Calma Oficial, A Comissão da Comissão, Tudo Transmite, Saiu do Grupo e O Outro Brasil, com opção de jogar de novo ou trocar de rota.
 
-### Terror psicológico
+### Boatos (todos inventados para o jogo)
 
-- notificações que se acumulam, mais rápido quanto maior o pânico;
-- mensagens que invadem a tela quando você silencia o grupo ou fica parado sem escolher;
-- manchetes contraditórias correndo no rodapé;
-- vinheta, scanlines, relógio travado em 03:33 e bateria baixa conforme o pânico sobe;
-- zumbido grave de fundo que cresce com o pânico (pode ser desligado).
+- Rota Lula: igrejas fechando, Brasil comunista ("vão dividir a sua casa"), país entregue à China e o bilhete do "sexto ano vai trocar de sala" lido como outra coisa.
+- Rota Flávio: país entregue aos EUA (o almoço vira brunch), mulheres perdendo o voto e a Petrobras "vendida" (era a placa de uma lanchonete, a "Petro-Esfiha").
+
+Os boatos aparecem sempre marcados como invenção. A piada mira quem inventa, quem encaminha sem ler, quem tenta conter e quem lucra.
+Os posts, perfis e veículos são fictícios e ficam nos arquivos de rota. Não há conexão com o X/Twitter nem com qualquer API: o jogo funciona offline e sem credenciais.
 
 ### Acessibilidade
 
 - feito primeiro para celular, com botões grandes e alto contraste;
-- respeita `prefers-reduced-motion`: sem animações, e o rodapé de manchetes fica parado;
+- **Tempo extra**: botão fixo no topo que dá 75% a mais de tempo em todos os desafios cronometrados;
+- todos os minijogos funcionam por toque, mouse e teclado (a lixeira tem botão, não só arrasto);
+- respeita `prefers-reduced-motion`: bonecos e telas param de animar e o rodapé de manchetes fica parado;
 - botão fixo para ligar e desligar o som, com a preferência salva no navegador;
 - sem violência gráfica e sem sustos repentinos.
 
@@ -53,12 +64,18 @@ Todo o texto fica em arquivos de dados, separado dos componentes:
 
 | Arquivo | O que tem |
 | --- | --- |
-| `src/game/routes/lula.ts` | Rota "Governo Lula": elenco, rodadas, escolhas, notificações, manchetes e finais |
+| `src/game/routes/lula.ts` | Rota "Governo Lula": boatos, rodadas, minijogos, notificações, manchetes e finais |
 | `src/game/routes/flavio.ts` | Rota "Governo Flávio", com a mesma estrutura espelhada |
-| `src/game/engine.ts` | Valores iniciais dos indicadores, nível de pânico e regra de escolha do final |
-| `src/game/shared.ts` | Mensagens de cobrança quando o jogador fica parado |
-| `src/game/types.ts` | Formato dos dados (rodada, escolha, variante, final) |
+| `src/game/characters.ts` | Bonecos: nome, papel e aparência (pele, cabelo, barba, óculos, roupa, acessórios) |
+| `src/game/engine.ts` | Valores iniciais, regra de escolha do final e reação automática dos bonecos |
+| `src/game/types.ts` | Formato dos dados (rodadas `choice`, `tap`, `interrupt`, `drag`, finais) |
 
-Cada escolha tem `effects` (quanto muda cada indicador), `result` (as frases de consequência), além de `ignore` e `aftershock`, que são opcionais.
-Uma `variant` adiciona linhas à cena quando um indicador passa de um limite.
+Cada rodada tem um `mode`:
+
+- `choice`: `choices` com `effects`, `result` e `reactions`. Opcionalmente `timer` e `timeout`, e `layout: "cards"` para a crise tripla.
+- `tap`: `items` (as notificações), `duration`, `spawnEvery`, `maxOnScreen`.
+- `interrupt`: `script`, em que `|` marca a partir de onde cortar é seguro e `[...]` marca o trecho perigoso.
+- `drag`: `rumor` e `copies` (os rótulos das cópias que surgem).
+
+Minijogos têm `outcomes.good`, `outcomes.mid` e `outcomes.bad`. `reactions` define a cara de cada boneco depois do resultado.
 Depois de mexer nos números, rode `pnpm endings` para conferir se todos os finais continuam alcançáveis.

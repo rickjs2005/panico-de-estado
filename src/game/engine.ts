@@ -1,4 +1,4 @@
-import type { Effects, EndingId, Line, MeterKey, Meters, Round } from "./types";
+import type { CastSlot, Effects, EndingId, Line, MeterKey, Meters, Mood, Outcome, Round } from "./types";
 
 export const INITIAL_METERS: Meters = { panico: 20, popularidade: 50, caos: 20 };
 
@@ -44,8 +44,23 @@ export function linesFor(round: Round, meters: Meters): Line[] {
  */
 export function pickEnding(meters: Meters, ignores: number): EndingId {
   if (ignores >= 3) return "silencio";
-  if (meters.panico >= 75) return "transmite";
-  if (meters.caos >= 80) return "comissao";
-  if (meters.popularidade >= 50) return "calma";
+  if (meters.panico >= 80) return "transmite";
+  if (meters.caos >= 75) return "comissao";
+  if (meters.popularidade >= 65) return "calma";
   return "outro";
+}
+
+/** Reação padrão de um boneco quando o resultado não define uma. */
+export function autoMood(effects: Effects): Mood {
+  const p = effects.panico ?? 0;
+  if (p >= 15) return "desespero";
+  if (p >= 10) return "susto";
+  if (p > 0) return "preocupado";
+  if (p < 0) return "comemora";
+  return "neutro";
+}
+
+/** Elenco da cena depois de um resultado: cada um com sua reação. */
+export function reactedCast(cast: CastSlot[], outcome: Outcome): CastSlot[] {
+  return cast.map((c) => ({ id: c.id, mood: outcome.reactions?.[c.id] ?? autoMood(outcome.effects) }));
 }

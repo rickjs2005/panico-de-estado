@@ -15,20 +15,34 @@ const METER_COLOR: Record<MeterKey, string> = {
 /** Moldura de celular: tela cheia no celular, aparelho centralizado no computador. */
 export function PhoneShell({
   panico,
+  caos = 0,
   shake,
   children,
 }: {
   panico: number;
+  caos?: number;
   shake?: number;
   children: React.ReactNode;
 }) {
+  const caosLevel = caos >= 70 ? 2 : caos >= 50 ? 1 : 0;
   return (
     <div className="mx-auto min-h-dvh max-w-md pt-16 sm:py-16">
       <div
         key={shake}
         data-panic={panicLevel(panico)}
+        data-caos={caosLevel}
         className={`phone-screen flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-ink sm:min-h-[760px] sm:rounded-[2.2rem] sm:border-[6px] sm:border-[#22222b] sm:shadow-2xl ${shake ? "anim-shake" : ""}`}
       >
+        {caosLevel === 2 && (
+          <svg className="crack" viewBox="0 0 100 200" preserveAspectRatio="none" aria-hidden>
+            <path
+              d="M70 0 L64 30 L72 42 L58 70 L66 84 L52 120 M64 30 L80 36 M58 70 L44 76 M66 84 L82 96"
+              stroke="#fff"
+              strokeWidth="0.6"
+              fill="none"
+            />
+          </svg>
+        )}
         {children}
       </div>
     </div>
@@ -58,21 +72,14 @@ export function StatusBar({ time, panico, unread, battery }: { time: string; pan
 
 export function MetersBar({ meters, delta }: { meters: Meters; delta?: Effects | null }) {
   return (
-    <div className="grid grid-cols-3 gap-2 border-b border-line px-4 pb-3 pt-1" role="group" aria-label="Indicadores">
+    <div className="grid grid-cols-3 gap-2 border-b border-line px-4 pb-1 pt-1" role="group" aria-label="Indicadores">
       {(Object.keys(METER_LABELS) as MeterKey[]).map((k) => {
         const d = delta?.[k] ?? 0;
         return (
           <div key={k}>
-            <div className="flex items-baseline justify-between text-[11px] font-semibold uppercase tracking-wide text-bone/80">
+            <div className="flex items-baseline justify-between gap-1 text-[10px] font-semibold uppercase tracking-wide text-bone/80 sm:text-[11px]">
               <span>{METER_LABELS[k]}</span>
-              <span className="font-mono text-bone">
-                {meters[k]}
-                {d !== 0 && (
-                  <span className={`ml-1 anim-rise ${d > 0 ? "text-siren" : "text-acid"}`}>
-                    {d > 0 ? `+${d}` : d}
-                  </span>
-                )}
-              </span>
+              <span className="font-mono text-bone">{meters[k]}</span>
             </div>
             <div
               className="mt-1 h-2 overflow-hidden rounded-full bg-line"
@@ -86,6 +93,13 @@ export function MetersBar({ meters, delta }: { meters: Meters; delta?: Effects |
                 className={`h-full rounded-full ${METER_COLOR[k]} transition-[width] duration-700`}
                 style={{ width: `${meters[k]}%` }}
               />
+            </div>
+            <div className="mt-0.5 h-4 text-right font-mono text-xs font-bold">
+              {d !== 0 && (
+                <span className={`anim-rise inline-block ${d > 0 ? "text-siren" : "text-acid"}`}>
+                  {d > 0 ? `+${d}` : d} {d > 0 ? "▲" : "▼"}
+                </span>
+              )}
             </div>
           </div>
         );
