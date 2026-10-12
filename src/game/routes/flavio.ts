@@ -35,6 +35,7 @@ const freteInternacional: RouteDef["episodes"][number] = {
     enter("voce", 8, { mood: "neutro", holding: "presente", scale: 0.9 }),
     enter("robson", 88, { mood: "neutro" }),
     say("robson", "Próximo! Ah, não. Ainda é o anterior.", "preocupado"),
+    phone("Família Reunida 🇧🇷❤️", "Tio Osvaldo: a apuração parou há 40 minutos. aposto que estão embalando alguma coisa"),
     enter("kaique", 56, { from: "right", mood: "fala" }),
     enter("flavio", 72, { from: "right", mood: "aponta" }),
     say("flavio", "Bom dia. Quero mandar o Brasil para os Estados Unidos. Aquela caixa ali.", "aponta"),
@@ -210,6 +211,7 @@ const urnaAutorizacao: RouteDef["episodes"][number] = {
             options: [
               { label: "Certidão de nascimento: Kelly tem 34 anos", prop: "certidao", good: true, reply: "URNA: “MAIORIDADE DETECTADA. ISSO NÃO ESTAVA NO MANUAL.”" },
               { label: "Ligar para o pai", prop: "celular", good: false, reply: "O pai pergunta se é golpe. A urna também." },
+              { label: "e-Título no celular", prop: "celular", good: false, reply: "A urna recusa a foto do e-Título: “parecida demais com 2008”. A Kelly concorda, mas não aceita." },
               { label: "Autorização da mãe", prop: "papel", good: false, reply: "A urna não reconhece mães. A mãe da Kelly está a caminho para conversar com a urna." },
             ],
           },
@@ -286,6 +288,7 @@ const petrobrasNaSacola: RouteDef["episodes"][number] = {
       ],
     },
     say("leila", "Vem com manual?", "neutro"),
+    phone("Família Reunida 🇧🇷❤️", "Prima Kelly: o vídeo do presidente desembrulhando a refinaria é IA. o de verdade tá aqui, sem cabo"),
     say("wanderley", "Manual… vem. Está na sacola. Embaixo da refinaria.", "preocupado"),
     say("leila", "E o cabo para ligar a refinaria?", "neutro"),
     say("flavio", "Ela liga na tomada?", "susto"),

@@ -74,3 +74,16 @@
 - **"Lula vai expropriar terras / acabar com a propriedade privada":** sem checagem específica, só debate opinativo sobre o MST.
 - **Fuga para ouro ou dólar e venda de "proteção patrimonial" por medo do comunismo:** não foram encontradas fontes sobre vendedores de kits ou cursos. Só havia reportagens genéricas sobre a reação do mercado em 2022.
 - **Afirmação de que o deputado Marco Feliciano "admitiu espalhar" o boato das igrejas:** aparece só em fonte partidária (CUT). Ficou de fora por falta de confirmação independente.
+
+---
+
+## Memes da eleição de 2026 (TikTok/Instagram)
+
+**Limitação:** TikTok e Instagram não abriram neste ambiente (o domínio não resolve, e as duas redes exigem login). Também não foi possível abrir as matérias. Os temas abaixo vêm só dos resumos de busca de reportagens sobre os memes do 1º turno (4/10/2026): [Poder360](https://www.poder360.com.br/poder-eleicoes-2026/veja-os-memes-que-marcaram-a-campanha-eleitoral-de-2026/), [Metrópoles](https://www.metropoles.com/brasil/memes-sobre-lula-e-flavio-viralizam-nas-redes-sociais-logo-apos-o-1o-turno), [Perfil Brasil](https://brasil.perfil.com/entretenimento/do-e-titulo-a-apuracao-veja-os-memes-que-movimentaram-as-redes-nas-eleicoes-2026.phtml), [Terra](https://www.terra.com.br/noticias/do-e-titulo-a-apuracao-veja-os-memes-que-movimentaram-as-redes-nas-eleicoes-2026,52222d8f4d16add0689243af72c1f2bcj8u7lmjz.html), [NDmais](https://ndmais.com.br/comportamento/memes-das-eleicoes-2026-viralizam-nas-redes-sociais/), [CartaCapital](https://www.cartacapital.com.br/politica/lula-e-flavio-bolsonaro-sobem-o-tom-nas-redes-com-ia-memes-e-ataques-diretos/). O jogo usa só o tema, com piadas próprias. Nenhum meme foi copiado.
+
+| Tema do meme | Ideia usada no jogo |
+| --- | --- |
+| Foto antiga no e-Título e falhas no aplicativo | A urna da rota Flávio rejeita a foto do título da Kelly por ela "estar parecida demais com 2008" |
+| Demora na apuração e teorias de brincadeira sobre o atraso | No grupo da família, a tia culpa a "apuração parada há 40 minutos" por tudo o que dá errado, nas duas rotas |
+| Vídeos e imagens feitos com IA dominando as redes | O primo encaminha um "vídeo de IA" do presidente caricato fazendo o oposto do que acabou de acontecer na cena |
+| Ausência de candidatos em debate | Valdir dos Kits vende o "Kit Debate": duas cadeiras vazias, uma de cada cor |

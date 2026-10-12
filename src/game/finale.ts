@@ -36,6 +36,7 @@ export function makeFinale(k: KitText): Episode {
       say("valdir", `Recomendo o ${k.edition}. Vem com ${k.contents}.`, "aponta"),
       set("portal", "OUTRO BRASIL"),
       say("valdir", `Também tenho o ${k.otherEdition}. É do outro universo. Mesma caixa, outra cor.`, "deboche"),
+      say("valdir", "E o lançamento: Kit Debate. Duas cadeiras vazias, uma de cada cor. Os candidatos já vêm ausentes.", "comemora"),
       say("voce", "É o mesmo kit?", "susto"),
       say("valdir", "É o mesmo medo. Só muda a embalagem.", "deboche"),
       say("valdir", "Qual versão da ameaça você prefere assinar? Mensal ou anual?", "fala"),
