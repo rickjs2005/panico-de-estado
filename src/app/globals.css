@@ -269,3 +269,66 @@ body {
 .timer-bar {
   transition: width 0.25s linear;
 }
+@keyframes pup-talk {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+}
+.pup-talk {
+  animation: pup-talk 0.32s ease-in-out infinite;
+}
+
+/* ----- Palco: entradas e saídas ----- */
+@keyframes enter-left {
+  from {
+    transform: translateX(-160%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes enter-right {
+  from {
+    transform: translateX(160%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes exit-left {
+  to {
+    transform: translateX(-200%);
+    opacity: 0;
+  }
+}
+@keyframes exit-right {
+  to {
+    transform: translateX(200%);
+    opacity: 0;
+  }
+}
+.actor-enter-left {
+  animation: enter-left 0.45s ease-out both;
+}
+.actor-enter-right {
+  animation: enter-right 0.45s ease-out both;
+}
+.actor-exit-left {
+  animation: exit-left 0.4s ease-in both;
+}
+.actor-exit-right {
+  animation: exit-right 0.4s ease-in both;
+}
+.actor-move {
+  transition: left 0.5s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .actor-exit-left,
+  .actor-exit-right {
+    opacity: 0;
+  }
+}

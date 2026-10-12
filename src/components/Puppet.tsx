@@ -1,5 +1,6 @@
 import { character, type Look } from "@/game/characters";
-import type { CharacterId, Mood } from "@/game/types";
+import type { CharacterId, Mood, PropId } from "@/game/types";
+import { PropArt } from "./Props";
 
 /**
  * Boneco caricato em SVG. Corpo, cabelo e acessórios vêm de `characters.ts`;
@@ -16,9 +17,29 @@ const ARMS: Record<Mood, [number, number, number, number]> = {
   susto: [6, 82, 114, 82],
   comemora: [20, 42, 100, 42],
   desespero: [40, 36, 80, 36],
+  aponta: [26, 142, 118, 86],
+  carrega: [44, 114, 76, 114],
+  fala: [26, 142, 102, 94],
 };
 
-function Eyes({ mood, look }: { mood: Mood; look: Look }) {
+/** Poses novas reaproveitam as caras das antigas. */
+type Face = "neutro" | "preocupado" | "deboche" | "susto" | "comemora" | "desespero" | "fala";
+const FACE: Record<Mood, Face> = {
+  neutro: "neutro",
+  preocupado: "preocupado",
+  deboche: "deboche",
+  susto: "susto",
+  comemora: "comemora",
+  desespero: "desespero",
+  aponta: "fala",
+  carrega: "preocupado",
+  fala: "fala",
+};
+
+/** Objetos que o boneco segura maiores que o normal (a piada é o tamanho). */
+const BIG: Record<string, number> = { cadeado: 64, "mapa-brasil": 66, caixa: 54, refinaria: 66, kit: 48, calculadora: 36 };
+
+function Eyes({ mood, look }: { mood: Face; look: Look }) {
   const brows = (l: string, r: string) => (
     <g stroke={INK} strokeWidth="2.4" strokeLinecap="round" fill="none">
       <path d={l} />
@@ -112,8 +133,10 @@ function Eyes({ mood, look }: { mood: Mood; look: Look }) {
   );
 }
 
-function Mouth({ mood }: { mood: Mood }) {
+function Mouth({ mood }: { mood: Face }) {
   switch (mood) {
+    case "fala":
+      return <ellipse cx="60" cy="70" rx="6" ry="4" fill={INK} />;
     case "susto":
       return <ellipse cx="60" cy="70" rx="4.5" ry="6" fill={INK} />;
     case "comemora":
@@ -224,6 +247,9 @@ function Body({ look, mood }: { look: Look; mood: Mood }) {
 }
 
 const MOOD_CLASS: Record<Mood, string> = {
+  aponta: "pup-idle",
+  carrega: "pup-idle",
+  fala: "pup-idle",
   neutro: "pup-idle",
   preocupado: "pup-idle",
   deboche: "pup-idle",
@@ -233,6 +259,9 @@ const MOOD_CLASS: Record<Mood, string> = {
 };
 
 const MOOD_LABEL: Record<Mood, string> = {
+  aponta: "apontando",
+  carrega: "carregando algo",
+  fala: "falando",
   neutro: "neutro",
   preocupado: "preocupado",
   deboche: "debochado",
@@ -246,12 +275,21 @@ export default function Puppet({
   mood = "neutro",
   size = 96,
   showName = true,
+  holding,
+  flip = false,
+  talking = false,
 }: {
   id: CharacterId;
   mood?: Mood;
   size?: number;
   showName?: boolean;
+  holding?: PropId | null;
+  flip?: boolean;
+  talking?: boolean;
 }) {
+  const face = FACE[mood];
+  const [, , rx, ry] = ARMS[mood];
+  const held = holding ? (mood === "carrega" ? { x: 60, y: 112, size: BIG[holding] ?? 44 } : { x: rx, y: ry - 4, size: BIG[holding] ?? 30 }) : null;
   const c = character(id);
   const look = c.look;
   const short = c.name.replace(/ \(caricatura hipotética\)/, "");
@@ -262,10 +300,11 @@ export default function Puppet({
         width={size}
         height={size * 1.25}
         role="img"
-        aria-label={`${c.name}, ${MOOD_LABEL[mood]}`}
+        aria-label={`${c.name}, ${MOOD_LABEL[mood]}${holding ? " e segurando um objeto" : ""}`}
         className="overflow-visible"
       >
-        <g className={MOOD_CLASS[mood]} style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+        <g transform={flip ? "translate(120 0) scale(-1 1)" : undefined}>
+        <g className={talking ? "pup-talk" : MOOD_CLASS[mood]} style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}>
           {look.ringLight && <circle cx="60" cy="58" r="50" fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="5" />}
           <Body look={look} mood={mood} />
           <HairBack look={look} />
@@ -283,11 +322,11 @@ export default function Puppet({
               <path d="M30 46 L100 46 Q96 52 84 50 L30 50 Z" fill={look.capColor ?? "#333"} opacity="0.85" />
             </g>
           )}
-          <Eyes mood={mood} look={look} />
+          <Eyes mood={face} look={look} />
           {look.beard === "bigode" && (
             <path d="M48 64 Q60 58 72 64 Q66 68 60 65 Q54 68 48 64 Z" fill={look.beardColor ?? look.hairColor} />
           )}
-          <Mouth mood={mood} />
+          <Mouth mood={talking ? "fala" : face} />
           {look.headset && (
             <g stroke="#222" strokeWidth="3" fill="none">
               <path d="M32 52 Q32 22 60 22 Q88 22 88 52" />
@@ -295,6 +334,8 @@ export default function Puppet({
               <rect x="28" y="48" width="8" height="14" rx="3" fill="#222" />
             </g>
           )}
+          {held && holding && <PropArt id={holding} x={held.x} y={held.y} size={held.size} />}
+        </g>
         </g>
       </svg>
       {showName && (

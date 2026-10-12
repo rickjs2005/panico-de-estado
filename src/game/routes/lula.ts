@@ -1,659 +1,406 @@
-import type { RouteDef } from "../types";
+import { makeEndings, makeFinale } from "../finale";
+import { enter, exit, hold, move, nar, pause, phone, react, say, set, sfx } from "../script";
+import type { Beat, RouteDef } from "../types";
 
 /**
- * Rota A — Brasil hipotético em que Lula venceu.
- * O Presidente é uma caricatura hipotética: aparece em cena e reage, mas não tem falas.
- * Os boatos são invenções para o jogo e a piada é sempre a máquina de pânico:
- * quem inventa, quem encaminha sem ler, quem tenta conter e quem lucra.
+ * Universo A — Lula venceu um segundo turno fictício e os boatos ganharam vida.
+ * Lula aparece como caricatura explicitamente fictícia. As falas são invenções
+ * da obra, não citações. A piada mira o autoritarismo imaginado, a burocracia
+ * e a trapalhada dos personagens, nunca fiéis, religiões ou nacionalidades.
  */
+
+const KIT = {
+  edition: "Kit Sobrevivência Edição Igreja Fechada",
+  contents: "cadeado de bolso, senha infinita e um pão de queijo de emergência",
+  otherEdition: "Kit Edição Brasil Exportado",
+  delivery: "às 6h12, pelo grupo da família",
+  gift: "um cadeado que não cabe em nada",
+  otherFear: "o Brasil ir embora numa caixa",
+};
+
+/* ------------------------------------------------------------------ */
+/* Episódio A — Operação Amém                                          */
+/* ------------------------------------------------------------------ */
+
+const fimDaIgreja: Beat[] = [
+  say("voce", "Tia, vamos? Ainda tenho que tomar café.", "fala"),
+  say("nilza", "Vamos. Mas antes vou mandar no grupo. COM FOTO.", "comemora"),
+  phone("Família Reunida 🇧🇷❤️", "Tia Nilza: VEJAM!!! ELE VEIO MESMO 😱 (foto tremida de um cadeado)"),
+];
+
+const operacaoAmem: RouteDef["episodes"][number] = {
+  id: "amem",
+  title: "Episódio 1 — Operação Amém",
+  objective: "Levar a Tia Nilza ao culto e voltar para casa.",
+  backdrop: "igreja",
+  scene: { porta: "fechada" },
+  beats: [
+    nar("Universo fictício: Lula venceu. Aqui, os boatos ganharam vida."),
+    enter("voce", 10, { mood: "neutro" }),
+    enter("nilza", 26, { mood: "neutro", scale: 0.95 }),
+    enter("fiel", 41, { mood: "neutro", scale: 0.85 }),
+    enter("pastor", 58, { mood: "fala" }),
+    say("pastor", "Senhor, abençoa este culto, que hoje vai ser curtinho porque tem jogo às onze.", "fala"),
+    say("nilza", "Amém. Vai ser curtinho mesmo. Deu no grupo que hoje fecham as igrejas.", "preocupado"),
+    say("voce", "Tia, isso é boato.", "deboche"),
+    sfx("porta"),
+    set("porta", "aberta"),
+    react({ voce: "susto", nilza: "susto", fiel: "susto", pastor: "susto" }),
+    enter("lula", 80, { from: "right", mood: "carrega", holding: "cadeado", scale: 1.05 }),
+    enter("fiscal", 94, { from: "right", mood: "neutro", holding: "formulario", scale: 0.85 }),
+    pause(700),
+    nar("Silêncio. Alguém derruba um hinário. Ninguém pega."),
+    say("lula", "Bom dia, minha gente! Vim fechar a igreja. É rapidinho, coisa de cinco minutos.", "fala"),
+    {
+      t: "choice",
+      prompt: "O presidente acabou de entrar com um cadeado gigante. Reação rápida:",
+      options: [
+        { label: "Esconder a Tia Nilza atrás do hinário", beats: [say("nilza", "Não precisa. Eu QUERO ver.", "comemora")] },
+        { label: "Perguntar se ele pegou senha", beats: [say("lula", "Senha? Eu sou o presidente.", "deboche"), say("pastor", "Aqui todo mundo pega senha. Até o Espírito Santo.", "deboche")] },
+        { label: "Filmar para o grupo da família", beats: [phone("Família Reunida 🇧🇷❤️", "Você: (vídeo de 3 segundos, tremido, de um cadeado)")] },
+      ],
+    },
+    say("nilza", "EU SABIA! Pela primeira vez o grupo acertou. Estou assustada E orgulhosa.", "desespero"),
+    say("pastor", "Presidente, com todo respeito: o senhor tem hora marcada?", "deboche"),
+    say("fiscal", "Fiscal Odair Carimbo, Ministério do Amém. Viemos aplicar o cadeado oficial.", "fala"),
+    move("lula", 84),
+    set("cadeado", "porta"),
+    hold("lula", null),
+    nar("O cadeado é maior que a porta."),
+    say("lula", "Quem comprou esse cadeado? Era pra fechar uma igreja, não o Maracanã.", "aponta"),
+    say("fiscal", "Licitação, presidente. Ganhou o maior.", "preocupado"),
+    say("pastor", "Para fechar, precisa pegar senha.", "deboche"),
+    say("fiscal", "Quem entrega a senha?", "preocupado"),
+    say("pastor", "A igreja que o senhor acabou de fechar.", "deboche"),
+    react({ lula: "susto", fiscal: "desespero", fiel: "deboche" }),
+    say("fiscal", "Então precisamos do carimbo FECHA-SE. Fica no Departamento de Fechamentos.", "fala"),
+    say("pastor", "No subsolo. Desta igreja. Abre depois do louvor.", "comemora"),
+    set("placa", "DEPTO. DE FECHAMENTOS ↓ (DENTRO DA IGREJA)"),
+    say("lula", "Você aí, de camisa azul. Me ajuda a achar esse carimbo?", "aponta"),
+    say("voce", "Eu só vim trazer a minha tia.", "susto"),
+    nar("A mesa do departamento está soterrada. E continua chegando papel."),
+    {
+      t: "task",
+      task: {
+        kind: "find",
+        objective: "Ache um carimbo na mesa antes que ela desabe. Tem mais de um: o que você escolher vai ser usado.",
+        timer: 45,
+        every: 2300,
+        need: 1,
+        collapseAt: 18,
+        start: [
+          { id: "c1", prop: "carimbo-fecha", label: "Carimbo FECHA-SE", target: "fecha" },
+          { id: "c2", prop: "carimbo-abre", label: "Carimbo ABRE-SE", target: "abre" },
+          { id: "c3", prop: "carimbo-amem", label: "Carimbo AMÉM", target: "amem" },
+          { id: "j1", prop: "boleto", label: "Conta de luz", quip: "Vence hoje. A igreja não pode fechar antes de pagar a luz." },
+          { id: "j2", prop: "hinario", label: "Hinário", quip: "Página 42. O fiscal anotou o número, por precaução." },
+          { id: "j3", prop: "formulario", label: "Formulário 27-B", quip: "Para abrir o 27-B, preencha o 27-A. Que está dentro do 27-B." },
+          { id: "j4", prop: "senha", label: "Senha nº ∞", quip: "Senha chamada: 3. Faltam infinitas." },
+          { id: "j5", prop: "vela", label: "Vela", quip: "Acesa desde 1987. Ninguém sabe quem acendeu." },
+          { id: "j6", prop: "papel", label: "Ata da reunião sobre a ata", quip: "Conclusão da ata: marcar outra reunião para discutir a ata." },
+          { id: "j7", prop: "caneca", label: "Caneca do fiscal", quip: "“Melhor Fiscal do Mês”. O mês não foi informado." },
+        ],
+        incoming: [
+          { id: "i1", prop: "formulario", label: "Requerimento de requerimento", quip: "Requer que se requeira. Deferido em parte." },
+          { id: "i2", prop: "boleto", label: "Taxa de fechamento", quip: "Para fechar, pague. Para pagar, abra." },
+          { id: "i3", prop: "papel", label: "Abaixo-assinado contra o abaixo-assinado", quip: "Assinado pelas mesmas 40 pessoas." },
+          { id: "i4", prop: "senha", label: "Outra senha", quip: "Senha nº ∞ + 1." },
+          { id: "i5", prop: "hinario", label: "Hinário de bolso", quip: "Edição de bolso. O bolso é de gigante." },
+          { id: "i6", prop: "caneca", label: "Café do louvor", quip: "Frio. O louvor está demorando." },
+        ],
+      },
+      branches: {
+        fecha: [
+          hold("lula", "carimbo-fecha"),
+          sfx("carimbo"),
+          set("placa", "DEPTO. DE FECHAMENTOS: FECHADO"),
+          set("carimbo", "FECHA-SE"),
+          nar("O presidente carimba. O carimbo fecha… o Departamento de Fechamentos."),
+          say("fiscal", "Fechamos o departamento que fecha. Agora nada mais pode ser fechado.", "desespero"),
+          say("lula", "Nem a igreja?", "susto"),
+          say("fiscal", "Principalmente a igreja.", "desespero"),
+          set("cadeado", null),
+          set("porta", "aberta"),
+          say("pastor", "Glória! Culto liberado até segunda ordem. E a ordem está fechada.", "comemora"),
+          react({ nilza: "comemora", fiel: "comemora", voce: "comemora" }),
+          { t: "outcome", result: "vitoria", reward: { prop: "carimbo-fecha", name: "Carimbo FECHA-SE", blurb: "Fechou o único departamento capaz de fechar alguma coisa." } },
+          ...fimDaIgreja,
+        ],
+        abre: [
+          hold("lula", "carimbo-abre"),
+          sfx("carimbo"),
+          set("carimbo", "ABRE-SE"),
+          set("cadeado", null),
+          nar("O presidente carimba o ABRE-SE. A igreja, que já estava aberta, fica aberta em dobro."),
+          say("pastor", "Dois cultos ao mesmo tempo, um em cada metade. Deus me deu um segundo microfone.", "comemora"),
+          say("nilza", "Vou nos dois.", "comemora"),
+          say("fiscal", "O governo vai precisar criar o Ministério do Amém 2.", "desespero"),
+          say("lula", "Inaugura amanhã. Sem cadeado.", "deboche"),
+          { t: "outcome", result: "vitoria", reward: { prop: "carimbo-abre", name: "Carimbo ABRE-SE", blurb: "Abre o que já está aberto. Muito procurado em repartições." } },
+          ...fimDaIgreja,
+        ],
+        amem: [
+          hold("lula", "carimbo-amem"),
+          sfx("carimbo"),
+          set("carimbo", "AMÉM"),
+          nar("O carimbo bate na mesa: AMÉM. A igreja inteira responde por reflexo."),
+          say("lula", "…Amém.", "susto"),
+          say("fiscal", "O presidente disse amém. Juridicamente, isso é uma bênção. Não posso fechar uma bênção.", "preocupado"),
+          say("pastor", "Então fica para depois do louvor. O louvor tem três horas.", "deboche"),
+          say("lula", "Três horas? Eu espero. Mas sentado.", "preocupado"),
+          { t: "outcome", result: "meio", reward: { prop: "carimbo-amem", name: "Carimbo AMÉM", blurb: "Nenhum documento resiste a ele." } },
+          ...fimDaIgreja,
+        ],
+        desabou: [
+          sfx("falha"),
+          nar("A mesa desaba. Uma chuva de formulários cobre o cadeado, o fiscal e parte do presidente."),
+          react({ lula: "desespero", fiscal: "desespero", pastor: "susto", nilza: "susto" }),
+          say("fiscal", "Igreja fechada para balanço… do papel.", "desespero"),
+          say("pastor", "Pode ser. Mas o papel é nosso. O senhor pegou senha?", "deboche"),
+          say("lula", "Me vê uma senha, então.", "preocupado"),
+          { t: "outcome", result: "desastre", reward: { prop: "formulario", name: "Formulário 27-B", blurb: "Ainda não se sabe para que serve. Nem ele." } },
+          ...fimDaIgreja,
+        ],
+        tempo: [
+          nar("Deu onze horas. O culto acaba e começa o jogo."),
+          say("lula", "Fechar fica para depois. Alguém sabe o placar?", "preocupado"),
+          say("pastor", "Um a zero pra nós.", "comemora"),
+          say("fiscal", "Anotado: igreja fechada por motivo de futebol.", "preocupado"),
+          { t: "outcome", result: "desastre", reward: { prop: "senha", name: "Senha nº ∞", blurb: "Será chamada um dia. Talvez." } },
+          ...fimDaIgreja,
+        ],
+      },
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* Episódio B — O Último Pão de Queijo                                 */
+/* ------------------------------------------------------------------ */
+
+const fimDoCafe: Beat[] = [
+  set("pao", "fatia"),
+  nar("Enquanto isso, o último pão de queijo esfriou. Ninguém comeu. Ninguém nunca come o último."),
+  phone("Família Reunida 🇧🇷❤️", "Tia Nilza: alguém sabe se pão de queijo dividido engorda?"),
+];
+
+const paoDeQueijo: RouteDef["episodes"][number] = {
+  id: "pao",
+  title: "Episódio 2 — O Último Pão de Queijo",
+  objective: "Tomar café da manhã. Só isso.",
+  backdrop: "cozinha",
+  beats: [
+    enter("voce", 14, { from: "left", mood: "neutro" }),
+    enter("didi", 36, { mood: "neutro", scale: 0.95 }),
+    say("didi", "Bom dia. Sobrou um pão de queijo. O último.", "preocupado"),
+    say("voce", "O último da casa?", "fala"),
+    say("didi", "Do país. Deu no rádio.", "susto"),
+    sfx("buzina"),
+    enter("fiscal", 70, { from: "right", mood: "fala", holding: "calculadora" }),
+    say("fiscal", "Bom dia! Odair Carimbo, agora no Departamento de Divisões Iguais.", "fala"),
+    say("fiscal", "Este é o último pão de queijo do Brasil. Será dividido igualmente entre 214 milhões de pessoas.", "aponta"),
+    {
+      t: "choice",
+      prompt: "O fiscal saca a calculadora. Reação rápida:",
+      options: [
+        { label: "Esconder o pão de queijo no bolso", beats: [say("fiscal", "Bolso detectado. O bolso também será dividido.", "aponta")] },
+        { label: "Pedir a sua parte já", beats: [say("fiscal", "Claro. Sua parte é esta.", "fala"), nar("Ele entrega um farelo invisível. Você agradece, por educação.")] },
+        { label: "Oferecer café ao fiscal", beats: [say("fiscal", "Aceito. Mas o café é de todos, então vou tomar o de todos.", "comemora")] },
+      ],
+    },
+    say("didi", "Eu fico com a parte de cima.", "deboche"),
+    set("maquina", "on"),
+    say("fiscal", "Apresento a Nacionalizadora 3000. Ela carimba tudo que estiver sem dono.", "comemora"),
+    sfx("carimbo"),
+    set("geladeira", "DO POVO"),
+    react({ voce: "susto", didi: "susto" }),
+    nar("A geladeira agora é do povo. O povo não sabe abrir a geladeira."),
+    enter("lula", 88, { from: "right", mood: "comemora", scale: 0.95 }),
+    say("lula", "Vim inaugurar o primeiro pedacinho! Cadê a fita?", "comemora"),
+    say("fiscal", "A fita foi nacionalizada, presidente.", "preocupado"),
+    say("lula", "Então eu inauguro de boca. Inaugurado!", "fala"),
+    say("voce", "Eu só queria um café.", "desespero"),
+    {
+      t: "task",
+      task: {
+        kind: "assign",
+        objective: "Monte seu café antes que a máquina carimbe tudo: pó, filtro e água na cafeteira; o resto na sua mesa.",
+        timer: 45,
+        spoil: { every: 6500, label: "Nacionalizadora 3000" },
+        slots: [
+          { id: "cafeteira", label: "Cafeteira" },
+          { id: "mesa", label: "Sua mesa" },
+        ],
+        items: [
+          { id: "po", prop: "po-cafe", label: "Pó de café", goal: "cafeteira", wrong: "Pó de café no prato? Isso é um ritual, não um café." },
+          { id: "agua", prop: "agua", label: "Água", goal: "cafeteira", wrong: "Água no pires. O Vô Didi bebeu achando que era chá." },
+          { id: "filtro", prop: "papel", label: "Filtro de papel", goal: "cafeteira", wrong: "Filtro na mesa. O fiscal achou que era um formulário e protocolou." },
+          { id: "xicara", prop: "cafe", label: "Xícara", goal: "mesa", wrong: "Uma xícara dentro da cafeteira. A cafeteira ficou com ciúme." },
+          { id: "pao", prop: "pao-queijo", label: "Pão de queijo", goal: "mesa", wrong: "Pão de queijo na cafeteira virou sopa. O fiscal anotou a receita." },
+          { id: "manteiga", prop: "manteiga", label: "Manteiga", goal: "mesa", wrong: "Manteiga na cafeteira: “café cremoso”, dizem os gourmets. Só eles." },
+        ],
+      },
+      branches: {
+        otimo: [
+          nar("O café fica pronto. Você toma o primeiro gole livre do dia."),
+          react({ voce: "comemora", didi: "comemora" }),
+          say("fiscal", "Terminei a conta! Cada brasileiro tem direito a 0,0000000047 pão de queijo.", "comemora"),
+          say("didi", "E quem fica com o resto?", "deboche"),
+          say("fiscal", "O resto é zero vírgula… nada. Por isso fica comigo. Para fins de auditoria.", "deboche"),
+          hold("fiscal", "pao-queijo"),
+          sfx("carimbo"),
+          nar("A Nacionalizadora 3000 carimba a si mesma e abre uma reclamação contra si mesma."),
+          say("lula", "Isso é que é eficiência.", "comemora"),
+          { t: "outcome", result: "vitoria", reward: { prop: "cafe", name: "Xícara de café livre", blurb: "Ainda quente. Por pouco." } },
+          ...fimDoCafe,
+        ],
+        medio: [
+          nar("Você salva metade do café. O resto agora pertence à União, inclusive o açúcar."),
+          say("didi", "Meu pires foi tombado como patrimônio histórico.", "desespero"),
+          say("lula", "Belo pires. Vai pro museu.", "comemora"),
+          say("fiscal", "Visitação de terça a domingo. O pires não pode ser usado.", "fala"),
+          { t: "outcome", result: "meio", reward: { prop: "cafeteira", name: "Cafeteira do Povo", blurb: "Faz café para 214 milhões. Uma xícara por vez." } },
+          ...fimDoCafe,
+        ],
+        ruim: [
+          sfx("carimbo"),
+          nar("A máquina carimba tudo. Inclusive você."),
+          react({ voce: "desespero", didi: "susto" }),
+          say("fiscal", "Cidadão, a partir de agora o senhor é do povo.", "fala"),
+          say("voce", "Eu já era do povo.", "desespero"),
+          say("fiscal", "Agora com carimbo. Fica mais oficial.", "deboche"),
+          { t: "outcome", result: "desastre", reward: { prop: "carimbo-estado", name: "Carimbo DO POVO (na testa)", blurb: "Sai com água e sabão. Em 2030." } },
+          ...fimDoCafe,
+        ],
+      },
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* Episódio C — Brasil em Entrega                                      */
+/* ------------------------------------------------------------------ */
+
+const fimDaEntrega: Beat[] = [
+  say("sueli", "Senha 47!", "fala"),
+  say("voce", "Sou eu! Vim buscar minha encomenda.", "comemora"),
+  say("sueli", "Ah. Foi enviada para a China por engano. Junto com uma tentativa de país.", "deboche"),
+];
+
+const brasilEmEntrega: RouteDef["episodes"][number] = {
+  id: "entrega",
+  title: "Episódio 3 — Brasil em Entrega",
+  objective: "Buscar sua encomenda nos Correios Universais. Senha 47.",
+  backdrop: "correios",
+  scene: { mapa: "dentro" },
+  beats: [
+    enter("voce", 8, { from: "left", mood: "neutro", scale: 0.9 }),
+    enter("sueli", 84, { mood: "neutro" }),
+    say("sueli", "Senha 47? Hoje só tem um atendimento na frente. Um grandão.", "deboche"),
+    enter("jessica", 40, { from: "right", mood: "preocupado", holding: "etiqueta" }),
+    enter("lula", 62, { from: "right", mood: "aponta" }),
+    say("lula", "Moça, quero mandar isso para a China. Com cuidado, que é frágil. Principalmente o Congresso.", "aponta"),
+    {
+      t: "choice",
+      prompt: "Tem um país inteiro na sua frente na fila. Reação rápida:",
+      options: [
+        { label: "“Vai demorar?”", beats: [say("sueli", "Depende. Quantos estados ele tem?", "deboche"), say("jessica", "Vinte e seis. E um distrito.", "preocupado")] },
+        { label: "Oferecer fita adesiva", beats: [say("lula", "Fita é bom! Gruda o Sul, que ele vive querendo sair.", "comemora")] },
+        { label: "Tirar uma selfie com o mapa", beats: [phone("Família Reunida 🇧🇷❤️", "Você: (selfie com o Brasil numa caixa) eu tô bem, gente")] },
+      ],
+    },
+    say("sueli", "Conteúdo?", "neutro"),
+    say("jessica", "Declaramos como acessório de cozinha.", "fala"),
+    say("sueli", "Um continente?", "deboche"),
+    say("jessica", "Um subcontinente. Vem com tampa.", "preocupado"),
+    say("sueli", "Endereço?", "neutro"),
+    say("lula", "China. Do lado da… China.", "fala"),
+    set("etiqueta", "FALTA: rua, número, CEP e bom senso"),
+    sfx("pop"),
+    set("mapa", "fugindo"),
+    nar("Nesse momento, os estados começam a escapar da caixa."),
+    react({ lula: "susto", jessica: "desespero", sueli: "susto", voce: "susto" }),
+    say("jessica", "O Sul saiu primeiro! Disse que já tinha avisado.", "desespero"),
+    say("lula", "Segura o Nordeste! O Nordeste é meu CEP preferido!", "desespero"),
+    say("sueli", "Sem o mapa inteiro, eu não consigo nem recusar direito.", "preocupado"),
+    say("lula", "Companheiro da senha 47, dá uma mão?", "aponta"),
+    {
+      t: "task",
+      task: {
+        kind: "assign",
+        layout: "mapa",
+        objective: "Devolva cada região ao seu lugar na caixa. Toque na peça e depois no espaço certo (ou arraste).",
+        timer: 50,
+        forgive: 1,
+        slots: [
+          { id: "norte", label: "Norte", at: { x: 30, y: 28 } },
+          { id: "nordeste", label: "Nordeste", at: { x: 76, y: 36 } },
+          { id: "centro-oeste", label: "Centro-Oeste", at: { x: 50, y: 52 } },
+          { id: "sudeste", label: "Sudeste", at: { x: 70, y: 63 } },
+          { id: "sul", label: "Sul", at: { x: 54, y: 82 } },
+        ],
+        items: [
+          { id: "norte", prop: "norte", label: "Norte", goal: "norte", wrong: "O Norte não cabe aí. O Norte quase não cabe em lugar nenhum." },
+          { id: "nordeste", prop: "nordeste", label: "Nordeste", goal: "nordeste", wrong: "O Nordeste recusou o encaixe e pediu vista para o mar." },
+          { id: "centro-oeste", prop: "centro-oeste", label: "Centro-Oeste", goal: "centro-oeste", wrong: "O Centro-Oeste fica no centro. Está no nome." },
+          { id: "sudeste", prop: "sudeste", label: "Sudeste", goal: "sudeste", wrong: "O Sudeste achou que aí era o centro de tudo. Não era." },
+          { id: "sul", prop: "sul", label: "Sul", goal: "sul", wrong: "O Sul diz que aí faz calor demais." },
+        ],
+      },
+      branches: {
+        otimo: [
+          set("mapa", "dentro"),
+          set("etiqueta", "CONTEÚDO: acessório de cozinha"),
+          nar("O Brasil volta inteiro para a caixa. Ainda sobra espaço."),
+          say("sueli", "Encomenda recusada.", "neutro"),
+          say("lula", "Por quê?!", "susto"),
+          say("sueli", "O remetente declarou um continente como acessório de cozinha. Isso é fraude de categoria.", "deboche"),
+          say("jessica", "E se a gente declarar como utensílio?", "preocupado"),
+          say("sueli", "Aí tem que caber na gaveta. Cabe?", "deboche"),
+          sfx("carimbo"),
+          set("carimbo", "DEVOLVER AO REMETENTE"),
+          say("lula", "E quem é o remetente?", "preocupado"),
+          say("sueli", "O Brasil.", "comemora"),
+          react({ lula: "susto", jessica: "desespero", voce: "comemora" }),
+          { t: "outcome", result: "vitoria", reward: { prop: "etiqueta", name: "Etiqueta “Devolver ao remetente”", blurb: "Remetente e destinatário são o mesmo país. Ninguém sabe quem paga o frete." } },
+          ...fimDaEntrega,
+        ],
+        medio: [
+          set("mapa", "dentro"),
+          nar("O mapa volta meio torto: o Sudeste ficou de lado e o Norte de ponta-cabeça."),
+          say("sueli", "Assim não passa no raio-X. Parece mapa desenhado de memória.", "preocupado"),
+          say("lula", "Mas é o Brasil!", "fala"),
+          say("sueli", "É exatamente o que um contrabandista diria.", "deboche"),
+          sfx("carimbo"),
+          set("carimbo", "RECUSADO"),
+          { t: "outcome", result: "meio", reward: { prop: "mapa-brasil", name: "Mapa do Brasil (montado torto)", blurb: "O Sudeste continua de lado. Ninguém notou." } },
+          ...fimDaEntrega,
+        ],
+        ruim: [
+          set("mapa", null),
+          nar("O tempo acaba. Os estados saem pela porta dos Correios e pegam um ônibus de volta para casa."),
+          say("jessica", "O Brasil voltou sozinho para o lugar dele.", "susto"),
+          say("lula", "Então não precisa mandar.", "deboche"),
+          say("sueli", "Precisa pagar a taxa de tentativa de envio de país.", "deboche"),
+          sfx("carimbo"),
+          set("carimbo", "TAXA: 1 BRASIL"),
+          exit("lula", "right"),
+          exit("jessica", "right"),
+          { t: "outcome", result: "desastre", reward: { prop: "caixa", name: "Caixa vazia (tamanho Brasil)", blurb: "Serve de casa. Ou de país." } },
+          ...fimDaEntrega,
+        ],
+      },
+    },
+  ],
+};
+
 export const lula: RouteDef = {
   id: "lula",
   name: "Brasil: Governo Lula",
-  tagline: "Igrejas fechando, comunismo na geladeira, o país “entregue à China”. Nada disso é verdade. Tente explicar isso.",
-  ministry: "Ministério da Tranquilidade Pública",
-  rumors: [
-    "“O governo vai fechar as igrejas.”",
-    "“O Brasil vai virar comunista.”",
-    "“O país será entregue à China.”",
-    "“Crianças serão obrigadas a trocar de sexo.”",
-  ],
-  intro: [
-    "Brasil hipotético. Lula venceu. O país acordou dividido em dois grupos de WhatsApp.",
-    "Você é assessor(a) de comunicação do Ministério da Tranquilidade Pública. É o seu primeiro dia.",
-    "Sua missão: impedir que quatro boatos absurdos virem o fim do mundo.",
-    "O fim do mundo já tem 4 mil encaminhamentos.",
-  ],
-  cast: ["voce", "lula", "brisa", "jessica", "wellington", "rubens", "vibes", "nilza", "osvaldo", "kelly", "didi"],
-  roles: { player: "voce", boss: "jessica", president: "lula" },
-  rounds: [
-    // 1 ─ o boato nasce no grupo da família (escolha contra o relógio)
-    {
-      id: "igrejas",
-      mode: "choice",
-      kind: "chat",
-      channel: "Família Reunida 🇧🇷❤️",
-      meta: "237 membros · Tio Osvaldo está digitando…",
-      time: "06:12",
-      cast: [
-        { id: "osvaldo", mood: "susto" },
-        { id: "nilza", mood: "preocupado" },
-        { id: "kelly", mood: "deboche" },
-        { id: "didi", mood: "neutro" },
-      ],
-      lines: [
-        { tone: "system", text: "Hoje" },
-        {
-          tone: "forward",
-          from: "Tio Osvaldo",
-          text: "URGENTE!!! O governo vai FECHAR TODAS AS IGREJAS a partir de segunda. Já tem lista. REPASSEM",
-        },
-        { tone: "fiction", text: "Boato inventado para este jogo. No grupo, ninguém leu este aviso." },
-        { from: "Prima Kelly", text: "que lista?" },
-        { from: "Tio Osvaldo", text: "a lista que eles não querem que a gente veja" },
-        { from: "Tia Nilza", text: "já tirei o santo da parede e guardei no porta-luvas" },
-        { from: "Vô Didi", text: "a igreja do bairro tá fechada mesmo" },
-        { from: "Prima Kelly", text: "vô, é terça, 6 da manhã" },
-        { tone: "dm", from: "Jéssica Ventania", text: "4 mil encaminhamentos. Responde esse grupo AGORA. Você tem 20 segundos." },
-      ],
-      prompt: "Responda antes que o boato saia do grupo",
-      timer: 20,
-      timeout: {
-        effects: { panico: 10, caos: 10 },
-        result: [
-          "Você demorou.",
-          "Prima Kelly respondeu “kkkkk” e foi removida do grupo por deboche.",
-          "Sem a Kelly, ninguém mais pergunta “fonte?”.",
-        ],
-        reactions: { kelly: "desespero", osvaldo: "comemora", nilza: "deboche" },
-      },
-      choices: [
-        {
-          id: "foto",
-          label: "Mandar a foto da missa de hoje, com data e hora",
-          effects: { panico: 5, popularidade: 5, caos: 10 },
-          result: [
-            "Tio Osvaldo dá zoom na foto: “MISSA CLANDESTINA”.",
-            "A missa das 7h, que tinha 9 pessoas, agora tem 400 e um carro de som.",
-            "O padre agradece ao governo pelo público.",
-          ],
-          reactions: { osvaldo: "susto", nilza: "comemora", kelly: "deboche", didi: "comemora" },
-        },
-        {
-          id: "audio",
-          label: "Mandar um áudio de 7 minutos explicando tudo",
-          effects: { panico: 10, popularidade: -5, caos: 10 },
-          result: [
-            "Ninguém ouviu o áudio.",
-            "Vô Didi ouviu no viva-voz, dentro da igreja.",
-            "A igreja inteira escutou a palavra “fechar” e foi embora antes do sermão.",
-          ],
-          reactions: { didi: "susto", osvaldo: "comemora", nilza: "desespero", kelly: "deboche" },
-        },
-        {
-          id: "silenciar",
-          label: "Silenciar o grupo por 8 horas",
-          effects: { panico: -5, caos: 5 },
-          ignore: true,
-          result: ["Silêncio.", "Por 9 segundos."],
-          reactions: { nilza: "preocupado", osvaldo: "deboche" },
-          aftershock: { from: "Tia Nilza", text: "Silenciou o grupo? Na igreja a gente chama isso de omissão." },
-        },
-      ],
-    },
-
-    // 2 ─ o boato vaza: tocar nas notificações
-    {
-      id: "avalanche",
-      mode: "tap",
-      kind: "feed",
-      channel: "O boato saiu do grupo",
-      meta: "Notificações chegando mais rápido do que você lê",
-      time: "07:40",
-      cast: [
-        { id: "voce", mood: "susto" },
-        { id: "jessica", mood: "preocupado" },
-      ],
-      lines: [
-        { tone: "dm", from: "Jéssica Ventania", text: "O boato das igrejas vazou do grupo. Silencia o que puder antes que cubra o seu celular." },
-      ],
-      prompt: "Toque nas notificações antes que elas cubram a tela",
-      duration: 14,
-      spawnEvery: 1300,
-      maxOnScreen: 6,
-      items: [
-        { from: "@verdadeoculta_br", text: "MINHA IGREJA JÁ TÁ COM CADEADO (era o cadeado da bicicleta do padre)" },
-        { from: "Tia Nilza", text: "levei as cadeiras de plástico da igreja pra casa, por segurança" },
-        { from: "Grupo do Condomínio", text: "o salão de festas conta como igreja? temos culto de aniversário sábado" },
-        { from: "@comunicando.a.verdade", text: "e quando fecharem as igrejas vão abrir o quê? SINDICATO COM ÓRGÃO?" },
-        { from: "Rádio Fim de Tarde", text: "Fiéis fazem fila para entrar antes que feche; igreja nunca esteve tão cheia" },
-        { from: "Coach Rubens Muralha", text: "KIT FÉ BLINDADA 🔒 com terço anti-hacker. 12x" },
-        { from: "Vô Didi", text: "rezei em casa por precaução. a vizinha ouviu e chamou a polícia" },
-        { from: "@tiozao.alerta", text: "padre visto saindo da igreja COM UMA MALA (era o almoço)" },
-      ],
-      outcomes: {
-        good: {
-          effects: { panico: -10, popularidade: 5, caos: -5 },
-          result: [
-            "Você silenciou a avalanche. O celular respira.",
-            "A igreja do bairro bateu recorde de público: todo mundo foi conferir se tinha fechado.",
-            "Ninguém ficou para a missa. Mas todos tiraram selfie na porta.",
-          ],
-          reactions: { voce: "comemora", jessica: "comemora" },
-        },
-        mid: {
-          effects: { panico: 5, caos: 5 },
-          result: [
-            "Algumas escaparam.",
-            "Uma delas chegou ao grupo dos coroinhas, que entrou em greve preventiva.",
-            "Ninguém sabe contra quem.",
-          ],
-          reactions: { voce: "preocupado", jessica: "preocupado" },
-        },
-        bad: {
-          effects: { panico: 15, popularidade: -5, caos: 10 },
-          result: [
-            "As notificações cobriram a tela.",
-            "Uma delas era sua mãe perguntando se você está bem. Você não viu.",
-            "Ela encaminhou a pergunta para 237 pessoas.",
-          ],
-          reactions: { voce: "desespero", jessica: "desespero" },
-        },
-      },
-    },
-
-    // 3 ─ pronunciamento: cortar o sinal antes do trecho recortável
-    {
-      id: "comunismo",
-      mode: "interrupt",
-      kind: "speech",
-      channel: "Rede Nacional",
-      meta: "Pronunciamento do Ministro da Tranquilidade Pública",
-      time: "21:00",
-      cast: [
-        { id: "brisa", mood: "preocupado" },
-        { id: "lula", mood: "neutro" },
-        { id: "voce", mood: "preocupado" },
-      ],
-      lines: [
-        { tone: "aside", text: "Novo boato do dia: “o Brasil vai virar comunista e o governo vai dividir a sua casa”." },
-        { tone: "fiction", text: "Boato inventado para este jogo." },
-        { tone: "aside", text: "O ministro Otávio Brisa vai ao ar para desmentir. O Presidente, caricato e mudo, assiste do fundo." },
-        { tone: "dm", from: "Jéssica Ventania", text: "Tem uma frase nesse texto que vira corte em 4 segundos. Você está com o botão de cortar o sinal." },
-      ],
-      prompt: "Corte a transmissão antes do trecho que dá para tirar de contexto",
-      speaker: "Ministro Otávio Brisa",
-      script:
-        "Boa noite. Sobre o boato de que o Brasil vai virar comunista: isso não existe. Ninguém vai dividir a sua casa. | Quem disser que [o governo vai dividir a sua casa] está mentindo.",
-      msPerWord: 430,
-      outcomes: {
-        good: {
-          effects: { panico: -10, popularidade: 10, caos: -5 },
-          result: [
-            "Sinal cortado no segundo exato.",
-            "Só sobrou “ninguém vai dividir a sua casa”.",
-            "Virou frase de para-choque de caminhão. E de faixa de casamento.",
-          ],
-          reactions: { brisa: "comemora", lula: "comemora", voce: "comemora" },
-        },
-        mid: {
-          effects: { panico: 5, caos: 10 },
-          result: [
-            "Você cortou cedo, no meio de uma frase.",
-            "O país inteiro quer saber o que vinha depois. Três teorias antes da novela.",
-            "A mais votada: “vão dividir a sua geladeira”.",
-          ],
-          reactions: { brisa: "susto", lula: "preocupado", voce: "desespero" },
-        },
-        bad: {
-          effects: { panico: 15, popularidade: -10, caos: 15 },
-          result: [
-            "O corte sai: “o governo vai dividir a sua casa”.",
-            "Em 20 minutos, Tio Osvaldo instalou uma catraca na geladeira.",
-            "Tia Nilza dividiu o sofá com fita crepe. Ficou com a parte do controle.",
-          ],
-          reactions: { brisa: "desespero", lula: "desespero", voce: "desespero" },
-        },
-      },
-    },
-
-    // 4 ─ influenciador vende proteção (escolha contra o relógio)
-    {
-      id: "china",
-      mode: "choice",
-      kind: "live",
-      channel: "🔴 AO VIVO · Coach Rubens Muralha",
-      meta: "38 mil assistindo · 2,1 mi corações",
-      time: "22:40",
-      cast: [
-        { id: "rubens", mood: "deboche" },
-        { id: "vibes", mood: "neutro" },
-        { id: "voce", mood: "preocupado" },
-      ],
-      lines: [
-        { tone: "fiction", text: "Boato da noite (inventado): “o país será entregue à China”." },
-        { from: "Rubens Muralha", text: "Já reparou que tudo na sua casa é feito na China? Não é coincidência. É ensaio." },
-        {
-          from: "Rubens Muralha",
-          text: "Por isso: ADESIVO “PRODUTO NACIONAL” para colar em tudo. Pacote com 50. Fabricado em… isso não vem ao caso.",
-        },
-        { tone: "comment", from: "@zecarlos_raiz", text: "chegou o adesivo, atrás tá escrito made in china" },
-        { tone: "comment", from: "@rubensmuralha", text: "isso PROVA que eles já infiltraram o adesivo, Zé" },
-        { tone: "msg", from: "@CompanheiraVibes (story)", text: "Contra a paranoia: KIT CALMA 🌿 com chá importado de… gente, não importa. Cupom TRANQUILIDADE10" },
-        { tone: "dm", from: "Jéssica Ventania", text: "Os dois lucrando com o mesmo boato. Decide rápido." },
-      ],
-      variants: [
-        {
-          meter: "caos",
-          min: 45,
-          lines: [{ tone: "system", text: "Adesivos: esgotados. Kit Calma: esgotado. Estoque de calma no país: —" }],
-        },
-      ],
-      prompt: "Decida antes que a live termine (e comece outra)",
-      timer: 18,
-      timeout: {
-        effects: { panico: 10, caos: 10 },
-        result: ["Você demorou.", "A live acabou e começou outra, mais longa.", "Agora são duas lives e um podcast sobre as lives."],
-        reactions: { rubens: "comemora", vibes: "comemora", voce: "desespero" },
-      },
-      choices: [
-        {
-          id: "denunciar",
-          label: "Denunciar o adesivo",
-          effects: { panico: 10, caos: 10 },
-          result: [
-            "A denúncia viralizou. As vendas subiram 900%.",
-            "Rubens agradece “ao governo pela divulgação”.",
-            "Lança o Adesivo Pro: agora com adesivo no adesivo.",
-          ],
-          reactions: { rubens: "comemora", vibes: "deboche", voce: "desespero" },
-        },
-        {
-          id: "contratar",
-          label: "Contratar a @CompanheiraVibes para a campanha oficial",
-          effects: { panico: -5, popularidade: 5, caos: 10 },
-          result: [
-            "O Kit Calma ganha selo do ministério.",
-            "Rubens grava: “O governo está vendendo calma importada. Desconfie.”",
-            "Ele vende desconfiança nacional a R$ 97.",
-          ],
-          reactions: { vibes: "comemora", rubens: "deboche", voce: "preocupado" },
-        },
-        {
-          id: "comprar",
-          label: "Comprar o adesivo. Só por precaução.",
-          effects: { panico: 15, popularidade: -5, caos: 5 },
-          result: [
-            "Você cola “produto nacional” no celular, no micro-ondas e no ventilador.",
-            "Num momento de fraqueza, cola no próprio crachá.",
-            "A segurança do ministério não te reconhece mais.",
-          ],
-          reactions: { rubens: "comemora", vibes: "susto", voce: "desespero" },
-        },
-      ],
-    },
-
-    // 5 ─ arrastar o meme para a lixeira (ele se multiplica)
-    {
-      id: "sexto-ano",
-      mode: "drag",
-      kind: "feed",
-      channel: "Em alta agora",
-      meta: "Um meme, muitas versões",
-      time: "08:30",
-      cast: [
-        { id: "kelly", mood: "deboche" },
-        { id: "nilza", mood: "susto" },
-        { id: "voce", mood: "preocupado" },
-      ],
-      lines: [
-        { tone: "meme", from: "@alerta.familia.br", text: "URGENTE: ESCOLAS VÃO OBRIGAR CRIANÇAS A TROCAR DE SEXO" },
-        { tone: "fiction", text: "Boato inventado para este jogo. Veja abaixo de onde ele saiu." },
-        { from: "Prima Kelly", text: "gente. o bilhete original da escola diz: “alunos do SEXTO ANO vão TROCAR DE SALA”" },
-        { from: "Prima Kelly", text: "alguém leu rápido demais e com muita vontade" },
-        { from: "Tia Nilza", text: "mas e se trocarem de sala E de sexto?" },
-        { tone: "dm", from: "Jéssica Ventania", text: "Joga isso fora. Cuidado: cada vez que alguém apaga, aparece um print do print." },
-      ],
-      prompt: "Arraste o boato até a lixeira antes que ele se espalhe",
-      duration: 15,
-      rumor: { from: "@alerta.familia.br", text: "Escolas vão obrigar crianças a trocar de sexo" },
-      copies: [
-        "PRINT DO PRINT (agora em vermelho)",
-        "versão com narração dramática",
-        "versão em vídeo com música de suspense",
-        "versão traduzida para o espanhol e de volta",
-        "versão com uma foto aleatória de sala de aula",
-      ],
-      outcomes: {
-        good: {
-          effects: { panico: -10, popularidade: 10, caos: -10 },
-          result: [
-            "Timeline limpa.",
-            "Na escola, o sexto ano trocou de sala. A sala nova tem ar-condicionado.",
-            "Os pais fazem abaixo-assinado para todo mundo trocar de sala.",
-          ],
-          reactions: { kelly: "comemora", nilza: "preocupado", voce: "comemora" },
-        },
-        mid: {
-          effects: { panico: 5, caos: 5 },
-          result: [
-            "Sobraram alguns prints.",
-            "Tia Nilza imprimiu um e colou na geladeira, ao lado da catraca.",
-            "A escola manda outro bilhete. Agora em letra maior. Ninguém lê.",
-          ],
-          reactions: { kelly: "preocupado", nilza: "deboche", voce: "preocupado" },
-        },
-        bad: {
-          effects: { panico: 15, popularidade: -5, caos: 15 },
-          result: [
-            "Os prints venceram.",
-            "Hoje à noite, o bilhete da escola vai dar coletiva própria.",
-            "A professora do sexto ano trocou de número. E de sala, por via das dúvidas.",
-          ],
-          reactions: { kelly: "desespero", nilza: "susto", voce: "desespero" },
-        },
-      },
-    },
-
-    // 6 ─ coletiva: escolher qual crise atender primeiro
-    {
-      id: "coletiva",
-      mode: "choice",
-      layout: "cards",
-      kind: "press",
-      channel: "Coletiva de Imprensa",
-      meta: "Ministério da Tranquilidade Pública",
-      time: "10:05",
-      cast: [
-        { id: "wellington", mood: "preocupado" },
-        { id: "brisa", mood: "susto" },
-        { id: "jessica", mood: "preocupado" },
-        { id: "voce", mood: "susto" },
-      ],
-      lines: [
-        { tone: "aside", text: "O ministro sobe ao púlpito. Três crises explodem ao mesmo tempo. Os assessores cochicham alto demais." },
-        { from: "Wellington Ponto", text: "(cochicho) começa pela China" },
-        { from: "Jéssica Ventania", text: "(cochicho) não, pelas igrejas. Igreja dá mais engajamento" },
-        { from: "Repórter · Jornal da Véspera", text: "Ministro, qual crise o senhor nega primeiro?" },
-        { tone: "aside", text: "O ministro olha para você." },
-      ],
-      prompt: "Escolha qual crise atender primeiro. As outras não vão esperar.",
-      timer: 22,
-      timeout: {
-        effects: { panico: 10, popularidade: -10, caos: 20 },
-        result: [
-          "Você travou. O ministro, nervoso, negou as três crises.",
-          "E uma quarta, que ninguém tinha inventado ainda.",
-          "Agora ela existe. Tem até hashtag.",
-        ],
-        reactions: { brisa: "desespero", wellington: "desespero", jessica: "desespero", voce: "desespero" },
-      },
-      choices: [
-        {
-          id: "igrejas",
-          label: "IGREJAS: um padre jura que recebeu “ordem de fechamento”. Era a conta de luz.",
-          effects: { panico: 5, popularidade: 5, caos: 10 },
-          result: [
-            "Você mostra a conta de luz ao vivo. Igrejas: resolvido.",
-            "Enquanto isso, a crise da China ganhou trilha sonora.",
-            "E a da casa dividida virou podcast com três temporadas.",
-          ],
-          reactions: { brisa: "comemora", jessica: "comemora", wellington: "preocupado", voce: "preocupado" },
-        },
-        {
-          id: "china",
-          label: "CHINA: o Cristo Redentor aparece com etiqueta “made in China”. É um chaveiro.",
-          effects: { panico: 5, popularidade: -5, caos: 15 },
-          result: [
-            "Você ergue o chaveiro diante das câmeras.",
-            "Manchete: “MINISTÉRIO EXIBE CRISTO CHINÊS EM COLETIVA”.",
-            "Resolveu uma crise e fabricou outra, em escala industrial.",
-          ],
-          reactions: { brisa: "susto", wellington: "comemora", jessica: "desespero", voce: "susto" },
-        },
-        {
-          id: "sofa",
-          label: "COMUNISMO: um vizinho jura que o governo levou metade do sofá dele. Foi a ex-mulher.",
-          effects: { panico: -10, popularidade: 10, caos: 5 },
-          result: [
-            "Você liga para a ex-mulher ao vivo. Ela confirma: levou o sofá e não se arrepende.",
-            "A popularidade sobe. O Brasil inteiro está do lado dela.",
-            "O vizinho pede asilo no grupo da família.",
-          ],
-          reactions: { brisa: "comemora", jessica: "deboche", wellington: "comemora", voce: "comemora" },
-        },
-      ],
-    },
-
-    // 7 ─ silêncio em casa (escolha sem relógio; o celular cobra)
-    {
-      id: "silencio",
-      mode: "choice",
-      kind: "home",
-      channel: "Sala de estar",
-      meta: "Celular virado para baixo",
-      time: "23:47",
-      cast: [{ id: "voce", mood: "preocupado" }],
-      lines: [
-        { tone: "aside", text: "Você chega em casa. Silencia tudo. Vira o celular para baixo." },
-        { tone: "aside", text: "A casa fica quieta. A geladeira zune. É bom." },
-        { tone: "aside", text: "Então a TV liga. Ou você ligou e esqueceu. Você não lembra." },
-        { tone: "headline", from: "Jornal da Véspera", text: "Governo nega que vá fechar as igrejas" },
-        { tone: "headline", from: "Jornal da Véspera", text: "Governo nega que vá fechar as igrejas" },
-        { tone: "headline", from: "Jornal da Véspera", text: "Governo nega que vá fechar as igrejas" },
-        { tone: "aside", text: "A cada repetição, a palavra “nega” parece mais baixa." },
-      ],
-      variants: [
-        {
-          meter: "panico",
-          min: 50,
-          lines: [
-            { tone: "headline", from: "Jornal da Véspera", text: "Governo        vá fechar as igrejas" },
-            { tone: "aside", text: "Dessa vez não teve “nega”. Ou teve?" },
-          ],
-        },
-      ],
-      prompt: "O que você faz?",
-      choices: [
-        {
-          id: "desligar-tv",
-          label: "Desligar a TV",
-          effects: { panico: 5 },
-          ignore: true,
-          result: [
-            "A TV desliga.",
-            "O celular, virado para baixo, ilumina a mesa.",
-            "47 notificações. Todas com a mesma prévia: “Você viu isso?”",
-          ],
-          reactions: { voce: "susto" },
-        },
-        {
-          id: "volume",
-          label: "Aumentar o volume para ouvir direito",
-          effects: { panico: 15, caos: 5 },
-          result: [
-            "No volume máximo, você ouve o “nega”.",
-            "O vizinho, do outro lado da parede, ouve só “fechar as igrejas”.",
-            "Ele já mandou no grupo do prédio. Com o áudio da sua TV como prova.",
-          ],
-          reactions: { voce: "desespero" },
-        },
-        {
-          id: "imovel",
-          label: "Ficar imóvel até a TV parar sozinha",
-          effects: { panico: 10 },
-          ignore: true,
-          result: ["Ela não para.", "Às 3h12, entra a previsão do tempo.", "Previsão: 80% de chance de boato, com pancadas de desmentido."],
-          reactions: { voce: "preocupado" },
-        },
-      ],
-    },
-
-    // 8 ─ a ligação das 3h33
-    {
-      id: "ligacao",
-      mode: "choice",
-      kind: "call",
-      channel: "Chamada recebida",
-      meta: "Celular",
-      time: "03:33",
-      cast: [{ id: "voce", mood: "susto" }],
-      lines: [
-        { tone: "aside", text: "O celular toca. O número na tela é o seu." },
-        { tone: "system", text: "Chamada de: VOCÊ" },
-      ],
-      variants: [
-        {
-          meter: "panico",
-          min: 45,
-          lines: [{ tone: "aside", text: "Por baixo do toque, baixinho: “você viu isso? você viu isso?”" }],
-        },
-      ],
-      prompt: "Atende?",
-      timer: 12,
-      timeout: {
-        effects: { panico: 5 },
-        ignore: true,
-        result: ["O celular para de tocar.", "Começa a tocar o micro-ondas.", "O número no visor também é o seu."],
-        reactions: { voce: "desespero" },
-      },
-      choices: [
-        {
-          id: "atender",
-          label: "Atender",
-          effects: { panico: 10, caos: 5 },
-          result: [
-            "Uma voz igual à sua lê, sem pausa, todas as mensagens que você ignorou hoje.",
-            "No final, pergunta: “Encaminhar para todos?”",
-            "Você não lembra de ter respondido. O celular lembra.",
-          ],
-          reactions: { voce: "desespero" },
-        },
-        {
-          id: "recusar",
-          label: "Recusar",
-          effects: { panico: 5 },
-          ignore: true,
-          result: [
-            "A chamada vira mensagem de voz.",
-            "A mensagem de voz vira áudio no grupo da família.",
-            "Tia Nilza: “áudio estranho, vou repassar”.",
-          ],
-          reactions: { voce: "susto" },
-        },
-        {
-          id: "desligar",
-          label: "Desligar o celular de vez",
-          effects: { panico: -10, caos: 5 },
-          ignore: true,
-          result: ["Tela preta.", "Pela primeira vez no dia, silêncio de verdade.", "No reflexo da tela preta, uma notificação continua acesa."],
-          reactions: { voce: "preocupado" },
-        },
-      ],
-    },
-  ],
-  notifications: [
-    { app: "Família Reunida 🇧🇷❤️", text: "Tio Osvaldo: olha isso aqui" },
-    { app: "Jéssica Ventania", text: "CADÊ VOCÊ" },
-    { app: "@verdadeoculta_br", text: "PADRE VISTO COM MALA (era marmita)" },
-    { app: "Rubens Muralha", text: "está ao vivo: “eles vêm pela sua geladeira”" },
-    { app: "@CompanheiraVibes", text: "últimas unidades do Kit Calma 🌿" },
-    { app: "Família Reunida 🇧🇷❤️", text: "Tia Nilza encaminhou uma mensagem (47x)" },
-    { app: "Grupo do Prédio", text: "alguém sabe se o salão de festas vai virar cooperativa?" },
-    { app: "Jornal da Véspera", text: "Governo nega. Oposição nega que governo negue." },
-    { app: "Wellington Ponto", text: "negar de novo ou não negar?" },
-    { app: "Número desconhecido", text: "Você viu isso?" },
-  ],
-  ticker: [
-    "Jornal da Véspera: Governo nega fechamento de igrejas",
-    "Portal Alerta Total: Governo não nega o suficiente",
-    "Rádio Fim de Tarde: Venda de catracas para geladeira sobe 300%",
-    "Portal Alerta Total: Cristo Redentor estaria “olhando para o Oriente”; Cristo não comenta",
-    "Jornal da Véspera: Especialistas pedem calma; calma esgota",
-    "Instituto Termômetro: 50% têm medo; os outros 50% têm medo dos 50%",
-  ],
-  chaosTicker: [
-    "Portal Alerta Total: Igrejas lotadas provam que vão fechar, dizem fiéis lotando igrejas",
-    "Jornal da Véspera: Ministério lança nota negando nota anterior",
-    "Rádio Fim de Tarde: Sofá dividido ao meio vira símbolo nacional; os dois lados reivindicam a metade com almofada",
-  ],
-  endings: {
-    calma: {
-      title: "Calma Oficial",
-      lines: [
-        "Decreto publicado: o país está oficialmente calmo.",
-        "As igrejas seguem abertas e lotadas de gente conferindo se estão abertas.",
-        "Tia Nilza devolve as cadeiras de plástico. Fica com duas, “por precaução”.",
-        "Instituto Termômetro: 87% se dizem calmos. 91% dizem que os outros não estão.",
-      ],
-      kicker: "Notificações não lidas: subindo.",
-      cast: [
-        { id: "lula", mood: "comemora" },
-        { id: "brisa", mood: "comemora" },
-        { id: "voce", mood: "preocupado" },
-        { id: "nilza", mood: "deboche" },
-      ],
-    },
-    comissao: {
-      title: "A Comissão da Comissão",
-      lines: [
-        "O governo vence a crise.",
-        "Para que nunca se repita, cria a Comissão Especial de Investigação do Boato das Igrejas.",
-        "A oposição pede uma comissão para investigar quem criou a comissão.",
-        "Aprovada por unanimidade. A primeira sessão é numa igreja, para provar que ela está aberta.",
-      ],
-      kicker: "Próxima reunião: indefinidamente.",
-      cast: [
-        { id: "brisa", mood: "deboche" },
-        { id: "wellington", mood: "comemora" },
-        { id: "rubens", mood: "comemora" },
-        { id: "voce", mood: "desespero" },
-      ],
-    },
-    transmite: {
-      title: "Tudo Transmite",
-      lines: [
-        "Você desliga o celular.",
-        "A TV liga sozinha: “Você viu isso?”",
-        "O rádio do vizinho: “Você viu isso?”",
-        "A catraca da geladeira do Tio Osvaldo apita três vezes. No visor: VIU?",
-        "O relógio da cozinha marca 3:33 há três dias.",
-      ],
-      kicker: "Desligar não é uma opção. É um conteúdo.",
-      cast: [
-        { id: "voce", mood: "desespero" },
-        { id: "osvaldo", mood: "susto" },
-        { id: "didi", mood: "susto" },
-      ],
-    },
-    silencio: {
-      title: "Saiu do Grupo",
-      lines: [
-        "Você sai do grupo “Família Reunida 🇧🇷❤️”.",
-        "Tia Nilza cria “Família Reunida 2 🇧🇷❤️ (só quem tem fé)”.",
-        "Você é adicionado(a) automaticamente.",
-        "Descrição do grupo: “aqui a gente fala a verdade que escondem de você”.",
-      ],
-      kicker: "Você agora está em 238 grupos.",
-      cast: [
-        { id: "nilza", mood: "deboche" },
-        { id: "osvaldo", mood: "comemora" },
-        { id: "voce", mood: "susto" },
-      ],
-    },
-    outro: {
-      title: "O Outro Brasil",
-      lines: [
-        "Exausto(a), você abre um portal do outro Brasil, aquele em que o outro lado venceu.",
-        "Lá, o boato é que o país vai ser entregue aos Estados Unidos.",
-        "O grupo da família é o mesmo. A tia é a mesma. O medo é o mesmo.",
-        "Só muda a cor do alerta.",
-      ],
-      kicker: "Outra rota disponível. O medo agradece a visita.",
-      cast: [
-        { id: "voce", mood: "preocupado" },
-        { id: "nilza", mood: "neutro" },
-        { id: "kelly", mood: "deboche" },
-      ],
-    },
-  },
+  tagline: "O Lula caricato fecha uma igreja, divide o último pão de queijo e tenta despachar o Brasil para a China.",
+  errands: ["Levar a Tia Nilza ao culto", "Tomar café da manhã", "Buscar uma encomenda"],
+  president: "lula",
+  episodes: [operacaoAmem, paoDeQueijo, brasilEmEntrega],
+  finale: makeFinale(KIT),
+  endings: makeEndings(KIT),
 };

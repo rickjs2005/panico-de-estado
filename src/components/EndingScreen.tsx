@@ -1,125 +1,108 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { METER_LABELS } from "@/game/engine";
+import { RESULT_LABEL, type Progress } from "@/game/engine";
 import { otherRoute, ROUTES } from "@/game/routes";
-import type { EndingId, MeterKey, Meters, RouteDef } from "@/game/types";
+import type { EpisodeResult, Reward, RouteDef } from "@/game/types";
 import Disclaimer from "./Disclaimer";
-import Scene from "./Scene";
-import { MetersBar, PhoneShell, StatusBar, Ticker, ToastStack } from "./Phone";
-import { useNotifications } from "./useNotifications";
-
-const ENDING_ORDER: EndingId[] = ["calma", "comissao", "transmite", "silencio", "outro"];
+import { PropIcon } from "./Props";
+import Stage from "./Stage";
 
 export default function EndingScreen({
   route,
   endingId,
-  meters,
+  results,
+  rewards,
+  progress,
+  onOther,
   onReplay,
-  onSwitch,
   onTitle,
 }: {
   route: RouteDef;
-  endingId: EndingId;
-  meters: Meters;
+  endingId: string;
+  results: EpisodeResult[];
+  rewards: Reward[];
+  progress: Progress;
+  onOther: () => void;
   onReplay: () => void;
-  onSwitch: () => void;
   onTitle: () => void;
 }) {
   const ending = route.endings[endingId];
-  // O jogo acabou. As notificações, não.
-  const { toasts, unread, dismiss } = useNotifications(route.notifications, Math.max(meters.panico, 60), true);
-  const headingRef = useRef<HTMLHeadingElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const other = ROUTES[otherRoute(route.id)];
+  const all = Object.keys(route.endings);
+  const found = all.filter((id) => progress.endings.includes(`${route.id}:${id}`));
 
-  useEffect(() => {
-    headingRef.current?.focus({ preventScroll: true });
-  }, []);
+  useEffect(() => heading.current?.focus({ preventScroll: true }), []);
 
   return (
-    <PhoneShell panico={meters.panico} caos={meters.caos}>
-      <StatusBar time="03:33" panico={meters.panico} unread={unread} battery={2} />
-      <MetersBar meters={meters} />
+    <main className="mx-auto flex max-w-2xl flex-col gap-5 pb-10 pt-14">
+      <Stage
+        backdrop={ending.backdrop}
+        scene={endingId === "sair" ? { portal: "OUTRO BRASIL", cartaz: "FECHADO PARA MEDO" } : { cartaz: "VOLTE SEMPRE (VOCÊ VAI VOLTAR)" }}
+        actors={ending.tableau.map((t) => ({ id: t.who, x: t.x, mood: t.mood, holding: t.holding ?? null }))}
+      />
 
-      <div className="relative flex-1">
-        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      <section className="flex flex-col gap-4 px-4 sm:px-0" aria-labelledby="ending-title">
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
+          Final · {route.name} · {found.length}/{all.length} descobertos
+        </p>
+        <h1
+          id="ending-title"
+          ref={heading}
+          tabIndex={-1}
+          className="title-glitch accent text-5xl font-black uppercase leading-[0.95] focus:outline-none"
+        >
+          {ending.title}
+        </h1>
+        <div className="space-y-3">
+          {ending.lines.map((l, i) => (
+            <p key={i} className="anim-rise text-lg leading-snug" style={{ animationDelay: `${0.2 + i * 0.45}s` }}>
+              {l}
+            </p>
+          ))}
+        </div>
 
-        <section className="flex flex-col gap-5 px-4 pb-8 pt-8" aria-labelledby="ending-title">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted">
-            Final {ENDING_ORDER.indexOf(endingId) + 1} de {ENDING_ORDER.length} · {route.name}
-          </p>
-          <h1
-            id="ending-title"
-            ref={headingRef}
-            tabIndex={-1}
-            className="title-glitch accent text-5xl font-black uppercase leading-[0.95] focus:outline-none"
-          >
-            {ending.title}
-          </h1>
-
-          <Scene kind="home" cast={ending.cast} meters={meters} presidentId={route.roles.president} className="" />
-
-          <div className="space-y-3">
-            {ending.lines.map((l, i) => (
-              <p key={i} className="anim-rise text-lg leading-snug" style={{ animationDelay: `${0.3 + i * 0.5}s` }}>
-                {l}
-              </p>
+        <section aria-label="Seu dia" className="rounded-xl border border-line bg-panel p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Seu dia neste Brasil</p>
+          <ul className="mt-2 space-y-2">
+            {route.episodes.map((e, i) => (
+              <li key={e.id} className="flex items-center gap-3">
+                {rewards[i] && <PropIcon id={rewards[i].prop} size={40} label={rewards[i].name} />}
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold leading-tight">{e.title.replace(/^Episódio \d — /, "")}</span>
+                  <span className="block text-xs text-muted">{results[i] ? RESULT_LABEL[results[i]] : "—"}</span>
+                </span>
+              </li>
             ))}
-          </div>
-
-          <p
-            className="anim-rise border-accent rounded-xl border-2 px-4 py-3 text-lg font-black"
-            style={{ animationDelay: `${0.4 + ending.lines.length * 0.5}s` }}
-          >
-            {ending.kicker}
-          </p>
-
-          <dl className="grid grid-cols-3 gap-2 text-center text-sm">
-            {(Object.keys(METER_LABELS) as MeterKey[]).map((k) => (
-              <div key={k} className="rounded-lg bg-panel px-2 py-2">
-                <dt className="text-xs text-muted">{METER_LABELS[k]}</dt>
-                <dd className="font-mono text-xl font-bold">{meters[k]}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <p className="text-sm text-muted">Existem 5 finais neste Brasil. Escolhas diferentes, medos diferentes.</p>
-
-          <div className="flex flex-col gap-3">
-            {endingId === "outro" ? (
-              <>
-                <button type="button" onClick={onSwitch} className={primary}>
-                  Visitar o outro Brasil
-                </button>
-                <button type="button" onClick={onReplay} className={secondary}>
-                  Jogar de novo neste Brasil
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={onReplay} className={primary}>
-                  Jogar de novo
-                </button>
-                <button type="button" onClick={onSwitch} className={secondary}>
-                  Trocar para “{other.name}”
-                </button>
-              </>
-            )}
-            <button type="button" onClick={onTitle} className={secondary}>
-              Voltar ao início
-            </button>
-          </div>
-
-          <Disclaimer />
+          </ul>
         </section>
-      </div>
 
-      <Ticker items={route.ticker} step={7} />
-    </PhoneShell>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={onOther}
+            className="bg-accent h-16 rounded-2xl text-lg font-black uppercase tracking-wide text-ink transition hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-bone"
+          >
+            Jogar o outro Brasil: {other.name.replace("Brasil: ", "")} →
+          </button>
+          <button
+            type="button"
+            onClick={onReplay}
+            className="min-h-12 rounded-xl border border-line px-4 text-bone/90 hover:border-bone/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-bone"
+          >
+            Jogar este Brasil de novo (outros finais)
+          </button>
+          <button
+            type="button"
+            onClick={onTitle}
+            className="min-h-12 rounded-xl border border-line px-4 text-bone/90 hover:border-bone/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-bone"
+          >
+            Voltar ao início
+          </button>
+        </div>
+        <Disclaimer />
+      </section>
+    </main>
   );
 }
-
-const primary =
-  "bg-accent h-14 rounded-xl text-lg font-black uppercase tracking-wide text-ink transition hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-bone";
-const secondary =
-  "min-h-12 rounded-xl border border-line px-4 text-bone/90 hover:border-bone/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-bone";

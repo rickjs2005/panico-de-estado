@@ -54,6 +54,22 @@ export const sound = {
   click() {
     tone(420, 0, 0.06, "triangle", 0.05);
   },
+  pop() {
+    tone(520, 0, 0.08, "triangle", 0.05);
+    tone(780, 0.05, 0.08, "triangle", 0.04);
+  },
+  carimbo() {
+    tone(90, 0, 0.18, "square", 0.05);
+    tone(60, 0.02, 0.2, "sine", 0.08);
+  },
+  porta() {
+    tone(70, 0, 0.5, "sawtooth", 0.035);
+    tone(55, 0.1, 0.6, "sine", 0.07);
+  },
+  buzina() {
+    tone(392, 0, 0.18, "square", 0.03);
+    tone(392, 0.25, 0.25, "square", 0.03);
+  },
   tick() {
     tone(1000, 0, 0.05, "square", 0.025);
   },

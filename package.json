@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "endings": "tsc scripts/endings-report.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/endings-report.js"
+    "check:content": "tsc scripts/check-content.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/check-content.js"
   },
   "dependencies": {
     "next": "15.1.12",

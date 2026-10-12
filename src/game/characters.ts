@@ -50,8 +50,13 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   // ---------- Compartilhados ----------
   voce: {
     name: "Você",
-    role: "Assessor(a) de comunicação. Primeiro dia. Crachá ainda com a foto errada.",
-    look: { skin: PELE.c, hair: "curto", hairColor: "#2b1d14", shirt: "#3b4a6b", headset: true, badge: true },
+    role: "Cidadão comum. Só queria resolver umas coisinhas hoje.",
+    look: { skin: PELE.c, hair: "curto", hairColor: "#2b1d14", shirt: "#2e6f8a" },
+  },
+  valdir: {
+    name: "Valdir dos Kits",
+    role: "Vende kits de sobrevivência. Nos dois Brasis. Com a mesma cara.",
+    look: { skin: PELE.b, hair: "lateral", hairColor: "#1c1410", beard: "bigode", beardColor: "#1c1410", shirt: "#7a2a8a", tie: "#f2c230", glasses: "escuro" },
   },
   nilza: {
     name: "Tia Nilza",
@@ -75,6 +80,26 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   },
 
   // ---------- Rota Lula ----------
+  pastor: {
+    name: "Pastor Josué Aleluia",
+    role: "Pastor do bairro. Calmo, prático e com uma senha para tudo.",
+    look: { skin: PELE.d, hair: "raspado", hairColor: "#1a1210", shirt: "#2a2a35", tie: "#e3b33a" },
+  },
+  fiscal: {
+    name: "Fiscal Odair Carimbo",
+    role: "Ministério do Amém e, nas horas vagas, Departamento de Divisões Iguais.",
+    look: { skin: PELE.a, hair: "careca", hairColor: "#6d5a4a", glasses: "grau", shirt: "#8a8f6a", tie: "#5a3216", badge: true },
+  },
+  fiel: {
+    name: "Dona Cida",
+    role: "Fiel da primeira fila. Já viu de tudo. Não tinha visto isso.",
+    look: { skin: PELE.c, hair: "coque", hairColor: "#2a1d14", shirt: "#3b8a9b" },
+  },
+  sueli: {
+    name: "Sueli do Balcão",
+    role: "Atendente dos Correios Universais. Já recusou um vulcão.",
+    look: { skin: PELE.d, hair: "rabo", hairColor: "#1a1210", glasses: "grau", shirt: "#f2c230", badge: true },
+  },
   lula: {
     name: "Lula (caricatura hipotética)",
     role: "Presidente neste Brasil inventado. Não fala no jogo: só reage.",
@@ -107,6 +132,21 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   },
 
   // ---------- Rota Flávio ----------
+  robson: {
+    name: "Robson do Despacho",
+    role: "Atendente da TransContinental Express. Pesa tudo. Inclusive suas palavras.",
+    look: { skin: PELE.c, hair: "curto", hairColor: "#1d1712", shirt: "#3b4a9b", badge: true },
+  },
+  mesario: {
+    name: "Mesário Anderson",
+    role: "Mesário voluntário. Nunca leu as regras novas. Ninguém leu.",
+    look: { skin: PELE.b, hair: "lateral", hairColor: "#5b4636", glasses: "grau", shirt: "#e8e4da", badge: true },
+  },
+  leila: {
+    name: "Leila Farah",
+    role: "Representante do Consórcio Golfo Azul. A única pessoa organizada da cena.",
+    look: { skin: PELE.b, hair: "longo", hairColor: "#2a1d14", glasses: "grau", shirt: "#2a5a6b", scarf: "#e8e4da", badge: true },
+  },
   flavio: {
     name: "Flávio (caricatura hipotética)",
     role: "Presidente neste Brasil inventado. Não fala no jogo: só reage.",
