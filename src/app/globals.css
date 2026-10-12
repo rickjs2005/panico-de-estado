@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #ff3b4f;
+  --accent-soft: rgba(255, 59, 79, 0.16);
+  color-scheme: dark;
+}
+
+/* Cada rota tem sua cor de alerta. */
+[data-route="lula"] {
+  --accent: #ff3b4f;
+  --accent-soft: rgba(255, 59, 79, 0.16);
+}
+[data-route="flavio"] {
+  --accent: #2fd27a;
+  --accent-soft: rgba(47, 210, 122, 0.16);
+}
+
+html,
+body {
+  background: #0b0b0f;
+  color: #f2efe8;
+}
+
+body {
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.accent {
+  color: var(--accent);
+}
+.bg-accent {
+  background: var(--accent);
+}
+.bg-accent-soft {
+  background: var(--accent-soft);
+}
+.border-accent {
+  border-color: var(--accent);
+}
+
+/* ----- Título ----- */
+.title-glitch {
+  position: relative;
+  letter-spacing: -0.03em;
+  text-shadow: 2px 0 rgba(255, 59, 79, 0.7), -2px 0 rgba(47, 210, 122, 0.6);
+}
+
+/* ----- Vinheta que fecha conforme o pânico sobe ----- */
+.phone-screen {
+  position: relative;
+  isolation: isolate;
+}
+.phone-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  transition: box-shadow 1.2s ease;
+  box-shadow: inset 0 0 0 0 transparent;
+}
+.phone-screen[data-panic="1"]::after {
+  box-shadow: inset 0 0 60px 6px rgba(120, 0, 20, 0.25);
+}
+.phone-screen[data-panic="2"]::after {
+  box-shadow: inset 0 0 90px 18px rgba(140, 0, 25, 0.38);
+}
+.phone-screen[data-panic="3"]::after {
+  box-shadow: inset 0 0 120px 30px rgba(160, 0, 30, 0.5);
+}
+/* Scanlines discretas a partir do pânico 2 */
+.phone-screen[data-panic="2"]::before,
+.phone-screen[data-panic="3"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 29;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+}
+
+/* ----- Animações (todas desligadas em prefers-reduced-motion) ----- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes jitter {
+  0%,
+  92%,
+  100% {
+    transform: none;
+  }
+  94% {
+    transform: translate(1px, -1px);
+  }
+  96% {
+    transform: translate(-1px, 1px);
+  }
+}
+
+.anim-rise {
+  animation: rise 0.35s ease-out both;
+}
+.anim-drop {
+  animation: drop 0.3s ease-out both;
+}
+.anim-shake {
+  animation: shake 0.3s ease-in-out 2;
+}
+.anim-blink {
+  animation: blink 1.4s ease-in-out infinite;
+}
+.ticker-track {
+  animation: ticker 38s linear infinite;
+}
+.phone-screen[data-panic="3"] .jitter {
+  animation: jitter 3.2s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .ticker-track {
+    transform: none !important;
+  }
+}
+
+/* Scrollbar discreta */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a35 transparent;
+}

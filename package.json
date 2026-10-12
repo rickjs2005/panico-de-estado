@@ -1,0 +1,30 @@
+{
+  "name": "panico-de-estado",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pânico de Estado — jogo curto de sátira política fictícia com terror psicológico",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "endings": "tsc scripts/endings-report.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/endings-report.js"
+  },
+  "dependencies": {
+    "next": "15.1.12",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "15.1.12",
+    "postcss": "^8.5.1",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.7.3"
+  }
+}
