@@ -3,7 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PuppetHead, type Face } from "@/components/Puppet";
 import { LOOKS, type LookId } from "../looks";
-import { BUILDINGS, PROPS } from "../map";
+import { BUILDINGS, LULA_BUILDINGS, PROPS } from "../map";
+import { lulaItemArt } from "./lulaArt";
 import {
   arm,
   boxArt,
@@ -83,6 +84,7 @@ function jobs(): Job[] {
   add("shadow", shadowArt(28, 10), RES.small);
   for (const layer of ["sombra", "base", "lateral", "topo", "parabrisa"] as const) add(tex.car(layer), carLayer(layer, CAR_BODY), RES.car);
   add("chicote", chicoteArt(), RES.small);
+  for (const id of ["cadeado", "kits", "brasil-caixa", "cachaca"] as const) add(id, lulaItemArt(id), RES.small);
   for (const f of ["laranja", "banana", "abacaxi"]) add(`fruit:${f}`, fruitArt(f), RES.small);
   add("gear", gearArt(), RES.small);
   add("box", boxArt(), RES.small);
@@ -93,6 +95,7 @@ function jobs(): Job[] {
 
   for (const p of PROPS) add(tex.prop(p.kind, p.variant), propArt(p.kind, p.variant), RES.prop);
   BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
+  LULA_BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
   return list;
 }
 

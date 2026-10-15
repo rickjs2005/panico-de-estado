@@ -20,7 +20,13 @@ Ao abrir o site, o jogador escolhe **Lula** ou **Flávio Bolsonaro** (caricatura
 - Moradores que andam pelas calçadas, olham para o protagonista, pulam para longe do carro e reagem à buzina.
 - Feira livre na avenida: bater numa barraca derruba as frutas e o feirante reclama.
 - **Missão do Flávio: Chicote Expresso.** Na porta da fábrica, o patrão trata os funcionários bem. Seu Boato acha isso um absurdo e manda buscar um chicote na Selaria do Zeca. O jogador vai de carro, pega o chicote no expositor e volta com ele balançando no carro. Ao receber o chicote, o patrão vira capataz de desenho animado: estala o chicote no ar, a fábrica acelera, a chaminé solta fumaça em forma de cifrão, a faixa muda para "META: 300%" e os funcionários passam a correr com caixas. A consequência fica salva e continua visível.
-- O Lula explora o mesmo bairro. A missão dele é a próxima etapa.
+- **Brasil hipotético do Lula:** o bairro já começa com bandeiras vermelhas, Ministério do Boato, universidade, terminal internacional e falas próprias dos moradores. A campanha tem quatro missões encadeadas, feitas no mapa:
+  1. **Operação Cadeado:** buscar um cadeado gigante e fechar a igreja, que continua com corrente, cadeado e placa de interdição.
+  2. **Kit Gay do Zap:** buscar caixas coloridas e entregá-las à diretora da escola. A fachada e as caixas entregues ficam no cenário. A representação é cartunesca, sem conteúdo sexual.
+  3. **Campus Sem Freio:** conversar com a reitora e assinar um decreto fictício liberando drogas no campus. Placas, folhas e nuvens cartunescas transformam a universidade.
+  4. **Brasil, Destino China:** transportar o Brasil numa caixa e despachá-lo no terminal. A esteira e a encomenda permanecem visíveis.
+- **Cachaça como energia de corrida do Lula caricato:** correr gasta a barra; beber no bar, na padaria ou no terminal recupera a energia e anima a garrafa. Andar e dirigir continuam funcionando com a barra zerada.
+- Progresso salvo entre etapas, inclusive com o objeto carregado. Cada Brasil mantém suas próprias missões e consequências; saves da versão anterior do bairro continuam válidos.
 
 ### Controles
 
@@ -31,7 +37,7 @@ Ao abrir o site, o jogador escolhe **Lula** ou **Flávio Bolsonaro** (caricatura
 | Interagir (Falar, Pegar, Entrar, Sair, Entregar) | E ou Enter | Botão de ação |
 | Carro | W/↑ acelera, S/↓ freia e dá ré, A/D ←/→ vira, Espaço freio de mão, H buzina | Aponte o direcional para onde quer ir; segure **Ré** para voltar; **Bi-bi** buzina |
 
-O menu (☰) tem **Reiniciar experiência**, que apaga o progresso salvo no navegador, e **Trocar personagem**.
+O menu (☰) pausa o mundo e tem **Reiniciar este Brasil**, que apaga apenas o progresso do protagonista atual, e **Trocar personagem**.
 
 ### Como funciona
 
@@ -46,7 +52,9 @@ O menu (☰) tem **Reiniciar experiência**, que apaga o progresso salvo no nave
 | Arquivo | O que tem |
 | --- | --- |
 | `src/world/map.ts` | Ruas, quarteirões, prédios, objetos, moradores e pontos de partida |
-| `src/world/mission.ts` | Missão Chicote Expresso: etapas, transições e falas |
+| `src/world/mission.ts` | As quatro missões do Lula e Chicote Expresso: etapas, transições e falas |
+| `src/world/game/LulaWorld.ts`, `lulaArt.ts` | Identidade do Brasil do Lula, consequências persistentes e objetos |
+| `src/world/stamina.ts`, `save.ts` | Energia de corrida e progresso separado por protagonista |
 | `src/world/looks.ts` | Aparência dos moradores e dos protagonistas |
 | `src/world/game/art.ts` | Toda a arte desenhada em SVG por código |
 | `src/world/game/WorldScene.ts` | Cena principal: controles, câmera, interações e consequências |
@@ -98,6 +106,7 @@ pnpm dev             # http://localhost:3000
 pnpm typecheck       # TypeScript
 pnpm lint            # ESLint
 pnpm check:content   # confere o roteiro dos episódios e o mapa/missão do mundo 2D
+pnpm check:world     # progressão, ações fora de ordem, compatibilidade dos saves e energia
 pnpm build           # build de produção
 ```
 

@@ -98,6 +98,12 @@ export class Walker {
     this.held.setVisible(!!key);
   }
 
+  drink() {
+    const bottle = this.scene.add.image(15, -46, "cachaca").setScale(0.7 / RES.small);
+    this.body.add(bottle);
+    this.scene.tweens.add({ targets: bottle, angle: -65, x: 7, duration: 220, hold: 450, yoyo: true, onComplete: () => bottle.destroy() });
+  }
+
   private refreshHead() {
     const v = this.facing === "front" ? "f" : this.facing === "back" ? "b" : "s";
     this.head.setTexture(tex.head(this.look, v, this.face));

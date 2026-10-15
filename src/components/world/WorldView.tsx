@@ -33,6 +33,12 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   const touch = useTouch();
 
   useEffect(() => {
+    bus.emit("pause", menu);
+    if (menu) resetTouchInput();
+    return () => bus.emit("pause", false);
+  }, [menu]);
+
+  useEffect(() => {
     const on = readPref(SOUND_KEY, "on") !== "off";
     setSoundOn(on);
     sound.setEnabled(on);
@@ -112,11 +118,26 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
           {/* objetivo */}
           <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-start gap-2 p-2 sm:p-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
             <div className="max-w-[min(30rem,calc(100%-6.5rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-3 py-1.5 shadow-[0_3px_0_#1e1424]">
+              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[10px]">
+                Brasil hipotético do {hero === "lula" ? "Lula" : "Flávio"} · ficção satírica
+              </p>
               <p className="text-[10px] font-black uppercase tracking-wider text-[#c62835] sm:text-[11px]">
                 {hud.missionTitle ? `Missão · ${hud.missionTitle}` : "Exploração"}
                 {hud.done ? " · concluída ✓" : ""}
               </p>
               <p className="text-[13px] font-bold leading-snug sm:text-[15px]">{hud.objective}</p>
+              {hud.total > 1 && <p className="mt-1 text-[10px] font-bold text-[#66556a]">Boatos concretizados: {hud.completed}/{hud.total}</p>}
+              {hud.stamina !== null && (
+                <div className="mt-2 border-t border-[#1e1424]/15 pt-1.5">
+                  <div className="flex items-center justify-between gap-2 text-[10px] font-black">
+                    <span>Cachaça · energia de corrida</span><span>{hud.stamina}%</span>
+                  </div>
+                  <div role="progressbar" aria-label="Energia de corrida" aria-valuenow={hud.stamina} aria-valuemin={0} aria-valuemax={100} className="mt-1 h-2 overflow-hidden rounded-full bg-[#1e1424]/15">
+                    <div className={`h-full rounded-full transition-[width] ${hud.stamina < 25 ? "bg-[#c62835]" : "bg-[#c48827]"}`} style={{ width: `${hud.stamina}%` }} />
+                  </div>
+                  {hud.stamina < 25 && <p className="mt-1 text-[10px] font-semibold">Reabasteça no bar, na padaria ou no terminal.</p>}
+                </div>
+              )}
             </div>
             <div className="pointer-events-auto ml-auto flex gap-2">
               <button type="button" onClick={toggleSound} aria-label={soundOn ? "Desligar som" : "Ligar som"} className="hud-btn">
@@ -129,7 +150,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
           </div>
 
           {toast && (
-            <div className="pointer-events-none absolute left-1/2 top-[4.6rem] -translate-x-1/2 animate-[pop_.2s_ease-out] whitespace-nowrap rounded-full border-[3px] border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-sm font-black shadow-[0_3px_0_#1e1424] sm:top-20">
+            <div className="pointer-events-none absolute left-1/2 top-44 w-max max-w-[90vw] -translate-x-1/2 rounded-xl border-[3px] border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-center text-sm font-black shadow-[0_3px_0_#1e1424]">
               {toast}
             </div>
           )}
@@ -242,7 +263,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                   else setConfirmReset(true);
                 }}
               >
-                {confirmReset ? "Confirmar: apagar progresso e recomeçar" : "Reiniciar experiência"}
+                {confirmReset ? "Confirmar: reiniciar este Brasil" : "Reiniciar este Brasil"}
               </button>
               <Link href="/episodios" className="menu-btn text-center">
                 Episódios da versão anterior

@@ -28,7 +28,7 @@ export default function WorldApp() {
       hero={hero}
       onSwitch={() => setHero(null)}
       onReset={() => {
-        clearSave();
+        clearSave(hero);
         setRun((r) => r + 1);
       }}
     />

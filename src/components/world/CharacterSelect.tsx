@@ -4,19 +4,24 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Puppet from "@/components/Puppet";
 import { LOOKS } from "@/world/looks";
-import { CHICOTE_EXPRESSO } from "@/world/mission";
+import { CHICOTE_EXPRESSO, missionsFor } from "@/world/mission";
 import { isDone } from "@/world/save";
 import type { HeroId } from "@/world/types";
 
 const HEROES: { id: HeroId; name: string; mission: string; color: string }[] = [
-  { id: "lula", name: "Lula", mission: "Exploração livre · missão na próxima etapa", color: "#ff3b4f" },
+  { id: "lula", name: "Lula", mission: "4 missões · Brasil dos boatos", color: "#ff3b4f" },
   { id: "flavio", name: "Flávio Bolsonaro", mission: `Missão: ${CHICOTE_EXPRESSO.title}`, color: "#2fd27a" },
 ];
 
 /** Escolha imediata do protagonista: um toque e o jogador já está no bairro. */
 export default function CharacterSelect({ onPick }: { onPick: (hero: HeroId) => void }) {
-  const [done, setDone] = useState(false);
-  useEffect(() => setDone(isDone("flavio", CHICOTE_EXPRESSO.id)), []);
+  const [done, setDone] = useState<Record<HeroId, number>>({ lula: 0, flavio: 0 });
+  useEffect(() => {
+    setDone({
+      lula: missionsFor("lula").filter((m) => isDone("lula", m.id)).length,
+      flavio: missionsFor("flavio").filter((m) => isDone("flavio", m.id)).length,
+    });
+  }, []);
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_0%,#2a2340,#0b0b0f_70%)] px-4 py-6 text-bone">
@@ -41,7 +46,7 @@ export default function CharacterSelect({ onPick }: { onPick: (hero: HeroId) => 
             <span className="mt-0.5 text-[11px] font-semibold leading-tight text-[#1e1424]/70 sm:text-xs">caricatura fictícia</span>
             <span className="mt-2 rounded-full px-2 py-1 text-[11px] font-bold leading-tight text-white sm:text-xs" style={{ background: h.color === "#2fd27a" ? "#1f8a4c" : "#c62835" }}>
               {h.mission}
-              {h.id === "flavio" && done ? " ✓" : ""}
+              {done[h.id] > 0 ? ` · ${done[h.id]}/${missionsFor(h.id).length} ✓` : ""}
             </span>
             <span className="mt-3 rounded-xl border-4 border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-base font-black">Jogar</span>
           </button>

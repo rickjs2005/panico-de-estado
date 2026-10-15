@@ -10,6 +10,7 @@ interface Events {
   toast: string;
   action: undefined;
   horn: undefined;
+  pause: boolean;
   ready: undefined;
 }
 
