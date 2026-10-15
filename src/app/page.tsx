@@ -1,5 +1,5 @@
-import Game from "@/components/Game";
+import WorldApp from "@/components/world/WorldApp";
 
 export default function Home() {
-  return <Game />;
+  return <WorldApp />;
 }

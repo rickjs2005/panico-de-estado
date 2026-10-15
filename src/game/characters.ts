@@ -36,6 +36,8 @@ export interface Look {
   /** Olheiras de quem não dorme. */
   bags?: boolean;
   ringLight?: boolean;
+  /** Sobrancelhas grossas, para a caricatura ler bem em tamanho pequeno. */
+  brows?: boolean;
 }
 
 export interface CharacterDef {

@@ -3,6 +3,10 @@
 import { CHARACTERS } from "../src/game/characters";
 import { ROUTES } from "../src/game/routes";
 import type { Beat, Episode, Task } from "../src/game/types";
+import { isFree } from "../src/world/game/collide";
+import { LOOKS } from "../src/world/looks";
+import { BUILDINGS, ITEMS, NPCS, SPAWN, buildingRect, solidRects } from "../src/world/map";
+import { CHICOTE_EXPRESSO } from "../src/world/mission";
 
 const problems: string[] = [];
 const warn = (where: string, msg: string) => problems.push(`${where}: ${msg}`);
@@ -60,6 +64,48 @@ for (const route of Object.values(ROUTES)) {
       const n = choice.options.filter((o) => (o.minWins ?? 0) <= w && (o.maxWins ?? 3) >= w).length;
       if (n < 4) warn(route.id, `com ${w} vitória(s), só ${n} opções no desfecho`);
     }
+}
+
+// ---------- Mundo 2D: mapa e missão ----------
+{
+  const solids = solidRects();
+  const npcIds = new Set<string>();
+  for (const n of NPCS) {
+    if (npcIds.has(n.id)) warn("mundo", `morador repetido "${n.id}"`);
+    npcIds.add(n.id);
+    if (!(n.look in LOOKS)) warn(`mundo/${n.id}`, `aparência desconhecida "${n.look}"`);
+    if (!isFree(n.x, n.y, 6, solids)) warn(`mundo/${n.id}`, "começa dentro de algo sólido");
+    for (const p of n.route ?? [])
+      if (BUILDINGS.some((b) => { const r = buildingRect(b); return p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h; }))
+        warn(`mundo/${n.id}`, `percurso atravessa um prédio em (${p.x}, ${p.y})`);
+  }
+  if (!isFree(SPAWN.hero.x, SPAWN.hero.y, 11, solids)) warn("mundo", "protagonista começa dentro de algo sólido");
+  if (!isFree(SPAWN.car.x, SPAWN.car.y, 15, solids)) warn("mundo", "carro começa dentro de algo sólido");
+
+  const m = CHICOTE_EXPRESSO;
+  const steps = new Set(m.steps.map((s) => s.id));
+  if (!steps.has(m.finalStep)) warn(m.id, `etapa final "${m.finalStep}" não existe`);
+  for (const st of m.steps) {
+    if (st.objective.length > 70) warn(`${m.id}/${st.id}`, "objetivo longo demais para o HUD");
+    if (st.target?.kind === "npc" && !npcIds.has(st.target.id)) warn(`${m.id}/${st.id}`, `alvo "${st.target.id}" não existe`);
+    if (st.target?.kind === "item" && !(st.target.id in ITEMS)) warn(`${m.id}/${st.id}`, `item "${st.target.id}" não existe`);
+  }
+  for (const t of m.transitions) {
+    if (!steps.has(t.from) || !steps.has(t.to)) warn(m.id, `transição ${t.from} → ${t.to} com etapa inexistente`);
+    for (const l of t.lines) {
+      if (l.who !== "hero" && !npcIds.has(l.who)) warn(`${m.id}/${t.from}`, `fala de morador desconhecido "${l.who}"`);
+      if (l.text.length > 90) warn(`${m.id}/${t.from}`, `fala longa demais para o balão: "${l.text.slice(0, 40)}…"`);
+    }
+  }
+  for (const [step, byNpc] of Object.entries(m.talk)) {
+    if (!steps.has(step)) warn(m.id, `falas para etapa inexistente "${step}"`);
+    for (const id of Object.keys(byNpc)) if (!npcIds.has(id)) warn(`${m.id}/${step}`, `falas para morador desconhecido "${id}"`);
+  }
+  // a missão precisa terminar: a partir da primeira etapa, as transições chegam à final
+  let cur = m.steps[0].id;
+  for (let i = 0; i < m.steps.length && cur !== m.finalStep; i++) cur = m.transitions.find((t) => t.from === cur)?.to ?? cur;
+  if (cur !== m.finalStep) warn(m.id, "a missão não chega à etapa final");
+  console.log(`mundo: ${NPCS.length} moradores, ${BUILDINGS.length} prédios, missão ${m.title} com ${m.steps.length} etapas`);
 }
 
 if (problems.length) {
