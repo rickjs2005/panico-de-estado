@@ -23,7 +23,7 @@ const ARMS: Record<Mood, [number, number, number, number]> = {
 };
 
 /** Poses novas reaproveitam as caras das antigas. */
-type Face = "neutro" | "preocupado" | "deboche" | "susto" | "comemora" | "desespero" | "fala";
+export type Face = "neutro" | "preocupado" | "deboche" | "susto" | "comemora" | "desespero" | "fala";
 const FACE: Record<Mood, Face> = {
   neutro: "neutro",
   preocupado: "preocupado",
@@ -38,6 +38,45 @@ const FACE: Record<Mood, Face> = {
 
 /** Objetos que o boneco segura maiores que o normal (a piada é o tamanho). */
 const BIG: Record<string, number> = { cadeado: 64, "mapa-brasil": 66, caixa: 54, refinaria: 66, kit: 48, calculadora: 36 };
+
+/**
+ * Só a cabeça do boneco (cabelo, rosto, barba, olhos e boca), no mesmo sistema de
+ * coordenadas do Puppet (viewBox 0 0 120 150). O mundo 2D usa esta peça para gerar
+ * a vista de frente dos personagens.
+ */
+export function PuppetHead({ look, face, eyesFace = face }: { look: Look; face: Face; eyesFace?: Face }) {
+  return (
+    <g>
+      <HairBack look={look} />
+      <rect x="54" y="74" width="12" height="14" fill={look.skin} />
+      <ellipse cx="60" cy="54" rx="27" ry="29" fill={look.skin} />
+      <circle cx="33" cy="56" r="4" fill={look.skin} />
+      <circle cx="87" cy="56" r="4" fill={look.skin} />
+      {look.beard === "cheia" && (
+        <path d="M34 58 Q34 90 60 90 Q86 90 86 58 Q80 74 60 76 Q40 74 34 58 Z" fill={look.beardColor ?? look.hairColor} />
+      )}
+      <HairFront look={look} />
+      {look.hair === "bone" && (
+        <g>
+          <path d="M32 46 Q32 22 60 22 Q88 22 88 46 Z" fill={look.capColor ?? "#333"} />
+          <path d="M30 46 L100 46 Q96 52 84 50 L30 50 Z" fill={look.capColor ?? "#333"} opacity="0.85" />
+        </g>
+      )}
+      <Eyes mood={eyesFace} look={look} />
+      {look.beard === "bigode" && (
+        <path d="M48 64 Q60 58 72 64 Q66 68 60 65 Q54 68 48 64 Z" fill={look.beardColor ?? look.hairColor} />
+      )}
+      <Mouth mood={face} />
+      {look.headset && (
+        <g stroke="#222" strokeWidth="3" fill="none">
+          <path d="M32 52 Q32 22 60 22 Q88 22 88 52" />
+          <path d="M34 62 Q40 74 52 72" strokeWidth="2" />
+          <rect x="28" y="48" width="8" height="14" rx="3" fill="#222" />
+        </g>
+      )}
+    </g>
+  );
+}
 
 function Eyes({ mood, look }: { mood: Face; look: Look }) {
   const brows = (l: string, r: string) => (
@@ -106,9 +145,16 @@ function Eyes({ mood, look }: { mood: Face; look: Look }) {
         </>
       );
   }
+  const ownBrows = mood === "susto" || mood === "deboche" || mood === "desespero" || mood === "preocupado";
   return (
     <>
       {eyes}
+      {look.brows && !ownBrows && (
+        <g stroke={look.hairColor} strokeWidth="5" strokeLinecap="round" fill="none">
+          <path d="M42 44 Q50 39 57 43" />
+          <path d="M63 43 Q70 39 78 44" />
+        </g>
+      )}
       {look.bags && (
         <g stroke="#7a5a8a" strokeWidth="1.6" fill="none" opacity="0.8">
           <path d="M45 58 Q50 61 55 58" />
@@ -278,6 +324,7 @@ export default function Puppet({
   holding,
   flip = false,
   talking = false,
+  look: lookOverride,
 }: {
   id: CharacterId;
   mood?: Mood;
@@ -286,12 +333,14 @@ export default function Puppet({
   holding?: PropId | null;
   flip?: boolean;
   talking?: boolean;
+  /** Aparência alternativa (o mundo 2D usa versões com sobrancelhas marcadas). */
+  look?: Look;
 }) {
   const face = FACE[mood];
   const [, , rx, ry] = ARMS[mood];
   const held = holding ? (mood === "carrega" ? { x: 60, y: 112, size: BIG[holding] ?? 44 } : { x: rx, y: ry - 4, size: BIG[holding] ?? 30 }) : null;
   const c = character(id);
-  const look = c.look;
+  const look = lookOverride ?? c.look;
   const short = c.name.replace(/ \(caricatura hipotética\)/, "");
   return (
     <figure className="flex shrink-0 flex-col items-center" style={{ width: size }}>
@@ -307,33 +356,7 @@ export default function Puppet({
         <g className={talking ? "pup-talk" : MOOD_CLASS[mood]} style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}>
           {look.ringLight && <circle cx="60" cy="58" r="50" fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="5" />}
           <Body look={look} mood={mood} />
-          <HairBack look={look} />
-          <rect x="54" y="74" width="12" height="14" fill={look.skin} />
-          <ellipse cx="60" cy="54" rx="27" ry="29" fill={look.skin} />
-          <circle cx="33" cy="56" r="4" fill={look.skin} />
-          <circle cx="87" cy="56" r="4" fill={look.skin} />
-          {look.beard === "cheia" && (
-            <path d="M34 58 Q34 90 60 90 Q86 90 86 58 Q80 74 60 76 Q40 74 34 58 Z" fill={look.beardColor ?? look.hairColor} />
-          )}
-          <HairFront look={look} />
-          {look.hair === "bone" && (
-            <g>
-              <path d="M32 46 Q32 22 60 22 Q88 22 88 46 Z" fill={look.capColor ?? "#333"} />
-              <path d="M30 46 L100 46 Q96 52 84 50 L30 50 Z" fill={look.capColor ?? "#333"} opacity="0.85" />
-            </g>
-          )}
-          <Eyes mood={face} look={look} />
-          {look.beard === "bigode" && (
-            <path d="M48 64 Q60 58 72 64 Q66 68 60 65 Q54 68 48 64 Z" fill={look.beardColor ?? look.hairColor} />
-          )}
-          <Mouth mood={talking ? "fala" : face} />
-          {look.headset && (
-            <g stroke="#222" strokeWidth="3" fill="none">
-              <path d="M32 52 Q32 22 60 22 Q88 22 88 52" />
-              <path d="M34 62 Q40 74 52 72" strokeWidth="2" />
-              <rect x="28" y="48" width="8" height="14" rx="3" fill="#222" />
-            </g>
-          )}
+          <PuppetHead look={look} face={talking ? "fala" : face} eyesFace={face} />
           {held && holding && <PropArt id={holding} x={held.x} y={held.y} size={held.size} />}
         </g>
         </g>

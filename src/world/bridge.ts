@@ -1,0 +1,54 @@
+import type { HudState } from "./types";
+
+/**
+ * Ponte entre o mundo (Phaser) e a interface (React).
+ * O mundo publica o estado do HUD; a interface envia ações e o direcional virtual.
+ */
+
+interface Events {
+  hud: HudState;
+  toast: string;
+  action: undefined;
+  horn: undefined;
+  ready: undefined;
+}
+
+type Listener<K extends keyof Events> = (payload: Events[K]) => void;
+
+class Bus {
+  private listeners = new Map<keyof Events, Set<(payload: unknown) => void>>();
+
+  on<K extends keyof Events>(event: K, fn: Listener<K>): () => void {
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
+    }
+    const wrapped = fn as (payload: unknown) => void;
+    set.add(wrapped);
+    return () => {
+      set.delete(wrapped);
+    };
+  }
+
+  emit<K extends keyof Events>(event: K, ...payload: Events[K] extends undefined ? [] : [Events[K]]) {
+    this.listeners.get(event)?.forEach((fn) => fn(payload[0]));
+  }
+}
+
+export const bus = new Bus();
+
+/** Entrada vinda da tela de toque. O teclado é lido direto pelo Phaser. */
+export const touchInput = {
+  /** Direcional virtual, de -1 a 1. */
+  x: 0,
+  y: 0,
+  /** Botão "Ré" segurado (só no carro). */
+  reverse: false,
+};
+
+export function resetTouchInput() {
+  touchInput.x = 0;
+  touchInput.y = 0;
+  touchInput.reverse = false;
+}
