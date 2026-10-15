@@ -20,13 +20,52 @@ Ao abrir o site, o jogador escolhe **Lula** ou **Flávio Bolsonaro** (caricatura
 - Moradores que andam pelas calçadas, olham para o protagonista, pulam para longe do carro e reagem à buzina.
 - Feira livre na avenida: bater numa barraca derruba as frutas e o feirante reclama.
 - **Missão do Flávio: Chicote Expresso.** Na porta da fábrica, o patrão trata os funcionários bem. Seu Boato acha isso um absurdo e manda buscar um chicote na Selaria do Zeca. O jogador vai de carro, pega o chicote no expositor e volta com ele balançando no carro. Ao receber o chicote, o patrão vira capataz de desenho animado: estala o chicote no ar, a fábrica acelera, a chaminé solta fumaça em forma de cifrão, a faixa muda para "META: 300%" e os funcionários passam a correr com caixas. A consequência fica salva e continua visível.
-- **Brasil hipotético do Lula:** o bairro já começa com bandeiras vermelhas, Ministério do Boato, universidade, terminal internacional e falas próprias dos moradores. A campanha tem quatro missões encadeadas, feitas no mapa:
-  1. **Operação Cadeado:** buscar um cadeado gigante e fechar a igreja, que continua com corrente, cadeado e placa de interdição.
-  2. **Kit Gay do Zap:** buscar caixas coloridas e entregá-las à diretora da escola. A fachada e as caixas entregues ficam no cenário. A representação é cartunesca, sem conteúdo sexual.
-  3. **Campus Sem Freio:** conversar com a reitora e assinar um decreto fictício liberando drogas no campus. Placas, folhas e nuvens cartunescas transformam a universidade.
-  4. **Brasil, Destino China:** transportar o Brasil numa caixa e despachá-lo no terminal. A esteira e a encomenda permanecem visíveis.
-- **Cachaça como energia de corrida do Lula caricato:** correr gasta a barra; beber no bar, na padaria ou no terminal recupera a energia e anima a garrafa. Andar e dirigir continuam funcionando com a barra zerada.
-- Progresso salvo entre etapas, inclusive com o objeto carregado. Cada Brasil mantém suas próprias missões e consequências; saves da versão anterior do bairro continuam válidos.
+- **Brasil do Flávio:** continua no bairro original, com a missão Chicote Expresso.
+- **Brasil do Lula: uma cidade maior para explorar** (veja abaixo). As quatro missões do Lula (Operação Cadeado, Kit Gay do Zap, Campus Sem Freio e Brasil, Destino China) continuam no código (`src/world/mission.ts`, `src/world/game/LulaWorld.ts`), mas ficam reservadas para a próxima fase: nesta etapa, o Lula só explora a cidade.
+- **Cachaça como energia de corrida do Lula caricato:** correr gasta a barra; as placas CACHAÇA · ENERGIA espalhadas pela cidade recarregam. Andar e dirigir continuam funcionando com a barra zerada.
+- Cada Brasil mantém o próprio progresso. O menu "Reiniciar este Brasil" apaga só o do protagonista atual.
+
+## A cidade do Lula (mundo em construção)
+
+Um Brasil fictício onde os boatos absurdos viraram realidade e o Lula caricato já governa. A cidade tem 4800 × 3600 px, cerca de 3,5 vezes a área do bairro, e é limitada por um morro com o letreiro "BRASIL HIPOTÉTICO" ao norte, um canal a oeste, uma baía com o navio "Destino: China" ao sul e um muro "fim do mapa" a leste.
+
+| Distrito | O que tem |
+| --- | --- |
+| **Centro Cívico** | Praça da Revolução Boateira (calçada de ondas, coreto, chafariz, Monumento ao Áudio de 3 Minutos, frades), Prefeitura Popular, Ministério do Boato com megafone gigante, Igreja Matriz interditada com correntes e cadeado, Repartição de Carimbos (interior), Secretaria da Coletivização, Banco Estatal, Assembleia da Fé lacrada e estacionamento municipal |
+| **Vila do Mutirão** (residencial) | Casas, conjuntos habitacionais com varais, pátios, pracinha com campinho e placas de propriedade coletiva |
+| **Largo da Feira** (comercial) | Feira livre na Rua da Feira, mercadinho, padaria, Bar do Tião (interior), farmácia, oficina, borracharia, shopping popular, lotérica, pastelaria e estacionamento |
+| **Cidade Universitária** (educacional) | Universidade do Pânico no modo "liberou geral" (barracas, caixas de som, faixa), biblioteca, escola com depósito de kits coloridos, quadra, cantina do DCE e área de convivência |
+| **Polo Industrial** | Fábrica Estatal Nº 1, galpões coletivos, depósitos, pátio de carga com caminhões e estacionamento |
+| **Terminal Brasil–China** | Alfândega do Impossível, armazéns de exportação, pátio de contêineres, esteira de despacho do Brasil em caixas, guindaste e cais |
+
+**Infraestrutura:** anel de ruas na borda, três avenidas (do Povo, do Boato e da Exportação) e ruas locais com traçado próprio em cada distrito; calçadas, meio-fio, faixas de pedestre em todos os cruzamentos, placas com o nome das ruas, postes nas avenidas, sete estacionamentos com vagas pintadas e onze carros estacionados em pontos úteis.
+
+**Exploração:**
+- O nome do distrito aparece ao entrar nele, e o HUD mostra onde você está.
+- O mapa abre com a tecla M ou com o botão 🗺️. Ele mostra a posição atual e os lugares, e marca um destino com seta e distância.
+- Lugares menores entram no mapa depois que você passa por eles.
+- O carro mais próximo é o que você dirige. Ao sair numa vaga pintada, o jogo avisa que o carro está estacionado.
+- Batidas derrubam frutas da feira, viram lixeiras e cones e fazem tambores balançarem.
+- Interiores: entre no **Bar do Tião** (com cachaça no balcão) e na **Repartição de Carimbos** pela porta com tapete vermelho, explore e saia pela SAÍDA.
+
+### Como a cidade está organizada
+
+| Arquivo | O que tem |
+| --- | --- |
+| `src/world/cidade/layout.ts` | Geometria: tamanho, limites, ruas e distritos |
+| `src/world/cidade/distritos/*.ts` | Um arquivo por distrito: chão, prédios, objetos, lugares, estacionamentos, carros, moradores e paradas de cachaça |
+| `src/world/cidade/interiors.ts` | Interiores (salas fora da câmera da rua). Para criar um novo, acrescente uma sala e marque `interior` no prédio |
+| `src/world/cidade/places.ts` | Estados persistentes dos lugares: igreja aberta/interditada, depósito vazio/abastecido, terminal em operação/parado, universidade normal/liberou geral |
+| `src/world/cidade/progress.ts` | Progresso próprio da cidade (estados, lugares descobertos e destino), numa chave separada |
+| `src/world/cidade/index.ts` | Junta os distritos e calcula colisões, portas e vagas |
+| `src/world/game/city/CityScene.ts` | Cena da cidade: chão em blocos, câmera, carros, interiores, estados, descoberta e destino |
+| `src/world/game/city/cityArt.ts` | Arte dos prédios e objetos novos (SVG desenhado em código) |
+| `src/world/game/city/culler.ts` | Só deixa visível o que está perto da câmera |
+| `src/components/world/CityMap.tsx` | Mapa da cidade |
+
+Cada prédio, objeto, lugar, morador, carro e estacionamento tem um id estável. Os campos `hooks` (missões e personagens futuros), `place` (estado persistente) e `interior` (porta) são onde as próximas histórias se conectam, sem redesenhar o mapa. Com `?debug=1`, `window.__pde.setPlace("igreja-matriz", "aberta")` muda um estado na hora.
+
+`pnpm check:city` confere ids, prédios dentro dos distritos e fora das ruas. Ele também testa, por busca em grade, se dá para chegar a pé a todas as portas, lugares, moradores e paradas de cachaça, e de carro a todos os estacionamentos e veículos.
 
 ### Controles
 
@@ -34,7 +73,8 @@ Ao abrir o site, o jogador escolhe **Lula** ou **Flávio Bolsonaro** (caricatura
 | --- | --- | --- |
 | Andar | WASD ou setas | Direcional virtual |
 | Correr | Shift | Empurrar o direcional até a borda |
-| Interagir (Falar, Pegar, Entrar, Sair, Entregar) | E ou Enter | Botão de ação |
+| Interagir (Falar, Pegar, Entrar, Sair, Entregar, Beber) | E ou Enter | Botão de ação |
+| Mapa da cidade (Lula) | M (Esc fecha) | Botão 🗺️ |
 | Carro | W/↑ acelera, S/↓ freia e dá ré, A/D ←/→ vira, Espaço freio de mão, H buzina | Aponte o direcional para onde quer ir; segure **Ré** para voltar; **Bi-bi** buzina |
 
 O menu (☰) pausa o mundo e tem **Reiniciar este Brasil**, que apaga apenas o progresso do protagonista atual, e **Trocar personagem**.
@@ -106,6 +146,7 @@ pnpm dev             # http://localhost:3000
 pnpm typecheck       # TypeScript
 pnpm lint            # ESLint
 pnpm check:content   # confere o roteiro dos episódios e o mapa/missão do mundo 2D
+pnpm check:city      # cidade do Lula: ids, distritos, colisões e acessos a pé e de carro
 pnpm check:world     # progressão, ações fora de ordem, compatibilidade dos saves e energia
 pnpm build           # build de produção
 ```

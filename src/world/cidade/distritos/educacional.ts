@@ -1,0 +1,107 @@
+import { casa, loja, parked } from "../helpers";
+import { lot } from "../layout";
+import type { DistrictContent, ParkingDef } from "../types";
+
+/** Cidade Universitária: universidade "liberou geral", escola com depósito de kits, quadra e convivência. */
+const D = "educacional" as const;
+
+const CAMPUS: ParkingDef = { id: "edu-estacionamento", name: "Estacionamento do Campus", district: D, rect: { x: 3330, y: 320, w: 130, h: 300 }, rows: "v" };
+const CONVIVENCIA: ParkingDef = { id: "edu-estacionamento-2", name: "Estacionamento da Convivência", district: D, rect: { x: 4300, y: 1440, w: 210, h: 230 }, rows: "h" };
+
+export const EDUCACIONAL: DistrictContent = {
+  grounds: [
+    { rect: lot(3290, 270, 4550, 900), kind: "grama" },
+    { rect: { x: 3330, y: 320, w: 130, h: 300 }, kind: "patio" },
+    { rect: lot(3290, 1010, 3900, 1710), kind: "calcada" },
+    { rect: { x: 3350, y: 1380, w: 330, h: 270 }, kind: "quadra" },
+    { rect: lot(4010, 1010, 4550, 1710), kind: "grama" },
+    { rect: { x: 4300, y: 1440, w: 210, h: 230 }, kind: "patio" },
+  ],
+  buildings: [
+    {
+      id: "edu-universidade",
+      district: D,
+      kind: "universidade",
+      x: 3480,
+      y: 480,
+      w: 640,
+      d: 130,
+      h: 150,
+      top: 90,
+      wall: "#f1faee",
+      roof: "telha",
+      sign: "UNIVERSIDADE DO PÂNICO",
+      place: "universidade",
+      hooks: { missions: ["campus-liberado"], characters: ["reitora"] },
+    },
+    { id: "edu-biblioteca", district: D, kind: "escola", x: 4170, y: 470, w: 320, d: 110, h: 120, wall: "#a2c7c0", roof: "laje", sign: "BIBLIOTECA LIVRE" },
+    { id: "edu-escola", district: D, kind: "escola", x: 3340, y: 1160, w: 330, d: 120, h: 120, wall: "#f1faee", roof: "telha", sign: "ESCOLA ESTADUAL DO BOATO", hooks: { characters: ["diretora"] } },
+    {
+      id: "edu-deposito",
+      district: D,
+      kind: "galpao",
+      x: 3690,
+      y: 1170,
+      w: 170,
+      d: 100,
+      h: 100,
+      wall: "#c9b8f0",
+      roof: "laje",
+      sign: "DEPÓSITO DE KITS",
+      place: "deposito-kits",
+      hooks: { missions: ["kit-do-zap"] },
+    },
+    casa(D, "edu-republica", 4060, 1160, 200, "#ffc8dd", "laje", { d: 110, h: 105, sign: "REPÚBLICA LIBEROU GERAL" }),
+    loja(D, "edu-cantina", 4290, 1160, 210, "#ffe066", "CANTINA DO DCE", ["#3a86c8", "#ffffff"]),
+  ],
+  props: [
+    { kind: "ipe", x: 3500, y: 860, variant: "amarelo" },
+    { kind: "ipe", x: 4010, y: 650, variant: "rosa" },
+    { kind: "ipe", x: 4300, y: 700, variant: "amarelo" },
+    { kind: "ipe", x: 4490, y: 860, variant: "rosa" },
+    { kind: "mesaPiquenique", x: 4060, y: 740 },
+    { kind: "mesaPiquenique", x: 4200, y: 800 },
+    { kind: "tabela", x: 3515, y: 1400 },
+    { kind: "tabela", x: 3515, y: 1648, variant: "baixo" },
+    { kind: "bandeira", x: 3350, y: 1310 },
+    { kind: "outdoor", x: 3760, y: 1668, text: "MERENDA COLETIVA · REPETIÇÃO PARA TODOS" },
+    { kind: "mesaPiquenique", x: 4100, y: 1400 },
+    { kind: "mesaPiquenique", x: 4250, y: 1420 },
+    { kind: "ipe", x: 4080, y: 1560, variant: "rosa" },
+    { kind: "ipe", x: 4490, y: 1330, variant: "amarelo" },
+    { kind: "quiosque", x: 4400, y: 840, variant: "dce" },
+    { id: "edu-lixeira-1", kind: "lixeira", x: 3890, y: 1300, react: "tip" },
+    { kind: "pontoOnibus", x: 3700, y: 885 },
+  ],
+  pois: [
+    { id: "edu-universidade", name: "Universidade do Pânico", district: D, x: 3800, y: 650, kind: "educacao", landmark: true, hooks: { missions: ["campus-liberado"] } },
+    { id: "edu-escola", name: "Escola Estadual do Boato", district: D, x: 3505, y: 1310, kind: "educacao", landmark: true },
+    { id: "edu-deposito", name: "Depósito de Kits", district: D, x: 3775, y: 1300, kind: "educacao" },
+    { id: "edu-biblioteca", name: "Biblioteca Livre", district: D, x: 4330, y: 600, kind: "educacao" },
+    { id: "edu-quadra", name: "Quadra da Escola", district: D, x: 3515, y: 1520, kind: "praca" },
+    { id: "edu-cantina", name: "Cantina do DCE", district: D, x: 4395, y: 1290, kind: "comercio" },
+    { id: "edu-estacionamento", name: "Estacionamento do Campus", district: D, x: 3395, y: 470, kind: "estacionamento" },
+    { id: "edu-estacionamento-2", name: "Estacionamento da Convivência", district: D, x: 4405, y: 1555, kind: "estacionamento" },
+  ],
+  parking: [CAMPUS, CONVIVENCIA],
+  vehicles: [parked("car-campus", CAMPUS, 2, "#7b4bd1"), parked("car-convivencia", CONVIVENCIA, 1, "#f2c230")],
+  npcs: [
+    { id: "reitora", district: D, name: "Reitora Vera", look: "reitora", x: 3740, y: 655, facing: "front", lines: ["Aqui até o absurdo precisa de assinatura.", "Universidade do Pânico: formada nos grupos de família."] },
+    { id: "diretora", district: D, name: "Diretora Clarice", look: "diretora", x: 3460, y: 1315, facing: "front", lines: ["O almoxarifado não estava preparado para esse boato.", "Tem caixa colorida até no corredor!"] },
+    {
+      id: "estudante",
+      district: D,
+      name: "Estudante do DCE",
+      look: "func3",
+      x: 3540,
+      y: 800,
+      facing: "side",
+      route: [
+        { x: 3540, y: 800 },
+        { x: 4440, y: 800 },
+      ],
+      lines: ["Hoje tem assembleia, festa e assembleia da festa.", "A prova foi coletivizada: todo mundo tirou 7."],
+    },
+  ],
+  cachaca: [{ id: "cachaca-dce", name: "Quiosque do DCE", district: D, x: 4400, y: 865 }],
+};

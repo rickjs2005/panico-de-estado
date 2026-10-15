@@ -1,4 +1,4 @@
-import type { HudState } from "./types";
+import type { HudState, Point } from "./types";
 
 /**
  * Ponte entre o mundo (Phaser) e a interface (React).
@@ -11,6 +11,10 @@ interface Events {
   action: undefined;
   horn: undefined;
   pause: boolean;
+  /** Entrou num distrito (só na cidade). */
+  district: { name: string; tagline: string; color: string };
+  /** Destino marcado no mapa (React → mundo); null limpa. */
+  waypoint: (Point & { label: string }) | null;
   ready: undefined;
 }
 
@@ -53,3 +57,15 @@ export function resetTouchInput() {
   touchInput.y = 0;
   touchInput.reverse = false;
 }
+
+/**
+ * Posição atual do protagonista, lida pelo mapa quando ele abre.
+ * Fica fora do React para não redesenhar a interface a cada quadro.
+ */
+export const worldState = {
+  x: 0,
+  y: 0,
+  angle: 0,
+  inside: null as string | null,
+  waypoint: null as (Point & { label: string }) | null,
+};

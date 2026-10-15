@@ -9,7 +9,7 @@ import { isDone } from "@/world/save";
 import type { HeroId } from "@/world/types";
 
 const HEROES: { id: HeroId; name: string; mission: string; color: string }[] = [
-  { id: "lula", name: "Lula", mission: "4 missões · Brasil dos boatos", color: "#ff3b4f" },
+  { id: "lula", name: "Lula", mission: "Cidade aberta · 6 distritos para explorar", color: "#ff3b4f" },
   { id: "flavio", name: "Flávio Bolsonaro", mission: `Missão: ${CHICOTE_EXPRESSO.title}`, color: "#2fd27a" },
 ];
 
@@ -46,7 +46,7 @@ export default function CharacterSelect({ onPick }: { onPick: (hero: HeroId) => 
             <span className="mt-0.5 text-[11px] font-semibold leading-tight text-[#1e1424]/70 sm:text-xs">caricatura fictícia</span>
             <span className="mt-2 rounded-full px-2 py-1 text-[11px] font-bold leading-tight text-white sm:text-xs" style={{ background: h.color === "#2fd27a" ? "#1f8a4c" : "#c62835" }}>
               {h.mission}
-              {done[h.id] > 0 ? ` · ${done[h.id]}/${missionsFor(h.id).length} ✓` : ""}
+              {h.id === "flavio" && done.flavio > 0 ? ` · ${done.flavio}/${missionsFor("flavio").length} ✓` : ""}
             </span>
             <span className="mt-3 rounded-xl border-4 border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-base font-black">Jogar</span>
           </button>

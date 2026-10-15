@@ -3,7 +3,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PuppetHead, type Face } from "@/components/Puppet";
 import { LOOKS, type LookId } from "../looks";
-import { BUILDINGS, LULA_BUILDINGS, PROPS } from "../map";
+import { BUILDINGS as CITY_BUILDINGS, PROPS as CITY_PROPS, INTERIOR_PROPS, VEHICLES } from "../cidade";
+import { BUILDINGS, PROPS } from "../map";
+import type { HeroId } from "../types";
+import { casinhaArt, cityBuildingArt, cityPropArt, cityTile, interdicaoArt, navioArt, waterTile } from "./city/cityArt";
 import { lulaItemArt } from "./lulaArt";
 import {
   arm,
@@ -44,11 +47,14 @@ export const tex = {
   leg: (look: LookId, view: "f" | "s") => `l:${LOOKS[look].pants}:${view}`,
   prop: (kind: string, variant?: string) => `p:${kind}:${variant ?? ""}`,
   building: (id: string) => `b:${id}`,
-  car: (layer: CarLayer) => `car:${layer}`,
+  car: (layer: CarLayer, color: string = CAR_BODY) => (color === CAR_BODY || layer === "sombra" || layer === "base" || layer === "parabrisa" ? `car:${layer}` : `car:${layer}:${color}`),
 };
 
+/** Textura de cada prédio da cidade (prédios com o mesmo desenho dividem a textura). */
+export const CITY_TEX = new Map<string, string>();
+
 /** Resolução das texturas em relação aos pixels do mundo. */
-export const RES = { char: 3, small: 3, car: 3, prop: 2, building: 2, tile: 2 };
+export const RES = { char: 3, small: 3, car: 3, prop: 2, building: 2, tile: 2, cityBuilding: 1.6, cityProp: 1.8, big: 1.4 };
 
 interface Job {
   key: string;
@@ -61,7 +67,13 @@ function frontHead(look: LookId, face: Face): Art {
   return headArt(body);
 }
 
-function jobs(): Job[] {
+function hash(text: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(36);
+}
+
+function jobs(hero: HeroId): Job[] {
   const list: Job[] = [];
   const seen = new Set<string>();
   const add = (key: string, art: Art, scale: number) => {
@@ -93,9 +105,31 @@ function jobs(): Job[] {
   add("emote", emoteArt(), RES.small);
   for (const t of ["calcada", "ondas", "grama", "terra"] as const) add(`tile:${t}`, tileArt(t), RES.tile);
 
-  for (const p of PROPS) add(tex.prop(p.kind, p.variant), propArt(p.kind, p.variant), RES.prop);
-  BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
-  LULA_BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
+  if (hero === "flavio") {
+    for (const p of PROPS) add(tex.prop(p.kind, p.variant), propArt(p.kind, p.variant), RES.prop);
+    BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
+    return list;
+  }
+
+  // cidade do Lula
+  for (const color of new Set(VEHICLES.map((v) => v.color))) {
+    for (const layer of ["lateral", "topo"] as const) add(tex.car(layer, color), carLayer(layer, color), RES.car);
+  }
+  for (const p of [...CITY_PROPS, ...INTERIOR_PROPS]) add(tex.prop(p.kind, p.variant), cityPropArt(p.kind, p.variant), RES.cityProp);
+  for (const [kind, variant] of [["caixasKits", undefined], ["barracaCamping", "laranja"], ["barracaCamping", "azul"], ["barracaCamping", "verde"], ["caixaSom", undefined], ["faixaCampus", undefined], ["outdoor", undefined]] as const) {
+    add(tex.prop(kind, variant), cityPropArt(kind, variant), RES.cityProp);
+  }
+  CITY_BUILDINGS.forEach((b) => {
+    const art = cityBuildingArt(b, b.id.length);
+    const key = `cb:${hash(art.body)}:${art.w}x${art.h}`;
+    CITY_TEX.set(b.id, key);
+    add(key, art, RES.cityBuilding);
+  });
+  for (const t of ["concreto", "patio", "quadra", "piso-bar", "piso-reparticao"] as const) add(`tile:${t}`, cityTile(t), RES.tile);
+  add("tile:agua", waterTile(), RES.tile);
+  ["#f2a7b8", "#7fb3d5", "#ffd23f", "#b5e48c", "#ff9f80", "#cdb4db"].forEach((c, i) => add(`casinha:${i}`, casinhaArt(c), RES.prop));
+  add("navio", navioArt(), RES.big);
+  add("interdicao", interdicaoArt(), RES.small);
   return list;
 }
 
@@ -117,8 +151,8 @@ function rasterize(job: Job): Promise<HTMLCanvasElement> {
 }
 
 /** Gera todas as texturas do bairro. Chamado uma vez, antes da cena do mundo. */
-export async function bakeTextures(scene: Phaser.Scene, onProgress?: (done: number, total: number) => void): Promise<void> {
-  const list = jobs().filter((j) => !scene.textures.exists(j.key));
+export async function bakeTextures(scene: Phaser.Scene, hero: HeroId, onProgress?: (done: number, total: number) => void): Promise<void> {
+  const list = jobs(hero).filter((j) => !scene.textures.exists(j.key));
   let done = 0;
   const batch = 16;
   for (let i = 0; i < list.length; i += batch) {

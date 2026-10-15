@@ -55,7 +55,7 @@ export function toInt(c: string): number {
   return (r << 16) | (g << 8) | b;
 }
 
-function esc(t: string): string {
+export function esc(t: string): string {
   return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
@@ -572,12 +572,12 @@ export function propArt(kind: PropKind, variant?: string): PropArt {
 
 // ---------- prédios ----------
 
-function windowSvg(x: number, y: number, w: number, h: number) {
+export function windowSvg(x: number, y: number, w: number, h: number) {
   const bars = Array.from({ length: 3 }, (_, i) => `<path d="M${x + ((i + 1) * w) / 4} ${y} V${y + h}" stroke="#3a3a45" stroke-width="1.4"/>`).join("");
   return `<rect x="${x - 2}" y="${y - 2}" width="${w + 4}" height="${h + 4}" rx="2" fill="#fffaf0"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#8ec5e8"/><path d="M${x} ${y + h * 0.35} L${x + w * 0.4} ${y}" stroke="#c9e7ff" stroke-width="3"/>${bars}`;
 }
 
-function telhado(w: number, top: number, d: number) {
+export function telhado(w: number, top: number, d: number) {
   const ridge = top + d * 0.42;
   const rows = Array.from({ length: Math.floor((top + d - ridge) / 9) }, (_, i) => `<path d="M2 ${ridge + 8 + i * 9} H${w - 2}" stroke="#a9441f" stroke-width="1.6"/>`).join("");
   const back = Array.from({ length: Math.floor((ridge - top) / 9) }, (_, i) => `<path d="M2 ${top + 6 + i * 9} H${w - 2}" stroke="#c4582e" stroke-width="1.2"/>`).join("");
@@ -590,7 +590,7 @@ function telhado(w: number, top: number, d: number) {
   );
 }
 
-function laje(w: number, top: number, d: number, seed: number) {
+export function laje(w: number, top: number, d: number, seed: number) {
   const cx = w * (0.6 + (seed % 3) * 0.1);
   return (
     `<rect x="0" y="${top}" width="${w}" height="${d}" fill="#cfc8bb"/>` +
@@ -600,12 +600,12 @@ function laje(w: number, top: number, d: number, seed: number) {
   );
 }
 
-function signSvg(text: string, x: number, y: number, w: number, h: number, color = "#fffaf0") {
+export function signSvg(text: string, x: number, y: number, w: number, h: number, color = "#fffaf0") {
   const size = Math.min(15, (w * 0.92) / (text.length * 0.66));
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${color}"/><text x="${x + w / 2}" y="${y + h / 2 + size * 0.36}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${size.toFixed(1)}" text-anchor="middle" fill="${INK}">${esc(text)}</text>`;
 }
 
-function awningSvg(x: number, y: number, w: number, colors: [string, string]) {
+export function awningSvg(x: number, y: number, w: number, colors: [string, string]) {
   const n = Math.max(4, Math.round(w / 14));
   const sw = w / n;
   let s = "";
@@ -669,7 +669,7 @@ export function buildingArt(b: BuildingDef, seed: number): Art {
     // portão
     parts.push(`<rect x="200" y="${bottom - 72}" width="150" height="72" fill="#5a6470"/>`);
     for (let y = bottom - 66; y < bottom; y += 8) parts.push(`<path d="M200 ${y} H350" stroke="#7a8590" stroke-width="2"/>`);
-    parts.push(signSvg("FÁBRICA FELIZ", 150, fy + 14, 250, 30, "#fff3a0"));
+    parts.push(signSvg(b.sign ?? "FÁBRICA FELIZ", 150, fy + 14, 250, 30, "#fff3a0"));
     parts.push(`<circle cx="166" cy="${fy + 29}" r="9" fill="#ffd23f"/><path d="M161 ${fy + 31} Q166 ${fy + 36} 171 ${fy + 31}" stroke="${INK}" stroke-width="1.6" fill="none"/><circle cx="163" cy="${fy + 26}" r="1.3" fill="${INK}"/><circle cx="169" cy="${fy + 26}" r="1.3" fill="${INK}"/>`);
     return { w: W, h: H, body: parts.join(""), outline: 1.4 };
   }
