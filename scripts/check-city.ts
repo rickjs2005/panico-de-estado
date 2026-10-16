@@ -31,7 +31,7 @@ import {
 } from "../src/world/cidade";
 import { initialPlaces, PLACES } from "../src/world/cidade/places";
 import { CAMPANHA, ITENS } from "../src/world/cidade/missoes/campanha";
-import type { Efeito } from "../src/world/cidade/missoes/motor";
+import { todasMissoes, type Efeito } from "../src/world/cidade/missoes/motor";
 import { AMBIENT, CORES_TRANSITO } from "../src/world/cidade/vida";
 import { ARESTAS, NOS, conectada, curva, semSaida } from "../src/world/cidade/ruas";
 import { caminho, comprimento } from "../src/world/cidade/navegacao";
@@ -203,24 +203,32 @@ for (const d of DISTRICTS) {
 
 // ---------- interiores: um por prédio, com entrada livre, saída e interações alcançáveis ----------
 // chaves de campanha que as condições `when` dos interiores podem citar: pontos, flags e missões da campanha
-const flagsDaCampanha = new Set<string>();
+/** Flag → valores que alguma regra grava (texto; "sim" para verdadeiro). Numérica (cicla, soma) aceita qualquer valor. */
+const flagsDaCampanha = new Map<string, Set<string> | "numero">();
 const pontosDaCampanha = new Set<string>();
 const etapasDaCampanha = new Map<string, Set<string>>();
 {
+  const valor = (k: string, v: string) => {
+    const atual = flagsDaCampanha.get(k);
+    if (atual === "numero") return;
+    flagsDaCampanha.set(k, new Set([...(atual ?? []), v]));
+  };
+  const numero = (k: string) => flagsDaCampanha.set(k, "numero");
   const colhe = (fs: Efeito[]) => {
     for (const f of fs) {
       if ("marca" in f) {
-        flagsDaCampanha.add(f.marca);
-        if (f.conta) flagsDaCampanha.add(f.conta);
-      } else if ("flag" in f && "valor" in f) flagsDaCampanha.add(f.flag);
-      else if ("cicla" in f) flagsDaCampanha.add(f.cicla);
+        valor(f.marca, "sim");
+        if (f.conta) numero(f.conta);
+      } else if ("flag" in f && "valor" in f) valor(f.flag, f.valor === true ? "sim" : String(f.valor));
+      else if ("cicla" in f) numero(f.cicla);
+      else if ("soma" in f) numero(f.soma);
       else if ("se" in f) {
         colhe(f.entao);
         colhe(f.senao ?? []);
-      }
+      } else if ("escolha" in f) for (const o of f.escolha.opcoes) colhe(o.faz);
     }
   };
-  for (const m of CAMPANHA.missoes) {
+  for (const m of todasMissoes(CAMPANHA)) {
     etapasDaCampanha.set(m.id, new Set(m.etapas.map((e) => e.id)));
     for (const p of m.pontos) pontosDaCampanha.add(p.id);
     for (const e of m.etapas) for (const r of e.regras) colhe(r.faz);
@@ -230,8 +238,12 @@ const etapasDaCampanha = new Map<string, Set<string>>();
 function chaveValida(place: string, state: string): string | null {
   const [tipo, resto] = place.split(":");
   if (tipo === "ponto") return pontosDaCampanha.has(resto) && state === "sim" ? null : `ponto de missão inexistente: ${place}`;
-  if (tipo === "flag") return flagsDaCampanha.has(place.slice(5)) && state === "sim" ? null : `flag de missão que nenhuma regra define: ${place}`;
-  if (tipo === "missao") return CAMPANHA.missoes.some((m) => m.id === resto) && (state === "concluida" || state === "ativa") ? null : `missão inexistente: ${place}=${state}`;
+  if (tipo === "flag") {
+    const v = flagsDaCampanha.get(place.slice(5));
+    if (!v) return `flag de missão que nenhuma regra define: ${place}`;
+    return v === "numero" || v.has(state) ? null : `flag de missão nunca recebe o valor "${state}": ${place}`;
+  }
+  if (tipo === "missao") return todasMissoes(CAMPANHA).some((m) => m.id === resto) && (state === "concluida" || state === "ativa") ? null : `missão inexistente: ${place}=${state}`;
   if (tipo === "etapa") return etapasDaCampanha.get(resto)?.has(state) ? null : `etapa inexistente: ${place}=${state}`;
   if (place === "item") return state === "" || state in ITENS ? null : `item inexistente: ${state}`;
   const def = (PLACES as Record<string, { states: Record<string, string> }>)[place];
@@ -242,7 +254,7 @@ const stateSets: Record<string, string>[] = [initialPlaces()];
 for (const [id, def] of Object.entries(PLACES)) for (const st of Object.keys(def.states)) if (st !== def.initial) stateSets.push({ ...initialPlaces(), [id]: st });
 // cenários da campanha: tudo o que depende de missão aparecendo (pontos ativos) e depois de concluída (flags e missões)
 stateSets.push({ ...initialPlaces(), ...Object.fromEntries([...pontosDaCampanha].map((p) => [`ponto:${p}`, "sim"])), item: "" });
-stateSets.push({ ...initialPlaces(), ...Object.fromEntries([...flagsDaCampanha].map((f) => [`flag:${f}`, "sim"])), ...Object.fromEntries(CAMPANHA.missoes.map((m) => [`missao:${m.id}`, "concluida"])) });
+stateSets.push({ ...initialPlaces(), ...Object.fromEntries([...flagsDaCampanha].map(([f, v]) => [`flag:${f}`, v === "numero" ? "1" : [...v][0]])), ...Object.fromEntries(todasMissoes(CAMPANHA).map((m) => [`missao:${m.id}`, "concluida"])) });
 let spotCount = 0;
 for (const i of INTERIORS) {
   const area = { x: i.room.x - 40, y: i.room.y - 40, w: i.room.w + 80, h: i.room.h + 80 };
@@ -309,7 +321,7 @@ for (const i of INTERIORS) {
 {
   const spotsPorEvento = new Map<string, string[]>();
   for (const i of INTERIORS) for (const s of i.spots) if (s.evento) spotsPorEvento.set(s.evento, [...(spotsPorEvento.get(s.evento) ?? []), i.id]);
-  const pontosFora = new Map(CAMPANHA.missoes.flatMap((m) => m.pontos.filter((p) => p.fora).map((p) => [p.id, p.fora!] as const)));
+  const pontosFora = new Map(todasMissoes(CAMPANHA).flatMap((m) => m.pontos.filter((p) => p.fora).map((p) => [p.id, p.fora!] as const)));
   const npcIds = new Set([...NPCS.map((n) => n.id), ...INTERIORS.flatMap((i) => i.npcs.map((n) => n.id))]);
   const ambIds = new Set(AMBIENT.map((n) => n.id));
   const usados = new Set<string>();
@@ -326,13 +338,27 @@ for (const i of INTERIORS) {
         for (const c of f.se) if ("lugar" in c) citaLugar(c.lugar, c.estado, onde);
         confereEfeitos(f.entao, onde);
         confereEfeitos(f.senao ?? [], onde);
+      } else if ("escolha" in f) {
+        if (f.escolha.opcoes.length < 2) warn(onde, "escolha com menos de duas opções");
+        if (new Set(f.escolha.opcoes.map((o) => o.id)).size !== f.escolha.opcoes.length) warn(onde, "escolha com opções de mesmo id");
+        for (const o of f.escolha.opcoes) {
+          if (o.rotulo.length < 8 || o.rotulo.length > 90) warn(onde, `rótulo de opção fora do tamanho: ${o.id}`);
+          if (!o.faz.some((x) => "concluir" in x || "avancar" in x || "flag" in x || "ler" in x || "dialogo" in x || "se" in x || "soma" in x)) warn(onde, `opção sem efeito: ${o.id}`);
+          for (const c of o.se ?? []) if ("lugar" in c) citaLugar(c.lugar, c.estado, onde);
+          confereEfeitos(o.faz, onde);
+        }
       }
     }
   };
-  for (const m of CAMPANHA.missoes) {
+  for (const m of todasMissoes(CAMPANHA)) {
     if (!npcIds.has(m.inicio.npc)) warn(`missão ${m.id}`, `quem dá a missão não existe: ${m.inicio.npc}`);
     if (ambIds.has(m.inicio.npc)) warn(`missão ${m.id}`, "quem dá a missão não pode ser morador de rotina");
-    const alvos = [m.inicio.alvo, ...m.etapas.map((e) => e.alvo)];
+    const alvos = [m.inicio.alvo, ...m.etapas.flatMap((e) => [e.alvo, ...(e.alvos ?? []).map((x) => x.alvo)])];
+    for (const et of m.etapas) {
+      if (et.volta && !m.etapas.some((x) => x.id === et.volta)) warn(`missão ${m.id}/${et.id}`, `volta para etapa inexistente: ${et.volta}`);
+      if (et.exige && !et.volta) warn(`missão ${m.id}/${et.id}`, "etapa com exigência precisa dizer para onde voltar");
+      for (const it of et.lista ?? []) if (!it.rotulo) warn(`missão ${m.id}/${et.id}`, "item de checklist sem texto");
+    }
     for (const a of alvos) {
       if (!a) continue;
       if (a.predio && !BUILDINGS.some((b) => b.id === a.predio)) warn(`missão ${m.id}`, `prédio de destino inexistente: ${a.predio}`);
@@ -352,7 +378,8 @@ for (const i of INTERIORS) {
         } else if (tipo === "lugar") {
           const [place, estado] = resto.split(":");
           citaLugar(place, estado, `missão ${m.id}/${et.id}`);
-        } else warn(`missão ${m.id}/${et.id}`, `evento desconhecido: ${r.evento}`);
+        } else if (tipo === "cerimonia" && resto === "fim") usados.add(r.evento);
+        else warn(`missão ${m.id}/${et.id}`, `evento desconhecido: ${r.evento}`);
         for (const c of r.se ?? []) if ("lugar" in c) citaLugar(c.lugar, c.estado, `missão ${m.id}/${et.id}`);
         confereEfeitos(r.faz, `missão ${m.id}/${et.id}`);
       }

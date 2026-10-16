@@ -310,6 +310,13 @@ export function whenHolds(when: PlaceCondition | undefined, places: Record<strin
   return !when || places[when.place] === when.state;
 }
 
+/** Chaves de contexto (lugares e campanha) de que o desenho deste interior depende. Só mudanças nelas pedem refazê-lo. */
+export function interiorChaves(i: InteriorDef): string[] {
+  const out = new Set<string>();
+  for (const x of [...i.props, ...i.npcs, ...i.posters, ...i.spots]) if (x.when) out.add(x.when.place);
+  return [...out];
+}
+
 /** Objetos do interior visíveis com os estados atuais dos lugares. */
 export function interiorProps(i: InteriorDef, places: Record<string, string>): InteriorProp[] {
   return i.props.filter((p) => whenHolds(p.when, places));

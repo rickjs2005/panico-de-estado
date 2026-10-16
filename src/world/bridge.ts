@@ -5,6 +5,14 @@ import type { HudState, Point } from "./types";
  * O mundo publica o estado do HUD; a interface envia ações e o direcional virtual.
  */
 
+export interface DialogoState {
+  quem: string | null;
+  texto: string;
+  i: number;
+  total: number;
+  opcoes?: { id: string; rotulo: string }[];
+}
+
 interface Events {
   hud: HudState;
   toast: string;
@@ -13,12 +21,14 @@ interface Events {
   pause: boolean;
   /** Entrou num distrito (só na cidade). */
   district: { name: string; tagline: string; color: string };
-  /** Diálogo da campanha (mundo → React); null fecha. */
-  dialogo: { quem: string | null; texto: string; i: number; total: number } | null;
+  /** Diálogo ou escolha da campanha (mundo → React); null fecha. Com `opcoes`, o diálogo é uma escolha. */
+  dialogo: DialogoState | null;
   /** O jogador avançou ou pulou o diálogo (React → mundo). */
   "dialogo-acao": "avancar" | "pular";
+  /** O jogador escolheu uma opção (o id) ou desistiu (null) (React → mundo). */
+  "escolha-acao": string | null;
   /** Selo do Passaporte do Absurdo conquistado. */
-  selo: { id: string; nome: string; cor: string; icone: string; n: number; completa: boolean };
+  selo: { id: string; nome: string; cor: string; icone: string; n: number; completa: boolean; final?: boolean };
   /** Destino marcado no mapa (React → mundo); null limpa. */
   waypoint: (Point & { label: string }) | null;
   ready: undefined;
@@ -78,4 +88,6 @@ export const worldState = {
   waypoint: null as (Point & { label: string }) | null,
   /** Destino da missão ativa (diferente do que o jogador marcou no mapa). */
   missaoAlvo: null as (Point & { label: string }) | null,
+  /** Todos os destinos da etapa atual (o primeiro é o principal). */
+  missaoAlvos: [] as (Point & { label: string })[],
 };

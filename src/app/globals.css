@@ -424,3 +424,20 @@ body {
     opacity: 1;
   }
 }
+
+/* Diálogo e escolhas da campanha: em tela de toque não cobrem o direcional (esquerda) nem o botão de ação (direita). */
+.dialogo-wrap {
+  bottom: max(1rem, env(safe-area-inset-bottom));
+}
+@media (pointer: coarse) and (orientation: portrait) {
+  .dialogo-wrap {
+    bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 8.5rem);
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) {
+  .dialogo-wrap {
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    left: 8.75rem;
+    right: 8.75rem;
+  }
+}

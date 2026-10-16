@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "@/lib/hooks";
+import { useModalFoco } from "./useModal";
 import { bus, worldState } from "@/world/bridge";
 import { BUILDINGS, CITY, DISTRICTS, INTERIORS, LIMITS, POIS, ROADS, districtById, doorPoint } from "@/world/cidade";
 import { readCity } from "@/world/cidade/progress";
@@ -32,7 +34,10 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
   const [visited, setVisited] = useState<string[]>([]);
   const [selected, setSelected] = useState<CityBuilding | null>(null);
   const [waypoint, setWaypoint] = useState(worldState.waypoint);
-  const missao = worldState.missaoAlvo;
+  const raiz = useRef<HTMLDivElement>(null);
+  const reduzido = useReducedMotion();
+  useModalFoco(raiz);
+  const missoes = worldState.missaoAlvos;
   const pos = { x: worldState.x, y: worldState.y };
   const insideBuilding = worldState.insideBuilding ? BUILDINGS.find((b) => b.id === worldState.insideBuilding) : undefined;
   const insideRoom = insideBuilding ? INTERIORS.find((i) => i.building === insideBuilding.id) : undefined;
@@ -83,7 +88,7 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-[#0b0b0f]/85 p-2 text-[#1e1424] sm:p-4" role="dialog" aria-label="Mapa da cidade">
+    <div ref={raiz} className="absolute inset-0 z-20 flex flex-col bg-[#0b0b0f]/85 p-2 text-[#1e1424] sm:p-4" role="dialog" aria-modal="true" aria-label="Mapa da cidade">
       <div className="mb-2 flex items-center gap-2">
         <p className="rounded-lg border-[3px] border-[#1e1424] bg-[#fffaf0] px-3 py-1 text-sm font-black shadow-[0_3px_0_#1e1424]">
           Mapa · Brasil hipotético do Lula
@@ -167,20 +172,20 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
                 </text>
               </g>
             ))}
-            {missao && (
-              <g transform={`translate(${missao.x} ${missao.y})`}>
+            {missoes.map((missao, i) => (
+              <g key={`${missao.label}-${i}`} transform={`translate(${missao.x} ${missao.y})`}>
                 <circle r={96} fill="#ffd23f" fillOpacity={0.3}>
-                  <animate attributeName="r" values="70;130;70" dur="1.4s" repeatCount="indefinite" />
+                  {!reduzido && <animate attributeName="r" values="70;130;70" dur="1.4s" repeatCount="indefinite" />}
                 </circle>
                 <circle r={62} fill="#ffd23f" stroke="#1e1424" strokeWidth={12} />
                 <text y={30} textAnchor="middle" fontSize={84} fontWeight={900} fill="#1e1424">
                   ★
                 </text>
-                <text y={-92} textAnchor="middle" fontSize={64} fontWeight={900} fill="#fffaf0" stroke="#1e1424" strokeWidth={12} paintOrder="stroke">
+                <text y={i % 2 ? 150 : -92} textAnchor="middle" fontSize={64} fontWeight={900} fill="#fffaf0" stroke="#1e1424" strokeWidth={12} paintOrder="stroke">
                   {`Missão: ${missao.label}`}
                 </text>
               </g>
-            )}
+            ))}
             {waypoint && (
               <g transform={`translate(${waypoint.x} ${waypoint.y})`}>
                 <path d="M0 0 V-190" stroke="#1e1424" strokeWidth={14} />
@@ -189,7 +194,7 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
             )}
             <g transform={`translate(${here.x} ${here.y})`}>
               <circle r={95} fill="#c62835" fillOpacity={0.25}>
-                <animate attributeName="r" values="70;120;70" dur="1.6s" repeatCount="indefinite" />
+                {!reduzido && <animate attributeName="r" values="70;120;70" dur="1.6s" repeatCount="indefinite" />}
               </circle>
               <circle r={52} fill="#c62835" stroke="#fffaf0" strokeWidth={14} />
               <text y={-80} textAnchor="middle" fontSize={70} fontWeight={900} fill="#fffaf0" stroke="#1e1424" strokeWidth={12} paintOrder="stroke">
@@ -199,10 +204,17 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
           </svg>
         </div>
         <aside className="max-h-[38vh] min-h-0 overflow-y-auto rounded-xl border-4 border-[#1e1424] bg-[#fffaf0] p-2 sm:max-h-none sm:w-60 lg:w-72">
-          {missao && (
+          {missoes.length > 0 && (
             <div className="mb-2 rounded-lg border-2 border-[#1e1424] bg-[#ffd23f] p-2 text-xs">
-              <p className="font-black">★ Destino da missão</p>
-              <p className="font-semibold">{missao.label}</p>
+              <p className="font-black">★ {missoes.length > 1 ? "Destinos da missão" : "Destino da missão"}</p>
+              <ul className="font-semibold">
+                {missoes.map((m, i) => (
+                  <li key={`${m.label}-${i}`}>
+                    {missoes.length > 1 && <span className="mr-1 font-black">{i + 1}.</span>}
+                    {m.label}
+                  </li>
+                ))}
+              </ul>
               <p className="mt-0.5 text-[10px] font-semibold text-[#1e1424]/75">Sempre visível no mapa e na cidade; o destino que você marca é outro (bandeira).</p>
             </div>
           )}

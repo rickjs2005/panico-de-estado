@@ -275,8 +275,8 @@ function reparticao(p: Plan) {
   const g1 = p.prop("guiche", vx / 2 - 190, back(p) + 50, { variant: "1" });
   p.prop("guiche", vx / 2, back(p) + 50, { variant: "2" });
   p.prop("guiche", vx / 2 + 190, back(p) + 50, { variant: "3" });
-  p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { evento: "carimbo-1", prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
-  p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu boato foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front" });
+  p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
+  p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu boato foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front", id: "atendente" });
   // fila: cadeiras de espera e correntes de baliza dos dois lados, deixando o corredor do meio livre até a porta
   cadeiras(p, vx / 2 - 170, 3, back(p) + 190, 60);
   cadeiras(p, vx / 2 + 60, 3, back(p) + 190, 60);
@@ -550,7 +550,7 @@ function bar(p: Plan) {
     [vx / 2 + 60, h - 90],
     [vx - 70, h - 140],
   ]) p.prop("mesaBar", x, y);
-  p.npc("osvaldo", "Freguês fiel", vx - 70, h - 110, ["Eu vim só pra um gole. Faz três decretos."], { facing: "side", flip: true });
+  p.npc("osvaldo", "Freguês fiel", vx - 70, h - 110, ["Eu vim só pra um gole. Faz três decretos."], { facing: "side", flip: true, id: "fregues" });
   const sinuca = p.prop("mesaPingPong", vx / 2 - 20, h - 210);
   p.spot("examinar", vx / 2 - 20, h - 170, "Jogar pingue-pongue de bar", { prop: sinuca, lines: ["Aposta de rodada: quem perde paga o fiado do outro.", "A bolinha caiu na cachaça. Ponto para o Tião."] });
   p.prop("mesaBar", vx - 190, h - 90);
@@ -899,7 +899,7 @@ function despacho(p: Plan) {
   p.wallProp("janela", 120);
   p.wallProp("janela", w - 120);
   p.prop("cadeira", w / 2 - 40, back(p) + 90, { variant: "escritorio" });
-  p.npc("func3", "Controlador de despacho", w / 2 + 50, back(p) + 86, ["O país inteiro numa planilha de carga.", "Cuidado: o Pão de Açúcar está escorregando."], { facing: "front" });
+  p.npc("func3", "Controlador de despacho", w / 2 + 50, back(p) + 86, ["O país inteiro numa planilha de carga.", "Cuidado: o Pão de Açúcar está escorregando."], { facing: "front", id: "controlador" });
   p.prop("filtro", w - 40, h - 50);
 }
 

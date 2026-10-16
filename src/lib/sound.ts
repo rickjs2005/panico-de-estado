@@ -103,6 +103,26 @@ export const sound = {
   agua() {
     for (let i = 0; i < 5; i++) tone(1200 + i * 140, i * 0.05, 0.04, "sine", 0.02);
   },
+  /** Mesa de som do DCE: um canal (grave, médio, agudo) num nível de 0 a 2. Quanto maior o nível, mais forte e mais cheio. */
+  canal(canal: "grave" | "medio" | "agudo", nivel: number) {
+    const base = canal === "grave" ? 70 : canal === "medio" ? 330 : 1250;
+    const type: OscillatorType = canal === "grave" ? "sine" : canal === "medio" ? "triangle" : "square";
+    const n = Math.max(0, Math.min(2, Math.round(nivel)));
+    const vol = (canal === "agudo" ? 0.012 : 0.04) * (1 + n * 0.9);
+    for (let i = 0; i <= n; i++) tone(base * (1 + i * 0.5), i * 0.09, 0.28, type, vol);
+  },
+  /** Conserto de um posto (batida, atarraxar, rangido que volta a funcionar). */
+  conserto() {
+    tone(180, 0, 0.1, "square", 0.05);
+    tone(140, 0.14, 0.1, "square", 0.05);
+    tone(520, 0.3, 0.16, "triangle", 0.05);
+    tone(780, 0.42, 0.22, "triangle", 0.05);
+  },
+  /** Aplauso da praça: uma chuva de estalos. `forca` de 0 a 1. */
+  aplauso(forca = 1) {
+    const n = Math.round(8 + forca * 18);
+    for (let i = 0; i < n; i++) tone(900 + ((i * 577) % 1900), i * 0.045, 0.03, "square", 0.012 * (0.4 + forca));
+  },
   success() {
     tone(660, 0, 0.12, "triangle", 0.06);
     tone(880, 0.1, 0.12, "triangle", 0.06);

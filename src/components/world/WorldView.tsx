@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { readPref, writePref } from "@/lib/hooks";
 import { sound } from "@/lib/sound";
-import { bus, resetTouchInput, touchInput } from "@/world/bridge";
+import { bus, resetTouchInput, touchInput, type DialogoState } from "@/world/bridge";
 import type { HeroId, HudState } from "@/world/types";
 import type { GameHandle } from "@/world/game/createGame";
 import CityMap from "./CityMap";
 import Joystick from "./Joystick";
 import { Dialogo, Passaporte, SeloCard } from "./Passaporte";
+import { useModalFoco } from "./useModal";
 
 const SOUND_KEY = "panico-de-estado:som";
+const DETALHES_KEY = "panico-de-estado:hud-detalhes";
 
 function useTouch(): boolean {
   const [touch, setTouch] = useState(false);
@@ -34,8 +36,10 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   const [soundOn, setSoundOn] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
   const [banner, setBanner] = useState<{ name: string; tagline: string; color: string } | null>(null);
-  const [dialogo, setDialogo] = useState<{ quem: string | null; texto: string; i: number; total: number } | null>(null);
-  const [selo, setSelo] = useState<{ id: string; nome: string; cor: string; icone: string; n: number; completa: boolean } | null>(null);
+  const [dialogo, setDialogo] = useState<DialogoState | null>(null);
+  const [selo, setSelo] = useState<{ id: string; nome: string; cor: string; icone: string; n: number; completa: boolean; final?: boolean } | null>(null);
+  /** Detalhes da missão (checklist, destino, item) recolhíveis; só uma conveniência de cada jogador. */
+  const [detalhes, setDetalhes] = useState(true);
   const [passaporte, setPassaporte] = useState(false);
   const touch = useTouch();
   const hasMap = !!hud?.map;
@@ -58,6 +62,8 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       if (e.key === "Escape") {
         setMapOpen(false);
         setPassaporte(false);
+        setMenu(false);
+        setConfirmReset(false);
         return;
       }
       if ((e.key === "m" || e.key === "M") && hasMap && !menu && !e.repeat) setMapOpen((o) => !o);
@@ -67,6 +73,9 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   }, [hasMap, menu]);
 
   useEffect(() => {
+    // sem preferência guardada, tela estreita começa com os detalhes recolhidos (o cartão ocupa menos do mundo)
+    const guardado = readPref(DETALHES_KEY, "");
+    setDetalhes(guardado ? guardado !== "off" : window.innerWidth >= 520);
     const on = readPref(SOUND_KEY, "on") !== "off";
     setSoundOn(on);
     sound.setEnabled(on);
@@ -108,6 +117,12 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
     return () => window.clearTimeout(t);
   }, [toast]);
 
+  const alternaDetalhes = () => {
+    const next = !detalhes;
+    setDetalhes(next);
+    writePref(DETALHES_KEY, next ? "on" : "off");
+  };
+
   const toggleSound = () => {
     const next = !soundOn;
     setSoundOn(next);
@@ -147,9 +162,9 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       {ready && hud && (
         <>
           {/* objetivo */}
-          <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-start gap-2 p-2 sm:p-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+          <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-wrap items-start gap-2 p-2 sm:p-3 [@media(max-width:520px)]:flex-col-reverse [@media(max-width:520px)]:items-end" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
             {hasMap ? (
-              <div className="max-w-[min(26rem,calc(100%-10rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-2.5 py-1.5 shadow-[0_3px_0_#1e1424] sm:px-3 [@media(max-height:480px)]:py-1">
+              <div className="max-w-[min(26rem,calc(100%-10rem))] rounded-xl [@media(max-width:520px)]:max-w-full [@media(max-width:520px)]:self-stretch border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-2.5 py-1.5 shadow-[0_3px_0_#1e1424] sm:px-3 [@media(max-height:480px)]:py-1">
                 <div className="flex flex-wrap items-center gap-x-2">
                   <p className="text-[12px] font-black leading-tight sm:text-[14px] [@media(max-height:480px)]:text-[11px]">📍 {hud.place ?? "Cidade"}</p>
                   {hud.hora && (
@@ -162,17 +177,60 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                 {hud.missao && (
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[9px] font-black uppercase tracking-wide text-[#c62835] sm:text-[10px]">
                     <span>
-                      Missão {hud.missao.numero}/6 · {hud.missao.titulo}
+                      {hud.missao.numero > 6 ? "Cerimônia final" : `Missão ${hud.missao.numero}/6`} · {hud.missao.titulo}
                     </span>
                     <span className="rounded bg-[#1e1424] px-1 py-px text-[#ffe9a8]">
                       etapa {hud.missao.etapa}/{hud.missao.total}
                     </span>
                   </p>
                 )}
-                <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px] [@media(max-height:480px)]:text-[10px]">
+                {/* o objetivo da etapa é o destaque do cartão; o resto fica nos detalhes recolhíveis */}
+                <p className={`mt-0.5 leading-snug ${hud.missao ? "text-[12px] font-black sm:text-[14px]" : "text-[11px] font-bold sm:text-[13px]"} [@media(max-height:480px)]:text-[10px]`}>
                   {touch && hud.objective.startsWith("Explore a cidade") ? "Explore a cidade e entre nos prédios. 🗺️ abre o mapa." : hud.objective}
                 </p>
-                {hud.missao?.carregando && <p className="mt-0.5 text-[10px] font-black text-[#1e1424]/80">🎒 Carregando: {hud.missao.carregando}</p>}
+                {hud.missao && hud.missao.painel.length > 0 && (
+                  <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5" aria-label="Indicadores da missão">
+                    {hud.missao.painel.map((p) => (
+                      <li key={p.rotulo} className="flex items-center gap-1 text-[11px] font-black">
+                        <span>{p.rotulo}</span>
+                        <span className="flex gap-px" aria-hidden>
+                          {Array.from({ length: p.max }, (_, i) => (
+                            <span key={i} className={`h-2 w-2.5 rounded-sm border border-[#1e1424] ${i < p.valor ? "bg-[#c48827]" : "bg-transparent"}`} />
+                          ))}
+                        </span>
+                        <span>
+                          {p.valor}/{p.max}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {hud.missao && (hud.missao.lista.length > 0 || hud.missao.carregando || hud.missao.destino) && (
+                  <>
+                    <button type="button" onClick={alternaDetalhes} aria-expanded={detalhes} className="pointer-events-auto mt-1 rounded text-[10px] font-black text-[#1e1424]/80 underline decoration-dotted underline-offset-2">
+                      {detalhes ? "▾ Ocultar detalhes" : "▸ Detalhes da missão"}
+                    </button>
+                    {detalhes && (
+                      <div className="mt-0.5 space-y-0.5">
+                        {hud.missao.destino && <p className="text-[10px] font-black text-[#1e1424]/80">★ Destino: {hud.missao.destino}</p>}
+                        {hud.missao.carregando && <p className="text-[10px] font-black text-[#1e1424]/80">🎒 Carregando: {hud.missao.carregando}</p>}
+                        {hud.missao.lista.length > 0 && (
+                          <ul className="space-y-px" aria-label="Checklist da etapa">
+                            {hud.missao.lista.map((i) => (
+                              <li key={i.rotulo} className={`flex items-start gap-1 text-[10px] font-bold leading-tight ${i.feito ? "text-[#1e1424]/55 line-through" : ""}`}>
+                                <span aria-hidden>{i.feito ? "✓" : "○"}</span>
+                                <span>
+                                  <span className="sr-only">{i.feito ? "Feito: " : "Pendente: "}</span>
+                                  {i.rotulo}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
                 {hud.stamina !== null && (
                   <div className="mt-1 flex items-center gap-1.5" title="Energia de corrida: recarregue nas placas CACHAÇA · ENERGIA">
                     <span className="text-[10px]" aria-hidden>
@@ -340,46 +398,48 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       )}
 
       {mapOpen && <CityMap onClose={() => setMapOpen(false)} />}
-      {passaporte && hud && <Passaporte selos={hud.selos ?? []} ativaNumero={hud.missao?.numero ?? null} onClose={() => setPassaporte(false)} />}
+      {passaporte && hud && <Passaporte selos={hud.selos ?? []} ativaNumero={hud.missao?.numero ?? null} decisoes={hud.decisoes ?? []} diario={hud.diario ?? []} final={!!hud.final} onClose={() => setPassaporte(false)} />}
       {selo && <SeloCard selo={selo} onFim={() => setSelo(null)} />}
-      {dialogo && <Dialogo d={dialogo} />}
+      {dialogo && <Dialogo key={`${dialogo.quem}|${dialogo.opcoes ? "e" : "d"}|${dialogo.texto}|${dialogo.i}`} d={dialogo} />}
 
-      {menu && (
-        <div className="absolute inset-0 z-10 grid place-items-center bg-black/55 p-4" onClick={() => setMenu(false)}>
-          <div
-            role="dialog"
-            aria-label="Menu"
-            className="w-full max-w-sm rounded-2xl border-4 border-[#1e1424] bg-[#fffaf0] p-4 shadow-[0_6px_0_#1e1424]"
-            onClick={(e) => e.stopPropagation()}
+      {menu && <MenuPausa onContinue={() => setMenu(false)} onSwitch={onSwitch} onReset={onReset} confirmReset={confirmReset} setConfirmReset={setConfirmReset} />}
+    </div>
+  );
+}
+
+/** Menu de pausa: um painel modal com foco preso nele enquanto está aberto. */
+function MenuPausa({ onContinue, onSwitch, onReset, confirmReset, setConfirmReset }: { onContinue: () => void; onSwitch: () => void; onReset: () => void; confirmReset: boolean; setConfirmReset: (v: boolean) => void }) {
+  const raiz = useRef<HTMLDivElement>(null);
+  useModalFoco(raiz);
+  return (
+    <div ref={raiz} className="absolute inset-0 z-10 grid place-items-center bg-black/55 p-4" onClick={onContinue}>
+      <div role="dialog" aria-modal="true" aria-label="Menu" className="w-full max-w-sm rounded-2xl border-4 border-[#1e1424] bg-[#fffaf0] p-4 shadow-[0_6px_0_#1e1424]" onClick={(e) => e.stopPropagation()}>
+        <p className="text-lg font-black">Pausa</p>
+        <div className="mt-3 flex flex-col gap-2">
+          <button type="button" className="menu-btn bg-[#ffd23f]" onClick={onContinue} data-autofoco>
+            Continuar
+          </button>
+          <button type="button" className="menu-btn" onClick={onSwitch}>
+            Trocar personagem
+          </button>
+          <button
+            type="button"
+            className={`menu-btn ${confirmReset ? "bg-[#c62835] text-white" : ""}`}
+            onClick={() => {
+              if (confirmReset) onReset();
+              else setConfirmReset(true);
+            }}
           >
-            <p className="text-lg font-black">Pausa</p>
-            <div className="mt-3 flex flex-col gap-2">
-              <button type="button" className="menu-btn bg-[#ffd23f]" onClick={() => setMenu(false)}>
-                Continuar
-              </button>
-              <button type="button" className="menu-btn" onClick={onSwitch}>
-                Trocar personagem
-              </button>
-              <button
-                type="button"
-                className={`menu-btn ${confirmReset ? "bg-[#c62835] text-white" : ""}`}
-                onClick={() => {
-                  if (confirmReset) onReset();
-                  else setConfirmReset(true);
-                }}
-              >
-                {confirmReset ? "Confirmar: reiniciar este Brasil" : "Reiniciar este Brasil"}
-              </button>
-              <Link href="/episodios" className="menu-btn text-center">
-                Episódios da versão anterior
-              </Link>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#1e1424]/70">
-              Universo fictício e satírico: os boatos viraram realidade. Lula e Flávio são caricaturas inventadas; nada retrata fatos ou intenções reais.
-            </p>
-          </div>
+            {confirmReset ? "Confirmar: reiniciar este Brasil" : "Reiniciar este Brasil"}
+          </button>
+          <Link href="/episodios" className="menu-btn text-center">
+            Episódios da versão anterior
+          </Link>
         </div>
-      )}
+        <p className="mt-3 text-xs leading-relaxed text-[#1e1424]/70">
+          Universo fictício e satírico: os boatos viraram realidade. Lula e Flávio são caricaturas inventadas; nada retrata fatos ou intenções reais.
+        </p>
+      </div>
     </div>
   );
 }

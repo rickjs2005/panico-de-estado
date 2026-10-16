@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "check:content": "tsc scripts/check-content.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/check-content.js",
     "check:world": "tsc scripts/check-world.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/check-world.js",
+    "check:campanha": "tsc scripts/check-campanha.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/check-campanha.js",
     "check:city": "tsc scripts/check-city.ts --outDir .sim --module commonjs --target es2022 --skipLibCheck --rootDir . && node .sim/scripts/check-city.js"
   },
   "dependencies": {

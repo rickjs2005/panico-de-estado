@@ -22,6 +22,7 @@ import {
   doorPoint,
   entryLabel,
   interiorById,
+  interiorChaves,
   interiorSpots,
   sideDoorFrac,
   stalls,
@@ -49,8 +50,10 @@ import { restoreToggles, runSpot, type SpotContext } from "./interactions";
 import { Rotinas } from "./Rotinas";
 import { Adornos } from "./Adornos";
 import { Missoes, type Anfitriao } from "./Missoes";
-import type { SeloDef } from "../../cidade/missoes/motor";
-import { CAMPANHA } from "../../cidade/missoes/campanha";
+import type { SeloDef, Valor } from "../../cidade/missoes/motor";
+import { CAMPANHA, SELO_FINAL } from "../../cidade/missoes/campanha";
+import { roteiro } from "../../cidade/missoes/final";
+import { movimentoReduzido } from "../../reduzido";
 import { Traffic, type Obstacle } from "./traffic";
 
 export interface CityData {
@@ -121,10 +124,16 @@ export class CityScene extends Phaser.Scene {
   private rotinas!: Rotinas;
   private missoes!: Missoes;
   private adornos!: Adornos;
-  private dialogo: { quem?: string; linhas: string[]; i: number; fim: () => void } | null = null;
-  private msMarker!: Phaser.GameObjects.Text;
+  /** Diálogo curto ou escolha da campanha: enquanto aberto, o jogador não anda nem interage com o mundo. */
+  private dialogo: { quem?: string; linhas: string[]; i: number; fim: () => void; escolha?: { opcoes: { id: string; rotulo: string }[]; fim: (id: string | null) => void } } | null = null;
+  /** A cerimônia final está em cena (também trava o movimento nos intervalos entre as falas). */
+  private cerimoniaAtiva = false;
+  /** Menos movimento: sem tremor de câmera, clarões, confete denso nem balanço dos marcadores. */
+  private calmo = false;
+  private msMarkers: Phaser.GameObjects.Text[] = [];
   private msRing!: Phaser.GameObjects.Graphics;
-  private msAlvo: { x: number; y: number; label: string } | null = null;
+  /** Destinos da missão (o primeiro é o principal; vários quando há mais de um pendente). */
+  private msAlvos: { x: number; y: number; label: string }[] = [];
   private ctxKey = "";
   private noite!: Phaser.GameObjects.Rectangle;
   private horaSalvaEm = 0;
@@ -177,6 +186,12 @@ export class CityScene extends Phaser.Scene {
     this.paused = false;
     this.stamina = MAX_STAMINA;
     this.progress = readCity();
+    this.calmo = movimentoReduzido();
+    if (this.calmo) {
+      const cam = this.cameras.main;
+      cam.shake = () => cam;
+      cam.flash = () => cam;
+    }
 
     this.drawGround();
     this.drawLimits();
@@ -195,12 +210,13 @@ export class CityScene extends Phaser.Scene {
     this.noite = this.add.rectangle(0, 0, 7000, 5000, 0x0b1236, 1).setAlpha(0).setDepth(900000);
     // campanha de missões: estado salvo no progresso, adereços na rua e marcador do destino
     this.missoes = new Missoes(this.anfitriao(), this.progress.campanha);
-    this.adornos = new Adornos(this, (o, b) => this.culler.add(o, b));
-    this.adornos.atualiza(this.missoes.contexto());
-    this.msMarker = this.add.text(0, 0, "★", { fontFamily: FONT, fontSize: "46px", color: "#ffd23f", stroke: "#1e1424", strokeThickness: 7, resolution: 2 }).setOrigin(0.5, 1).setDepth(90001).setVisible(false);
+    this.adornos = new Adornos(this, (o, b) => this.culler.add(o, b), this.calmo);
+    this.adornos.atualiza(this.contextoJogo());
+    for (let i = 0; i < 3; i++) this.msMarkers.push(this.add.text(0, 0, "★", { fontFamily: FONT, fontSize: "46px", color: "#ffd23f", stroke: "#1e1424", strokeThickness: 7, resolution: 2 }).setOrigin(0.5, 1).setDepth(90001).setVisible(false));
     this.msRing = this.add.graphics().setVisible(false);
-    this.msAlvo = this.missoes.alvoMapa();
+    this.msAlvos = this.missoes.alvosMapa();
     this.unsubs.push(bus.on("dialogo-acao", (a) => (a === "avancar" ? this.avancaDialogo() : this.pulaDialogo())));
+    this.unsubs.push(bus.on("escolha-acao", (id) => this.escolheOpcao(id)));
     this.traffic = new Traffic(this, this.rotinas.minuto, SPAWN.hero);
     for (const v of VEHICLES) {
       const car = new Car(this, v.x, v.y, v.angle, v.color);
@@ -660,6 +676,7 @@ export class CityScene extends Phaser.Scene {
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.inside = room;
       this.interior = new InteriorView(this, room, this.contextoJogo());
+      this.ctxKey = this.chaveInterior(room);
       this.chamaVisitantes(room);
       restoreToggles(this.spotContext());
       this.rebuildSolids();
@@ -763,9 +780,14 @@ export class CityScene extends Phaser.Scene {
     if (!this.inside || !this.interior) return;
     const room = this.inside;
     this.interior.destroy();
-    this.bubbles.forEach((bb) => bb.destroy());
-    this.bubbles.clear();
+    // o balão do protagonista é a resposta da campanha à ação que acabou de acontecer: ele não pode sumir com o refazer
+    for (const [id, bb] of this.bubbles) {
+      if (id === "hero") continue;
+      bb.destroy();
+      this.bubbles.delete(id);
+    }
     this.interior = new InteriorView(this, room, this.contextoJogo());
+    this.ctxKey = this.chaveInterior(room);
     this.chamaVisitantes(room);
     restoreToggles(this.spotContext());
     this.rebuildSolids();
@@ -992,6 +1014,8 @@ export class CityScene extends Phaser.Scene {
     const cssH = this.scale.height / this.dpr;
     const base = Phaser.Math.Clamp(Math.min(cssW, cssH) / 470, 0.75, 1.6);
     let factor = this.mode === "carro" ? 0.74 : 1;
+    // na cerimônia a câmera abre um pouco para mostrar o monumento, a coroa e a plateia acima da caixa de diálogo
+    if (this.cerimoniaAtiva) factor = 0.8;
     if (this.inside) {
       // o interior cabe quase inteiro na tela, sem deixar o personagem pequeno demais
       const r = this.inside.room;
@@ -1022,6 +1046,7 @@ export class CityScene extends Phaser.Scene {
       ty = this.player.y - 30;
       // dentro do prédio o cômodo se abre para cima: a câmera olha um pouco à frente do personagem
       if (this.inside) ty -= Math.min(90, (this.scale.height / this.zoomTarget) * 0.14);
+      else if (this.cerimoniaAtiva) ty = this.player.y + 70;
     }
     const k = 1 - Math.exp(-dt * 7);
     this.camTarget.x += (tx - this.camTarget.x) * k;
@@ -1072,7 +1097,7 @@ export class CityScene extends Phaser.Scene {
           // qualquer direção levanta
           if (kx !== 0 || ky !== 0 || Math.hypot(touchInput.x, touchInput.y) > 0.4) this.standUp();
           else this.player.animate(dt, 0, false);
-        } else if (this.dialogo) this.player.animate(dt, 0, false);
+        } else if (this.dialogo || this.cerimoniaAtiva) this.player.animate(dt, 0, false);
         else if (this.mode === "pe" || !this.car) this.updateWalking(dt, kx, ky);
         else {
           const car = this.car;
@@ -1366,10 +1391,24 @@ export class CityScene extends Phaser.Scene {
       },
       ler: (t) => this.say("hero", t, 4600),
       dialogo: (linhas, quem, fim) => this.abreDialogo(linhas, quem, fim),
+      escolha: (titulo, quem, opcoes, fim) => this.abreEscolha(titulo, quem, opcoes, fim),
       toast: (t) => this.toast(t),
+      som: (id) => this.tocaSom(id),
       celebrar: (selo, n, completa) => this.celebra(selo, n, completa),
+      cerimonia: (estado, fim) => this.rodaCerimonia(estado.flags, fim),
       mudou: () => this.campanhaMudou(),
     };
+  }
+
+  /** Efeito sonoro pedido pela campanha: "grave:2", "acerto", "erro", "conserto"… */
+  private tocaSom(id: string) {
+    const [nome, arg] = id.split(":");
+    if (nome === "grave" || nome === "medio" || nome === "agudo") sound.canal(nome, Number(arg) || 0);
+    else if (nome === "acerto") sound.success();
+    else if (nome === "erro") sound.fail();
+    else if (nome === "conserto") sound.conserto();
+    else if (nome === "aplauso") sound.aplauso(Number(arg) || 1);
+    else if (nome === "carimbo") sound.carimbo();
   }
 
   /** Estado dos lugares mais as chaves da campanha (pontos ativos, itens, flags): o que as condições `when` dos interiores leem. */
@@ -1377,14 +1416,27 @@ export class CityScene extends Phaser.Scene {
     return { ...this.progress.places, ...this.missoes.contexto() };
   }
 
-  /** A campanha mudou: atualiza adereços da rua, HUD, destino e, se preciso, o interior em que o jogador está. */
+  /** Valores das chaves de que o desenho deste interior depende: só mudanças aqui pedem refazê-lo. */
+  private chaveInterior(room: InteriorDef): string {
+    const ctx = this.contextoJogo();
+    return JSON.stringify(interiorChaves(room).map((k) => ctx[k] ?? ""));
+  }
+
+  /**
+   * A campanha mudou: atualiza adereços da rua, HUD, destino e, se algo de que o interior depende mudou
+   * (um cartaz, um objeto, uma interação), refaz o interior em que o jogador está. Mudanças puramente
+   * numéricas (o nível do som, por exemplo) não refazem nada, então os balões de resposta continuam na tela.
+   */
   private campanhaMudou() {
-    this.adornos.atualiza(this.missoes.contexto());
-    this.msAlvo = this.missoes.alvoMapa();
-    const key = JSON.stringify(this.missoes.contexto());
-    if (key !== this.ctxKey) {
-      this.ctxKey = key;
-      if (this.inside && !this.seated) this.refreshInterior();
+    // durante a cerimônia a praça montada para ela fica como está; no fim, o estado salvo manda
+    if (!this.cerimoniaAtiva) this.adornos.atualiza(this.contextoJogo());
+    this.msAlvos = this.missoes.alvosMapa();
+    if (this.inside && !this.seated) {
+      const key = this.chaveInterior(this.inside);
+      if (key !== this.ctxKey) {
+        this.ctxKey = key;
+        this.refreshInterior();
+      }
     }
     this.emitHud(true);
   }
@@ -1396,19 +1448,28 @@ export class CityScene extends Phaser.Scene {
     this.mostraDialogo();
   }
 
+  /** Escolha com consequências: o jogador escolhe uma opção (ou desiste, o que devolve null). */
+  private abreEscolha(titulo: string, quem: string | undefined, opcoes: { id: string; rotulo: string }[], fim: (id: string | null) => void) {
+    this.dialogo = { quem, linhas: [titulo], i: 0, fim: () => undefined, escolha: { opcoes, fim } };
+    touchInput.x = 0;
+    touchInput.y = 0;
+    this.mostraDialogo();
+  }
+
   private mostraDialogo() {
     const d = this.dialogo;
     if (!d) {
       bus.emit("dialogo", null);
       return;
     }
-    bus.emit("dialogo", { quem: d.quem ?? null, texto: d.linhas[d.i], i: d.i, total: d.linhas.length });
+    bus.emit("dialogo", { quem: d.quem ?? null, texto: d.linhas[d.i], i: d.i, total: d.linhas.length, opcoes: d.escolha?.opcoes });
     this.emitHud(true);
   }
 
   private avancaDialogo() {
     const d = this.dialogo;
-    if (!d) return;
+    // uma escolha pede uma opção: E não decide por você
+    if (!d || d.escolha) return;
     d.i++;
     if (d.i >= d.linhas.length) this.fechaDialogo();
     else {
@@ -1418,7 +1479,20 @@ export class CityScene extends Phaser.Scene {
   }
 
   private pulaDialogo() {
-    if (this.dialogo) this.fechaDialogo();
+    if (!this.dialogo) return;
+    if (this.dialogo.escolha) this.escolheOpcao(null);
+    else this.fechaDialogo();
+  }
+
+  private escolheOpcao(id: string | null) {
+    const d = this.dialogo;
+    if (!d?.escolha) return;
+    this.dialogo = null;
+    bus.emit("dialogo", null);
+    this.busyUntil = this.time.now + 250;
+    sound.pop();
+    d.escolha.fim(id);
+    this.emitHud(true);
   }
 
   private fechaDialogo() {
@@ -1435,7 +1509,7 @@ export class CityScene extends Phaser.Scene {
     sound.success();
     const p = this.activePos();
     const cores = ["#ffd23f", "#e63946", "#3a86ff", "#2f9e5a", "#c77dff", "#ff8c42"];
-    const total = completa ? 70 : 34;
+    const total = this.calmo ? 6 : completa ? 70 : 34;
     for (let i = 0; i < total; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = 40 + Math.random() * (completa ? 150 : 100);
@@ -1447,23 +1521,111 @@ export class CityScene extends Phaser.Scene {
       this.tweens.add({ targets: t, y: p.y + 60 + Math.random() * 60, alpha: 0, angle: Math.random() * 360, delay: 520, duration: 900 + Math.random() * 500, onComplete: () => t.destroy() });
     }
     this.cameras.main.flash(260, 255, 244, 206);
-    this.toast(completa ? "Passaporte do Absurdo completo! 6/6" : `Selo conquistado ${n}/6: ${selo.nome}`);
-    bus.emit("selo", { id: selo.id, nome: selo.nome, cor: selo.cor, icone: selo.icone, n, completa });
+    const final = selo.id === SELO_FINAL.id;
+    this.toast(final ? "Carimbo final: Ditadura do Carimbo" : completa ? "Passaporte do Absurdo completo! 6/6" : `Selo conquistado ${n}/6: ${selo.nome}`);
+    bus.emit("selo", { id: selo.id, nome: selo.nome, cor: selo.cor, icone: selo.icone, n, completa, final });
   }
 
-  /** Estrela e anel dourados no destino da missão (ao ar livre), diferentes do marcador azul do mapa. */
+  /**
+   * Cerimônia final: monta a praça (coroa de carimbos, faixa, plateia), roda o roteiro (falas, duas escolhas
+   * curtas do jogador, chuva de carimbos, aplausos) e, no fim, devolve as marcas que ficam gravadas na
+   * partida. As decisões das missões determinam o tom; a declaração de ditadura é sempre a mesma.
+   * Rever a cerimônia passa pelo mesmo roteiro, mas as marcas novas não mudam o que já foi decidido.
+   */
+  private rodaCerimonia(flags: Record<string, Valor>, fim: (marcas?: Record<string, Valor>) => void) {
+    const { tom, passos } = roteiro(flags);
+    const marcas: Record<string, Valor> = { "final.tom": tom };
+    const base = this.contextoJogo();
+    this.cerimoniaAtiva = true;
+    this.computeZoom();
+    touchInput.x = 0;
+    touchInput.y = 0;
+    const proximo = (i: number) => {
+      const p = passos[i];
+      if (!p) {
+        this.cerimoniaAtiva = false;
+        this.computeZoom();
+        // quem chamou grava as marcas e avisa a cena (campanhaMudou), que redesenha a praça com o que ficou salvo
+        fim(marcas);
+        return;
+      }
+      if (p.tipo === "montar") {
+        this.adornos.atualiza({ ...base, "flag:final.tom": tom, "flag:final.proc": "", "flag:final.aplauso": "" });
+        this.cameras.main.flash(300, 255, 244, 206);
+        sound.sino();
+        this.time.delayedCall(900, () => proximo(i + 1));
+      } else if (p.tipo === "fala") this.abreDialogo(p.linhas, p.quem, () => proximo(i + 1));
+      else if (p.tipo === "escolha") {
+        const abre = () =>
+          this.abreEscolha(
+            p.escolha.titulo,
+            undefined,
+            p.escolha.opcoes.map(({ id, rotulo }) => ({ id, rotulo })),
+            (id) => {
+              const op = p.escolha.opcoes.find((o) => o.id === id);
+              // não há como sair da cerimônia no meio: desistir reabre a escolha
+              if (!op) return abre();
+              marcas[p.escolha.flag] = op.marca;
+              this.abreDialogo(op.reacao, "Praça", () => proximo(i + 1));
+            },
+          );
+        abre();
+      } else if (p.tipo === "carimbos") {
+        this.chuvaDeCarimbos();
+        this.time.delayedCall(1500, () => proximo(i + 1));
+      } else if (p.tipo === "aplauso") {
+        const forca = p.nivel === "fila" ? 1 : p.nivel === "dividido" ? 0.55 : 0.2;
+        sound.aplauso(forca);
+        this.adornos.aplaudir(p.nivel);
+        this.time.delayedCall(1400, () => proximo(i + 1));
+      } else proximo(i + 1);
+    };
+    proximo(0);
+  }
+
+  /** Chuva de carimbos em volta do palanque. */
+  private chuvaDeCarimbos() {
+    const p = this.activePos();
+    const palavras = ["CARIMBADO", "DEFERIDO", "AUTENTICADO", "FIRMA?", "VIA 2"];
+    for (let i = 0; i < (this.calmo ? 5 : 22); i++) {
+      const x = p.x - 180 + Math.random() * 360;
+      const t = this.add
+        .text(x, p.y - 230 - Math.random() * 90, palavras[i % palavras.length], { fontFamily: FONT, fontSize: `${11 + Math.floor(Math.random() * 7)}px`, fontStyle: "900", color: i % 2 ? "#c62835" : "#1e1424", backgroundColor: "#fffaf0", padding: { x: 4, y: 2 }, resolution: 2.5 })
+        .setOrigin(0.5)
+        .setAngle(-25 + Math.random() * 50)
+        .setDepth(99000);
+      if (this.calmo) this.tweens.add({ targets: t, alpha: 0, delay: 900, duration: 500, onComplete: () => t.destroy() });
+      else this.tweens.add({ targets: t, y: p.y + 20 + Math.random() * 90, alpha: 0, delay: i * 40, duration: 1100 + Math.random() * 500, ease: "Quad.easeIn", onComplete: () => t.destroy() });
+    }
+    sound.carimbo();
+    this.time.delayedCall(260, () => sound.carimbo());
+    this.cameras.main.shake(260, 0.003);
+  }
+
+  /** Dentro de um prédio, a estrela marca as interações de missão que estão ativas ali (o "onde" de uma etapa que pede achar um ponto). */
+  private alvosDoInterior(): { x: number; y: number }[] {
+    if (!this.inside) return [];
+    return interiorSpots(this.inside, this.contextoJogo())
+      .filter((s) => s.evento)
+      .slice(0, this.msMarkers.length)
+      .map((s) => ({ x: s.x, y: s.y }));
+  }
+
+  /** Estrelas e anéis dourados nos destinos da missão (na rua) e nas interações de missão (dentro dos prédios), diferentes do marcador azul do mapa. */
   private updateMissaoMarker(now: number) {
-    const t = this.inside || this.dialogo ? null : this.msAlvo;
-    this.msMarker.setVisible(!!t);
-    this.msRing.setVisible(!!t);
-    if (!t) return;
-    const s = this.uiScale();
-    this.msMarker.setPosition(t.x, t.y - 70 - Math.sin(now / 200) * 6 * s).setScale(s);
-    const pulse = 1 + Math.sin(now / 260) * 0.14;
+    const alvos = this.dialogo || this.cerimoniaAtiva ? [] : this.inside ? this.alvosDoInterior() : this.msAlvos.slice(0, this.msMarkers.length);
+    this.msMarkers.forEach((m, i) => m.setVisible(i < alvos.length));
+    this.msRing.setVisible(alvos.length > 0);
     this.msRing.clear();
+    if (!alvos.length) return;
+    const s = this.uiScale();
     this.msRing.lineStyle(5, 0xffd23f, 0.95);
-    this.msRing.strokeEllipse(t.x, t.y, 84 * pulse, 34 * pulse);
-    this.msRing.setDepth(t.y - 2);
+    const pulse = this.calmo ? 1 : 1 + Math.sin(now / 260) * 0.14;
+    alvos.forEach((t, i) => {
+      this.msMarkers[i].setPosition(t.x, t.y - 70 - (this.calmo ? 0 : Math.sin(now / 200) * 6 * s)).setScale(s);
+      this.msRing.strokeEllipse(t.x, t.y, 84 * pulse, 34 * pulse);
+    });
+    this.msRing.setDepth(alvos[0].y - 2);
   }
 
   /** Escurece a rua à noite (dentro dos prédios a luz é sempre a mesma). */
@@ -1475,7 +1637,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   private updateCandidate() {
-    if (this.transition || this.dialogo) {
+    if (this.transition || this.dialogo || this.cerimoniaAtiva) {
       this.candidate = null;
       return;
     }
@@ -1528,7 +1690,7 @@ export class CityScene extends Phaser.Scene {
       }
       for (const pt of this.missoes.pontosFora()) {
         const d = Math.hypot(pt.x - px, pt.y - py);
-        if (d < DOOR_DIST) cands.push({ label: pt.label, priority: 0, dist: d - 20, run: () => this.missoes.emite(`usou:${pt.id}`), focus: { x: pt.x, y: pt.y - 70 } });
+        if (d < DOOR_DIST) cands.push({ label: pt.label, priority: 0, dist: d - 20, run: () => this.missoes.usaPonto(pt.id), focus: { x: pt.x, y: pt.y - 70 } });
       }
       for (const n of this.npcs) {
         const d = Math.hypot(n.x - px, n.y - py);
@@ -1654,10 +1816,13 @@ export class CityScene extends Phaser.Scene {
       sound.pop();
       return;
     }
-    const lines = this.missoes.falaPara(n.def.id) ?? n.def.lines;
+    const especifica = this.missoes.falaPara(n.def.id);
+    const lines = especifica ?? n.def.lines;
     // moradores com rotina comentam o que estão fazendo agora (de vez em quando)
     const doMomento = n.lineIdx % 2 === 0 ? this.rotinas.fala(n.id, Math.floor(n.lineIdx / 2)) : null;
-    this.say(n.id, doMomento ?? lines[n.lineIdx % lines.length], 2600);
+    // depois da cerimônia, quem não tem fala própria também comenta o decreto, de vez em quando
+    const geral = !especifica && n.lineIdx % 2 === 1 ? this.missoes.falaGeral(n.lineIdx) : null;
+    this.say(n.id, geral ?? doMomento ?? lines[n.lineIdx % lines.length], 2600);
     n.lineIdx++;
     sound.pop();
   }
@@ -1874,13 +2039,18 @@ export class CityScene extends Phaser.Scene {
     }
     const camp = this.missoes.hud();
     if (camp.missao) objective = camp.missao.objetivo;
-    else if (camp.proxima) objective = `Nova missão ${camp.proxima.numero}/6: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.`;
+    else if (camp.proxima) objective = camp.proxima.numero > 6 ? `Cerimônia final: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.` : `Nova missão ${camp.proxima.numero}/6: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.`;
+    else if (camp.final) objective = "Ditadura do Carimbo proclamada. A cidade é sua: veja como cada canto recebeu o decreto, ou reveja a cerimônia no palanque da praça.";
     else if (camp.completa) objective = "Passaporte do Absurdo completo! A cidade é toda sua.";
-    worldState.missaoAlvo = this.msAlvo;
+    worldState.missaoAlvo = this.msAlvos[0] ?? null;
+    worldState.missaoAlvos = this.msAlvos;
     const state: HudState = {
       missao: camp.missao,
       proxima: camp.proxima,
       selos: camp.selos,
+      diario: camp.diario,
+      decisoes: camp.decisoes,
+      final: camp.final,
       completa: camp.completa,
       mode: this.mode,
       action: this.candidate?.label ?? null,
@@ -1989,7 +2159,7 @@ export class CityScene extends Phaser.Scene {
       interiors: () => INTERIORS.map((i) => ({ id: i.id, building: i.building, template: i.template, name: i.name, spots: i.spots.length, rooms: i.rooms.length })),
       candidate: () => this.candidate?.label ?? null,
       toggles: () => Object.fromEntries(this.toggles),
-      campanha: () => ({ ...this.missoes.estado, hud: this.missoes.hud(), alvo: this.msAlvo, dialogo: !!this.dialogo }),
+      campanha: () => ({ ...this.missoes.estado, hud: this.missoes.hud(), alvo: this.msAlvos[0] ?? null, alvos: this.msAlvos, dialogo: !!this.dialogo }),
       emite: (ev: string) => this.missoes.emite(ev),
       /** Começa a próxima missão como se o jogador tivesse falado com quem a dá (apoio de teste). */
       iniciar: (id: string) => {
@@ -2003,6 +2173,17 @@ export class CityScene extends Phaser.Scene {
         return n ? { x: Math.round(n.x), y: Math.round(n.y) } : null;
       },
       avancaDialogo: () => this.avancaDialogo(),
+      /** Opções da escolha aberta (ou null) e escolha por id (apoio de teste; a interface usa os botões). */
+      escolhas: () => this.dialogo?.escolha?.opcoes ?? null,
+      /** Quem tem balão de fala na tela agora (o protagonista é "hero"). */
+      baloes: () => [...this.bubbles.keys()],
+      /** Moradores do interior atual (apoio de teste). */
+      npcsDentro: () => (this.interior?.npcs ?? []).map((n) => ({ id: n.id, nome: n.def.name, x: Math.round(n.x), y: Math.round(n.y) })),
+      escolhe: (id: string | null) => this.escolheOpcao(id),
+      /** A cerimônia final está em cena? */
+      cerimonia: () => this.cerimoniaAtiva,
+      /** Rever a cerimônia (só depois de concluída). */
+      reverCerimonia: () => this.missoes.rever(),
       trafegoDebug: () => this.traffic.cars.filter((c) => c.ativo && c.speedNow < 5).map((c) => c.debug()),
       /** Muda a hora da cidade (em horas, por exemplo 21.5) e ajeita os moradores na hora. */
       setHora: (h: number) => this.rotinas.ajustar(h * 60),

@@ -36,7 +36,26 @@ export interface HudState {
   /** A cidade tem mapa. */
   map?: boolean;
   /** Campanha: missão ativa (com etapa e item carregado) ou a próxima a aceitar. */
-  missao?: { titulo: string; numero: number; etapa: number; total: number; objetivo: string; carregando: string | null } | null;
+  missao?: {
+    titulo: string;
+    numero: number;
+    etapa: number;
+    total: number;
+    objetivo: string;
+    carregando: string | null;
+    /** Checklist da etapa (ferramenta por posto, pistas por pessoa…). */
+    lista: { rotulo: string; feito: boolean }[];
+    /** Indicadores sempre visíveis (níveis do som, etiquetas que batem…). */
+    painel: { rotulo: string; valor: number; max: number }[];
+    /** Nome do destino principal da etapa. */
+    destino: string | null;
+  } | null;
+  /** Pistas e conversas importantes, da mais nova para a mais antiga. */
+  diario?: { id: string; texto: string }[];
+  /** O que o jogador decidiu em cada missão. */
+  decisoes?: { missao: number; texto: string; lado: "obediente" | "rebelde" | "meio" }[];
+  /** A cerimônia final já foi vista. */
+  final?: boolean;
   proxima?: { titulo: string; numero: number; quem: string } | null;
   /** Ids dos selos do Passaporte do Absurdo já conquistados. */
   selos?: string[];
