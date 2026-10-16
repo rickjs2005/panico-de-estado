@@ -25,6 +25,16 @@ export const CIVICO: DistrictContent = {
     { rect: PLAZA, kind: "ondas" },
     { rect: { x: 2150, y: 1400, w: 290, h: 270 }, kind: "patio" },
   ],
+  decals: [
+    // prefeitura: escadaria e tapete vermelho até a calçada
+    { kind: "degraus", rect: { x: 2340, y: 575, w: 120, h: 24 } },
+    { kind: "tapete", rect: { x: 2376, y: 599, w: 48, h: 62 } },
+    // repartição: degrau e setas amarelas da fila, apontando para a porta
+    { kind: "degraus", rect: { x: 1810, y: 1590, w: 60, h: 15 } },
+    { kind: "setas", rect: { x: 1822, y: 1610, w: 36, h: 66 } },
+    // igreja matriz: escadaria da porta da frente
+    { kind: "degraus", rect: { x: 1786, y: 1110, w: 108, h: 21 } },
+  ],
   buildings: [
     { id: "civ-secretaria", district: D, kind: "reparticao", x: 1735, y: 430, w: 210, d: 110, h: 125, wall: "#efe1c4", roof: "laje", sign: "SECRETARIA DA COLETIVIZAÇÃO" },
     { id: "civ-prefeitura", district: D, kind: "prefeitura", x: 2150, y: 455, w: 500, d: 120, h: 145, top: 40, wall: "#fff3dc", roof: "telha", sign: "PREFEITURA POPULAR" },
@@ -52,10 +62,10 @@ export const CIVICO: DistrictContent = {
   props: [
     { kind: "placaColetiva", x: 1770, y: 612, text: "O BOATO VIROU LEI" },
     { kind: "placaColetiva", x: 3020, y: 612, text: "SEU ÁUDIO É NOTÍCIA" },
-    { kind: "bandeira", x: 2175, y: 612 },
-    { kind: "bandeira", x: 2625, y: 612 },
-    { kind: "bandeira", x: 2300, y: 612 },
-    { kind: "bandeira", x: 2500, y: 612 },
+    { kind: "bandeira", x: 2172, y: 606 },
+    { kind: "bandeira", x: 2628, y: 606 },
+    { kind: "canteiro", x: 2300, y: 640 },
+    { kind: "canteiro", x: 2500, y: 640 },
     // praça
     { id: "civ-monumento", kind: "monumento", x: 2400, y: 965 },
     { kind: "coreto", x: 2235, y: 1125 },
@@ -73,15 +83,25 @@ export const CIVICO: DistrictContent = {
     ...frades(),
     // igreja e repartições
     { kind: "palmeira", x: 1940, y: 1170 },
-    { kind: "placaColetiva", x: 1780, y: 1655, text: "SENHA: RETIRE NO GUICHÊ" },
+    { kind: "placaColetiva", x: 1764, y: 1640, text: "SENHA: RETIRE NO GUICHÊ" },
     { kind: "orelhao", x: 1985, y: 1650 },
     { kind: "pontoOnibus", x: 2400, y: 1705 },
     { id: "civ-cone-1", kind: "cone", x: 2460, y: 1390, react: "tip" },
     { id: "civ-cone-2", kind: "cone", x: 2140, y: 1390, react: "tip" },
     { kind: "quiosque", x: 2620, y: 1170, variant: "praca" },
     { kind: "canteiro", x: 1900, y: 600 },
-    { kind: "canteiro", x: 2250, y: 640 },
-    { kind: "canteiro", x: 2550, y: 640 },
+    // praça: ipês, canteiros em volta do monumento, pipoqueiro e postes de luz nos cantos
+    { kind: "ipe", x: 2214, y: 862 },
+    { kind: "ipe", x: 2584, y: 862, variant: "rosa" },
+    { kind: "canteiro", x: 2322, y: 990 },
+    { kind: "canteiro", x: 2478, y: 990 },
+    { kind: "carrinhoPipoca", x: 2352, y: 1168 },
+    { kind: "poste", x: 2136, y: 806 },
+    { kind: "poste", x: 2664, y: 806 },
+    { kind: "poste", x: 2136, y: 1192 },
+    { kind: "poste", x: 2664, y: 1192 },
+    // entorno da igreja e da repartição
+    { kind: "canteiro", x: 1930, y: 1642 },
   ],
   pois: [
     { id: "civ-praca", name: "Praça da Revolução Boateira", district: D, x: 2400, y: 1040, kind: "praca", landmark: true },

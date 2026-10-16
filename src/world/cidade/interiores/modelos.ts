@@ -1,5 +1,6 @@
 import type { TemplateId } from "../types";
 import { back, cadeiras, CERAMICA, cozinha, descanso, fileira, LADRILHO, MADEIRA, mesaTrabalho, morador, PAREDES, sala } from "./kits";
+import { DETALHES } from "./detalhes";
 import type { Plan } from "./plan";
 
 /**
@@ -20,13 +21,32 @@ const clampW = (bw: number, k: number, min: number, max: number) => Math.round(M
 
 // ------------------------------------------------------------------ moradias
 
+type VarianteCasa = "classica" | "quartao" | "vendinha";
+
+/** Canto de passatempo de cada casa: um objeto a mais com uma ação própria. */
+function hobby(p: Plan, qual: "costura" | "violao" | "ventilador") {
+  const { w, h } = p;
+  if (qual === "costura") {
+    p.prop("cadeira", 90, h - 96, { variant: "escritorio" });
+    const m = p.prop("mesaEscritorio", 90, h - 66, { variant: "maquina" });
+    p.spot("maquina", 90, h - 36, "Pedalar a máquina de costura", { prop: m, lines: ["Tec-tec-tec! Uma bandeira nova, costurada em três minutos.", "A máquina costura sozinha: já foi coletivizada."] });
+  } else if (qual === "violao") {
+    const v = p.prop("violao", w - 30, h - 60);
+    p.spot("instrumento", w - 62, h - 56, "Tocar o violão", { prop: v, lines: ["Três acordes e um refrão contra a burocracia.", "O violão desafina a favor do povo."] });
+  } else {
+    const v = p.prop("ventilador", w - 34, h - 60);
+    p.spot("ventilador", w - 62, h - 56, "Ligar o ventilador", { prop: v, lines: ["Zzzzum! O vento é de todos, mas a hélice é minha.", "O ventilador espalha boato e poeira."] });
+  }
+}
+
 function casa(p: Plan) {
   const { w, h } = p;
-  const mid = Math.round(w / 2);
+  const variante = p.r.pick<VarianteCasa>(["classica", "quartao", "vendinha"]);
+  const mid = Math.round(w * (variante === "quartao" ? 0.4 : 0.5));
   const hy = 280;
   p.room("cozinha", "Cozinha", 0, p.wallH, mid, hy - p.wallH, "ceramica", p.r.pick(CERAMICA));
-  p.room("descanso", "Área de descanso", mid, p.wallH, w - mid, hy - p.wallH, "taco", p.r.pick(MADEIRA));
-  p.room("sala", "Sala", 0, hy + 14, w, h - hy - 14, p.r.chance(0.5) ? "ladrilho" : "taco", p.r.chance(0.5) ? p.r.pick(LADRILHO) : p.r.pick(MADEIRA));
+  p.room("descanso", variante === "quartao" ? "Quartão" : "Área de descanso", mid, p.wallH, w - mid, hy - p.wallH, "taco", p.r.pick(MADEIRA));
+  p.room("sala", variante === "vendinha" ? "Sala e vendinha" : "Sala", 0, hy + 14, w, h - hy - 14, p.r.chance(0.5) ? "ladrilho" : "taco", p.r.chance(0.5) ? p.r.pick(LADRILHO) : p.r.pick(MADEIRA));
   p.hwall(hy, 0, w, [
     [96, 84],
     [w - 186, 84],
@@ -37,14 +57,27 @@ function casa(p: Plan) {
   sala(p, 0, w, hy + 14, h);
   p.wallProp("janela", mid / 2 + 30);
   p.wallProp("janela", mid + (w - mid) / 2);
-  if (p.r.chance(0.5)) p.prop("violao", w - 30, h - 60);
-  else p.prop("ventilador", w - 34, h - 60);
   p.prop("vaso", 30, h - 40);
-  morador(p, Math.round(w * 0.72), hy + 90, [
-    "Fica à vontade! Aqui a casa é sua… e de todo mundo, por decreto.",
-    "Coletivizaram meu sofá. Agora quem senta primeiro é o dono.",
-    "Cuidado com o cachorro: ele também é patrimônio do povo.",
-  ]);
+  if (variante === "quartao") {
+    p.wallProp("quadro", w - 110, { variant: "festa" });
+    p.prop("planta", w - 24, hy - 30);
+    hobby(p, "costura");
+    morador(p, Math.round(w * 0.72), hy + 90, ["O quarto é grande porque a família é maior que a casa.", "Costuro bandeira de todo time. Ninguém reclama."]);
+  } else if (variante === "vendinha") {
+    // vendinha de bairro: prateleira baixa e caixa na sala, atendida pela moradora
+    p.prop("gondola", w - 118, hy + 64, { variant: "enlatados" });
+    const cx = p.prop("caixaRegistradora", w - 148, hy + 134);
+    p.spot("registradora", w - 148, hy + 164, "Atender na vendinha", { prop: cx, lines: ["Fiado só até o decreto de amanhã. Plim!", "Cada lata tem preço coletivo: o mesmo que ontem."] });
+    hobby(p, p.r.pick(["violao", "ventilador"] as const));
+    morador(p, w - 214, hy + 112, ["Vendinha da casa: pão, pilha e boato fresquinho.", "Pode olhar à vontade. Comprar, só com carimbo."], "Dona da vendinha");
+  } else {
+    hobby(p, p.r.pick(["violao", "ventilador", "costura"] as const));
+    morador(p, Math.round(w * 0.72), hy + 90, [
+      "Fica à vontade! Aqui a casa é sua… e de todo mundo, por decreto.",
+      "Coletivizaram meu sofá. Agora quem senta primeiro é o dono.",
+      "Cuidado com o cachorro: ele também é patrimônio do povo.",
+    ]);
+  }
 }
 
 function republica(p: Plan) {
@@ -147,29 +180,44 @@ function prefeitura(p: Plan) {
   p.spot("armario", 92, back(p) + 30, "Abrir uma gaveta do arquivo", { prop: arqs[1], lines: ["Pasta “Boatos de 1987”: ainda em análise.", "Gaveta cheia de decretos sobre gavetas."] });
   p.prop("pilhaPapel", a - 60, hy - 30);
   p.prop("pilhaPapel", 60, hy - 30);
+  p.wallProp("relogio", a - 40);
   // gabinete
   const mesa = mesaTrabalho(p, a + a / 2, back(p) + 90, "carimbo");
   p.spot("carimbo", a + a / 2 + 70, back(p) + 104, "Carimbar um decreto", { prop: mesa, lines: ["DECRETADO: amanhã é feriado de ontem.", "CARIMBADO: o boato agora é oficial."] });
   p.spot("sentar", a + a / 2, back(p) + 120, "Sentar na cadeira do prefeito", { seat: { x: a + a / 2, y: back(p) + 62, facing: "front" } });
   p.prop("bandeira", a + 40, back(p));
-  p.wallProp("quadro", a + a / 2, { variant: "retrato" });
+  p.prop("bandeira", 2 * a - 40, back(p));
+  p.wallProp("quadro", a + a / 2 - 70, { variant: "retrato" });
+  p.wallProp("quadro", a + a / 2 + 70, { variant: "brasao" });
+  p.prop("planta", a + 30, hy - 64);
   // reuniões
   p.prop("mesaReuniao", 2 * a + (w - 2 * a) / 2, back(p) + 100);
   cadeiras(p, 2 * a + (w - 2 * a) / 2 - 80, 5, back(p) + 50, 40, "cadeira");
   p.spot("sentar", 2 * a + (w - 2 * a) / 2, back(p) + 150, "Sentar na reunião", { seat: { x: 2 * a + (w - 2 * a) / 2 - 80, y: back(p) + 46, facing: "front" } });
   const telao = p.wallProp("telao", 2 * a + (w - 2 * a) / 2, { text: "PAUTA: TRANSFORMAR BOATO EM OBRA" });
   p.spot("tv", 2 * a + 60, back(p) + 30, "Ligar o projetor", { prop: telao, lines: ["Slide 1 de 400: “O boato e você”.", "Gráfico de pizza: a pizza também foi coletivizada."] });
-  // recepção
+  const cafe = p.prop("cafezinho", w - 70, hy - 34);
+  p.spot("fogao", w - 70, hy - 4, "Servir um cafezinho", { prop: cafe, lines: ["Café coletivo: sai fraco, mas sai para todos.", "A garrafa térmica tem número de protocolo."] });
+  // recepção: tapete vermelho até o balcão, balcão no meio, cadeiras de espera dos dois lados
+  p.prop("tapeteCorredor", w / 2, hy + 205, { variant: "vermelho-curto" });
   p.prop("balcao", w / 2, hy + 130);
   p.npc("atendente", "Recepcionista da Prefeitura", w / 2, hy + 92, ["Bom dia! Qual boato deseja oficializar?", "O prefeito está em reunião com ele mesmo."], { facing: "front" });
   p.spot("campainha", w / 2 + 90, hy + 158, "Tocar a campainha do balcão", { lines: ["Plim! “Já vai, é só preencher 12 formulários.”", "Plim! A campainha também é patrimônio público."] });
+  p.prop("bandeira", w / 2 - 190, hy + 118);
+  p.prop("bandeira", w / 2 + 190, hy + 118);
+  const totem = p.prop("totemSenha", 330, hy + 70);
+  p.spot("senha", 330, hy + 96, "Tirar uma senha", { prop: totem, lines: ["Sua senha: 0612. Atendimento previsto para o próximo mandato.", "A senha saiu com carimbo e sem número."] });
   cadeiras(p, 90, 6, h - 70, 36);
   p.spot("sentar", 90, h - 46, "Sentar e esperar", { seat: { x: 90, y: h - 76, facing: "front" } });
+  cadeiras(p, w - 280, 5, h - 70, 36);
+  p.spot("sentar", w - 280, h - 46, "Sentar e esperar", { seat: { x: w - 280, y: h - 76, facing: "front" } });
+  p.prop("quadroAvisos", w - 170, hy + 72, { text: "AVISO: O BOATO DE ONTEM VALE HOJE" });
   p.prop("bebedouro", w - 60, hy + 70);
   p.spot("torneira", w - 60, hy + 98, "Beber água no bebedouro", { lines: ["Água gelada do povo.", "O bebedouro faz um barulho de protesto."] });
   p.prop("planta", w - 40, h - 40);
   p.prop("planta", 40, hy + 60);
-  morador(p, w - 220, h - 110, ["Vim pedir um alvará para pedir um alvará.", "Senha 0666. Estou aqui desde o boato anterior."]);
+  p.prop("vaso", 40, h - 36);
+  morador(p, w - 360, h - 130, ["Vim pedir um alvará para pedir um alvará.", "Senha 0666. Estou aqui desde o boato anterior."]);
 }
 
 function ministerio(p: Plan) {
@@ -223,23 +271,31 @@ function reparticao(p: Plan) {
   p.hwall(h - 170, vx, w);
   const painel = p.prop("painelSenha", vx / 2, p.wallH - 26, { text: "SENHA 0666" });
   p.spot("senha", vx / 2 - 150, back(p) + 110, "Tirar uma senha", { prop: painel, lines: ["Sua senha: 0667. Previsão: próximo mandato.", "A senha saiu carimbada."] });
+  p.prop("totemSenha", vx / 2 - 190, back(p) + 120);
   const g1 = p.prop("guiche", vx / 2 - 190, back(p) + 50, { variant: "1" });
   p.prop("guiche", vx / 2, back(p) + 50, { variant: "2" });
   p.prop("guiche", vx / 2 + 190, back(p) + 50, { variant: "3" });
   p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
   p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu boato foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front" });
+  // fila: cadeiras de espera e correntes de baliza dos dois lados, deixando o corredor do meio livre até a porta
   cadeiras(p, vx / 2 - 170, 3, back(p) + 190, 60);
   cadeiras(p, vx / 2 + 60, 3, back(p) + 190, 60);
   p.spot("sentar", vx / 2 - 110, back(p) + 214, "Sentar na fila", { seat: { x: vx / 2 - 110, y: back(p) + 184, facing: "back" } });
   p.npc("didi", "Cidadão na fila", vx / 2 - 170, back(p) + 202, ["Estou na fila desde o boato anterior."], { facing: "back" });
   p.npc("func2", "Cidadã na fila", vx / 2 + 120, back(p) + 202, ["Vim pedir a segunda via do meu portão coletivizado."], { facing: "back" });
+  for (let x = 40; x <= 250; x += 52) p.prop("balizaFila", x, h - 120, { variant: x < 240 ? "fita" : undefined });
+  for (let x = vx - 250; x <= vx - 40; x += 52) p.prop("balizaFila", x, h - 120, { variant: x < vx - 80 ? "fita" : undefined });
+  // arquivo morto
   fileira(p, "arquivo", vx + 40, w - 40, back(p), 50);
   p.prop("pilhaPapel", vx + 50, h - 210);
   p.spot("examinar", vx + 85, h - 200, "Mexer no arquivo morto", { lines: ["Processo nº 1: “Pedido para abolir as filas”. Na fila.", "Encontrei um carimbo que carimba sozinho."] });
   p.prop("pilhaPapel", 40, h - 50);
   p.prop("bebedouro", vx - 40, h - 60);
+  p.prop("planta", 36, back(p) + 120);
+  p.prop("planta", vx - 34, back(p) + 120);
+  p.wallProp("relogio", vx - 18, { variant: "ponto" });
   p.poster("SEU BOATO FOI PROTOCOLADO", 140, "#fffaf0", "#3a6b5a");
-  p.poster("AGUARDE: 300 ANOS ÚTEIS", vx - 140, "#1e1424", "#ffd23f");
+  p.poster("AGUARDE: 300 ANOS ÚTEIS", vx - 120, "#1e1424", "#ffd23f", 32);
 }
 
 function secretaria(p: Plan) {
@@ -317,6 +373,10 @@ function igreja(p: Plan, small: boolean) {
   p.room("apoio", small ? "Sala de apoio" : "Sacristia", small ? 0 : vx, p.wallH, small ? vx : w - vx, hy - p.wallH, "taco", p.r.pick(MADEIRA));
   p.vwall(vx, p.wallH, hy, [[hy - 110, 76]]);
   p.hwall(hy, small ? 0 : vx, small ? vx : w);
+  // o lugar muda de estado: interditado (cavaletes, velas apagadas) ou aberto (velas acesas e flores)
+  const place = p.b.place;
+  const trancada = place ? { place, state: "interditada" } : undefined;
+  const aberta = place ? { place, state: "aberta" } : undefined;
   const altar = p.prop("altar", cx, back(p) + 40);
   p.spot("examinar", cx, back(p) + 70, "Olhar o altar", { prop: altar, lines: ["Uma vela acesa e um aviso: “Milagre só com protocolo”.", "O altar está empoeirado de tanto decreto."] });
   p.prop("pulpito", cx - (small ? 70 : 110), back(p) + 90);
@@ -329,20 +389,75 @@ function igreja(p: Plan, small: boolean) {
     const sino = p.prop("sino", 70, back(p) + 30);
     p.spot("sino", 70, back(p) + 60, "Tocar o sino", { prop: sino, lines: ["Blém-blém! O sino ainda não foi interditado.", "O sino ecoa pela cidade inteira."] });
   }
+  // nave: tapete no corredor central, bancos em duas colunas e vitrais na parede do fundo
   const rows = small ? 3 : 4;
   const colX = small ? [cx - 120, cx + 120] : [cx - 160, cx + 160];
-  for (let r = 0; r < rows; r++) for (const x of colX) p.prop("bancoIgreja", x, (small ? back(p) + 160 : back(p) + 170) + r * 62, { variant: small ? "claro" : "escuro" });
-  const by = (small ? back(p) + 160 : back(p) + 170) + 62;
+  const rowY0 = small ? back(p) + 160 : back(p) + 170;
+  p.prop("tapeteCorredor", cx, rowY0 + (rows - 1) * 31 - 20, { variant: small ? "azul-medio" : "vermelho-longo" });
+  for (let r = 0; r < rows; r++) for (const x of colX) p.prop("bancoIgreja", x, rowY0 + r * 62, { variant: small ? "claro" : "escuro" });
+  const by = rowY0 + 62;
   p.spot("sentar", colX[0], by + 22, "Sentar no banco", { seat: { x: colX[0] - 30, y: by - 8, facing: "back" } });
-  // apoio / sacristia
+  p.wallProp("vitral", small ? naveX0 + 34 : 32);
+  p.wallProp("vitral", small ? naveX1 - 34 : 586);
+  if (!small) p.wallProp("vitral", cx);
+  const aisleL = cx - (small ? 52 : 56);
+  const aisleR = cx + (small ? 52 : 56);
+  p.prop("cavalete", aisleL, back(p) + 112, { when: trancada });
+  p.prop("cavalete", aisleR, back(p) + 112, { when: trancada });
+  p.prop("castical", aisleL - 36, back(p) + 112, { variant: "apagado", when: trancada });
+  p.prop("castical", aisleR + 36, back(p) + 112, { variant: "apagado", when: trancada });
+  p.prop("castical", aisleL - 6, back(p) + 112, { when: aberta });
+  p.prop("castical", aisleR + 6, back(p) + 112, { when: aberta });
+  p.prop("castical", aisleL - 36, back(p) + 112, { when: aberta });
+  p.prop("castical", aisleR + 36, back(p) + 112, { when: aberta });
+  p.prop("vaso", cx - 52, back(p) + 36, { when: aberta });
+  p.prop("vaso", cx + 52, back(p) + 36, { when: aberta });
+  // apoio / sacristia: armário e o mural onde fica o decreto de interdição
   const ax0 = small ? 0 : vx;
   const ax1 = small ? vx : w;
-  const arm = p.prop("armario", (ax0 + ax1) / 2, back(p), { variant: "madeira" });
-  p.spot("armario", (ax0 + ax1) / 2, back(p) + 30, small ? "Abrir o armário de apoio" : "Abrir o armário das vestes", { prop: arm, lines: ["Batinas, um cadeado reserva e um panfleto “fé sem burocracia”.", "Caixas de hóstia com selo do Ministério."] });
+  const arm = p.prop("armario", ax1 - 50, back(p), { variant: "madeira" });
+  p.spot("armario", ax1 - 50, back(p) + 30, small ? "Abrir o armário de apoio" : "Abrir o armário das vestes", { prop: arm, lines: ["Batinas, um cadeado reserva e um panfleto “fé sem burocracia”.", "Caixas de hóstia com selo do Ministério."] });
   p.prop("vaso", ax0 + 30, hy - 30);
-  p.poster("CULTO SUSPENSO POR DECRETO", small ? naveX0 + 120 : 150, "#fff4ce", "#b62f3e", 40);
-  p.poster("REZE EM SILÊNCIO (E SEM CARIMBO)", small ? naveX1 - 130 : naveX1 - 190, "#1e1424", "#fffaf0", 40);
-  p.npc(small ? "cida" : "pastor", small ? "Dona Cida" : "Pastor Josué Aleluia", cx + 60, by + 90, small ? ["Entrei pela porta lateral. O decreto não fala dela!", "Aqui a fé é coletiva e o cadeado também."] : ["Entraste pela lateral? O Senhor também gosta de atalho.", "Hoje o sermão é sobre burocracia."], { facing: "front" });
+  if (place) {
+    const mx = ax0 + 38;
+    const mural = place === "assembleia" ? "lacre do Ministério" : "decreto de interdição";
+    const quadro = p.wallProp("quadro", mx, { variant: "decreto", when: trancada });
+    p.spot("decreto", mx, back(p) + 8, `Arrancar o ${mural} do mural`, {
+      prop: quadro,
+      when: trancada,
+      setPlace: aberta,
+      lines: ["Arrancado! A porta da frente estava só encostada na burocracia.", "REVOGADO por quem estava lá, sem protocolo e sem carimbo."],
+    });
+    const quadro2 = p.wallProp("quadro", mx, { variant: "revogado", when: aberta });
+    p.spot("decreto", mx, back(p) + 8, `Pregar o ${mural} de volta`, {
+      prop: quadro2,
+      when: aberta,
+      setPlace: trancada,
+      lines: ["DECRETADO de novo: a igreja volta a ser patrimônio do silêncio.", "Colado com durex e muita convicção. Interditada outra vez."],
+    });
+  }
+  p.poster("CULTO SUSPENSO POR DECRETO", small ? naveX0 + 150 : 168, "#fff4ce", "#b62f3e", 40, trancada);
+  p.poster("REZE EM SILÊNCIO (E SEM CARIMBO)", small ? naveX1 - 150 : 432, "#1e1424", "#fffaf0", 40, trancada);
+  p.poster("CULTO LIBERADO · ENTRADA FRANCA", small ? naveX0 + 150 : 168, "#fffaf0", "#1f8a4c", 40, aberta);
+  p.poster("FÉ SEM PROTOCOLO", small ? naveX1 - 150 : 432, "#1e1424", "#fff4ce", 40, aberta);
+  p.npc(
+    small ? "cida" : "pastor",
+    small ? "Dona Cida" : "Pastor Josué Aleluia",
+    cx + (small ? 22 : 60),
+    by + 90,
+    small
+      ? ["Entrei pela porta lateral. O decreto não fala dela!", "Aqui a fé é coletiva e o cadeado também."]
+      : ["Entraste pela lateral? O Senhor também gosta de atalho.", "Hoje o sermão é sobre burocracia.", "Aquele decreto no mural da sacristia está colado com cuspe. Quem arranca, desinterdita."],
+    { facing: "front", when: trancada },
+  );
+  p.npc(
+    small ? "cida" : "pastor",
+    small ? "Dona Cida" : "Pastor Josué Aleluia",
+    cx + (small ? 22 : 60),
+    by + 90,
+    small ? ["As portas abriram! Vou chamar a vizinhança toda.", "Fé liberada: agora só falta liberar o estacionamento."] : ["Aleluia! A porta da frente voltou a ser porta.", "Hoje o sermão é sobre o decreto que caiu da parede."],
+    { facing: "front", when: aberta },
+  );
 }
 
 // ------------------------------------------------------------------ comércio
@@ -372,6 +487,13 @@ function mercado(p: Plan) {
   p.spot("caixa", 60, back(p) + 100, "Abrir uma caixa do estoque", { lines: ["Uma caixa de caixas. Burocracia do estoque.", "Achei 200 pacotes de biscoito, ou bolacha. A polêmica continua."] });
   p.npc("m2", "Seu Kiko do caixa", 90, h - 96, ["Leva a sacola? É coletiva, depois devolve.", "Aqui o fiado é política pública."], { facing: "front" });
   morador(p, cols[1], back(p) + 160, ["Cadê o feijão? Ah, foi redistribuído pro corredor 3."]);
+  // hortifruti no canto da frente e quadro de ofertas
+  const fruta = p.prop("gondola", w - 100, h - 80, { variant: "frutas" });
+  p.spot("examinar", w - 100, h - 50, "Escolher uma fruta", { prop: fruta, lines: ["Banana por comitê, laranja por assembleia. A maçã está em greve.", "A etiqueta diz: “fruta de hoje, preço de ontem”."] });
+  p.prop("caixaPapelao", w - 200, h - 40);
+  p.prop("caixaPapelao", w - 30, h - 130);
+  p.prop("quadroAvisos", w - 230, h - 100, { text: "OFERTA: BOATO EM LATA, 3 POR 10" });
+  p.prop("planta", vx + 30, h - 40);
   p.poster("KI-PREÇO: O PREÇO É DE TODOS", w / 2 + 80, "#fffaf0", "#e63946");
 }
 
@@ -394,6 +516,14 @@ function padaria(p: Plan) {
     p.prop("banqueta", x + 22, h - 60);
   }
   p.spot("sentar", 80, h - 34, "Sentar para um café", { seat: { x: 58, y: h - 66, facing: "front" } });
+  p.prop("mesaBar", 360, h - 70);
+  p.prop("banqueta", 338, h - 60);
+  p.prop("banqueta", 382, h - 60);
+  const prat = p.prop("gondola", 90, back(p) + 140, { variant: "biscoitos" });
+  p.spot("examinar", 90, back(p) + 170, "Olhar os biscoitos", { prop: prat, lines: ["Biscoito ou bolacha? A assembleia ainda não decidiu.", "Pacote com selo: “crocante por decreto”."] });
+  const cafe = p.prop("cafezinho", 250, back(p) + 130);
+  p.spot("fogao", 250, back(p) + 160, "Servir um cafezinho", { prop: cafe, lines: ["Café coado no pano da coletividade.", "Um cafezinho por pessoa. Sem repetição, mas com fiado."] });
+  p.prop("planta", vx - 36, h - 40);
   p.wallProp("relogio", 60);
   p.poster("PÃO DO POVO · SAI DE HORA EM HORA", vx / 2, "#fff4e0", "#9c4a1a");
 }
@@ -421,6 +551,12 @@ function bar(p: Plan) {
     [vx - 70, h - 140],
   ]) p.prop("mesaBar", x, y);
   p.npc("osvaldo", "Freguês fiel", vx - 70, h - 110, ["Eu vim só pra um gole. Faz três decretos."], { facing: "side", flip: true });
+  const sinuca = p.prop("mesaPingPong", vx / 2 - 20, h - 210);
+  p.spot("examinar", vx / 2 - 20, h - 170, "Jogar pingue-pongue de bar", { prop: sinuca, lines: ["Aposta de rodada: quem perde paga o fiado do outro.", "A bolinha caiu na cachaça. Ponto para o Tião."] });
+  p.prop("mesaBar", vx - 190, h - 90);
+  p.prop("banqueta", vx - 212, h - 80);
+  p.prop("planta", 36, h - 40);
+  p.prop("ventilador", vx - 30, h - 50);
   cozinha(p, vx + 8, w, p.wallH, h - 160, { mesa: false, filtro: false });
   p.poster("CACHAÇA PRESIDENCIAL", 120, "#fff4ce", "#c62835");
   p.poster("FIADO SÓ AMANHÃ", vx - 110, "#1e1424", "#fffaf0");
@@ -443,6 +579,12 @@ function farmacia(p: Plan) {
   p.spot("geladeira", vx + 60, back(p) + 30, "Abrir a geladeira de vacinas", { prop: gel, lines: ["Vacinas, insulina e um picolé esquecido.", "Etiqueta: “vacina contra boato — em teste”."] });
   fileira(p, "caixaPapelao", vx + 40, w - 40, h - 180, 50);
   p.prop("planta", 40, h - 40);
+  // espera: cadeiras, totem de senha e bebedouro
+  cadeiras(p, 180, 3, h - 70, 36);
+  p.spot("sentar", 180, h - 46, "Sentar e esperar", { seat: { x: 180, y: h - 76, facing: "front" } });
+  const tt = p.prop("totemSenha", vx - 70, h - 90);
+  p.spot("senha", vx - 70, h - 62, "Tirar uma senha", { prop: tt, lines: ["Senha 0042. Atendimento previsto antes da próxima epidemia.", "A senha vem com um conselho: “não repasse”."] });
+  p.prop("bebedouro", vx - 36, h - 70);
 }
 
 function lanchonete(p: Plan, cantina: boolean) {
@@ -482,8 +624,12 @@ function loterica(p: Plan) {
   p.spot("examinar", w / 2, back(p) + 120, "Conferir os números", { prop: painel, lines: ["Resultado: 13, 13, 13, 13, 13, 13. Todo mundo acertou.", "Sorteio adiado: o globo foi coletivizado."] });
   p.prop("mesa", 80, h - 120, { variant: "volantes" });
   p.spot("registradora", 80, h - 90, "Preencher um volante", { lines: ["Marquei todos os números. Por solidariedade.", "“Bolão do bairro”: o bairro inteiro entrou."] });
-  cadeiras(p, w / 2 - 50, 4, h - 70, 36);
-  p.spot("sentar", w / 2 - 50, h - 46, "Sentar na fila", { seat: { x: w / 2 - 50, y: h - 76, facing: "back" } });
+  cadeiras(p, w - 250, 3, h - 70, 36);
+  p.spot("sentar", w - 250, h - 46, "Sentar na fila", { seat: { x: w - 250, y: h - 76, facing: "back" } });
+  for (let x = w / 2 - 170; x <= w / 2 - 60; x += 36) p.prop("balizaFila", x, back(p) + 150, { variant: x < w / 2 - 80 ? "fita" : undefined });
+  for (let x = w / 2 + 60; x <= w / 2 + 170; x += 36) p.prop("balizaFila", x, back(p) + 150, { variant: x < w / 2 + 130 ? "fita" : undefined });
+  p.prop("totemSenha", 190, h - 80);
+  p.prop("planta", 36, h - 40);
   morador(p, w - 90, h - 110, ["Jogo no boato da semana desde 1994.", "Se eu ganhar, divido com o país. Obrigatório."]);
   p.poster("MEGA-BOATO ACUMULADO", 110, "#ffffff", "#2a6fdb");
 }
@@ -510,6 +656,13 @@ function shopping(p: Plan) {
   }
   p.spot("sentar", 80, h - 68, "Sentar na praça de alimentação", { seat: { x: 80, y: h - 100, facing: "front" } });
   p.prop("planta", vx / 2 + 60, h - 120);
+  p.prop("banco", vx / 2 - 150, h - 250);
+  p.prop("banco", vx / 2 + 110, h - 250);
+  p.prop("planta", vx / 2 - 20, h - 250);
+  const pipoca = p.prop("carrinhoPipoca", 150, back(p) + 190);
+  p.spot("caixa", 150, back(p) + 220, "Comprar pipoca", { prop: pipoca, lines: ["Pipoca doce ou salgada? Pipoca coletiva: meio a meio.", "Cada saquinho vem com um boato de brinde."] });
+  const cf = p.prop("cafezinho", vx - 130, back(p) + 190);
+  p.spot("fogao", vx - 130, back(p) + 220, "Servir um cafezinho", { prop: cf, lines: ["O café do shopping é o único serviço rápido da cidade.", "Cafezinho gelado: já nasceu frio, por decreto."] });
   const m = mesaTrabalho(p, vx + (w - vx) / 2, back(p) + 80, "computador");
   p.spot("computador", vx + (w - vx) / 2, back(p) + 106, "Ver as câmeras do shopping", { prop: m, lines: ["Câmera 3: um cidadão provando todas as roupas coletivas.", "Câmera 7: o camelô Dinho vendendo kit antiboato."] });
   morador(p, vx / 2, h - 170, ["Vim só olhar. Olhar é de graça e é de todos.", "O ar-condicionado é o melhor serviço público."]);
@@ -784,5 +937,14 @@ export const MODELS: Record<TemplateId, ModelSpec> = {
   alfandega: { size: () => ({ w: 900, h: 560 }), build: alfandega },
   despacho: { size: () => ({ w: 680, h: 460 }), build: despacho },
 };
+
+// detalhes por modelo (objetos e ações a mais, inclusive as que mudam o estado de um lugar)
+for (const [id, extra] of Object.entries(DETALHES) as [TemplateId, (p: Plan) => void][]) {
+  const base = MODELS[id].build;
+  MODELS[id].build = (p) => {
+    base(p);
+    extra(p);
+  };
+}
 
 export { PAREDES };

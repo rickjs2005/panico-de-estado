@@ -14,6 +14,8 @@ export interface CityProgress {
   /** Prédios em que o jogador já entrou. */
   visited: string[];
   waypoint: (Point & { label: string }) | null;
+  /** Hora do dia da cidade (minutos desde a meia-noite). Ausente em saves antigos. */
+  hora?: number;
 }
 
 function empty(): CityProgress {
@@ -32,6 +34,7 @@ export function readCity(): CityProgress {
       }
       if (Array.isArray(data.discovered)) out.discovered = data.discovered.filter((d): d is string => typeof d === "string");
       if (Array.isArray(data.visited)) out.visited = data.visited.filter((d): d is string => typeof d === "string");
+      if (typeof data.hora === "number" && Number.isFinite(data.hora)) out.hora = data.hora;
       const w = data.waypoint;
       if (w && typeof w.x === "number" && typeof w.y === "number" && typeof w.label === "string") out.waypoint = { x: w.x, y: w.y, label: w.label };
     }
@@ -70,6 +73,12 @@ export function visit(buildingId: string): boolean {
   p.visited.push(buildingId);
   write(p);
   return true;
+}
+
+export function saveHora(minutos: number) {
+  const p = readCity();
+  p.hora = Math.round(minutos);
+  write(p);
 }
 
 export function saveWaypoint(w: CityProgress["waypoint"]) {

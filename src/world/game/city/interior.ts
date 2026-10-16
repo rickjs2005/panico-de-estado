@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { FLAT_PROPS, interiorProps, interiorSolids, WALL_PROPS, type Solid } from "../../cidade";
+import { FLAT_PROPS, interiorNpcs, interiorPosters, interiorProps, interiorSolids, WALL_PROPS, type Solid } from "../../cidade";
 import type { InteriorDef, InteriorProp } from "../../cidade/types";
 import { INK, toInt } from "../art";
 import { RES, tex } from "../bake";
@@ -117,7 +117,7 @@ export class InteriorView {
     for (const p of interiorProps(def, places)) this.placeProp(p);
 
     // cartazes na parede do fundo
-    for (const p of def.posters) {
+    for (const p of interiorPosters(def, places)) {
       const t = scene.add
         .text(p.x, p.y, p.text, { fontFamily: FONT, fontSize: "13px", fontStyle: "900", color: p.color, backgroundColor: p.bg, padding: { x: 8, y: 5 }, align: "center", wordWrap: { width: 260, useAdvancedWrap: true }, resolution: 2.5 })
         .setOrigin(0.5)
@@ -168,7 +168,7 @@ export class InteriorView {
       );
     }
 
-    for (const n of def.npcs) this.npcs.push(new Npc(scene, n));
+    for (const n of interiorNpcs(def, places)) this.npcs.push(new Npc(scene, n));
   }
 
   private keep<T extends Phaser.GameObjects.GameObject>(o: T): T {

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PuppetHead, type Face } from "@/components/Puppet";
 import { LOOKS, type LookId } from "../looks";
 import { BUILDINGS as CITY_BUILDINGS, PROPS as CITY_PROPS, INTERIOR_PROPS, VEHICLES } from "../cidade";
+import { CORES_TRANSITO } from "../cidade/vida";
 import { BUILDINGS, PROPS } from "../map";
 import type { HeroId } from "../types";
 import { casinhaArt, cityBuildingArt, cityPropArt, cityTile, interdicaoArt, navioArt, waterTile } from "./city/cityArt";
@@ -114,7 +115,7 @@ function jobs(hero: HeroId): Job[] {
   }
 
   // cidade do Lula
-  for (const color of new Set(VEHICLES.map((v) => v.color))) {
+  for (const color of new Set([...VEHICLES.map((v) => v.color), ...CORES_TRANSITO])) {
     for (const layer of ["lateral", "topo"] as const) add(tex.car(layer, color), carLayer(layer, color), RES.car);
   }
   for (const p of [...CITY_PROPS, ...INTERIOR_PROPS]) add(tex.prop(p.kind, p.variant), cityPropArt(p.kind, p.variant), RES.cityProp);

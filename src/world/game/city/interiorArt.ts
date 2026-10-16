@@ -107,7 +107,13 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
       const inner =
         variant === "retrato"
           ? `<circle cx="27" cy="20" r="8" fill="#f1c7a3"/><rect x="15" y="28" width="24" height="10" fill="#c62835"/><path d="M15 30 L39 36" stroke="#ffd23f" stroke-width="3"/>`
-          : variant === "mapa"
+          : variant === "brasao"
+            ? `<rect x="8" y="8" width="38" height="30" fill="#1f6e44"/><path d="M27 11 L41 16 V26 Q41 34 27 38 Q13 34 13 26 V16 Z" fill="#ffd23f" stroke="#7a5a10" stroke-width="1.5"/><polygon points="27,16 29.5,23 36,23 31,27 33,34 27,30 21,34 23,27 18,23 24.5,23" fill="#c62835"/>`
+            : variant === "decreto"
+              ? `<rect x="8" y="8" width="38" height="30" fill="#fff8e1"/><path d="M12 14 H42 M12 19 H42 M12 24 H36" stroke="#7a6a50" stroke-width="2"/><circle cx="36" cy="31" r="5.5" fill="#b62f3e"/><path d="M33 31 H39 M36 28 V34" stroke="#fff4ce" stroke-width="1.6"/>`
+              : variant === "revogado"
+                ? `<rect x="8" y="8" width="38" height="30" fill="#fff8e1"/><path d="M12 14 H42 M12 19 H42 M12 24 H36" stroke="#b9ad92" stroke-width="2"/><path d="M10 34 L44 12" stroke="#1f8a4c" stroke-width="3.5"/><circle cx="37" cy="31" r="5.5" fill="#1f8a4c"/><path d="M34.5 31 L36.2 33 L39.6 29" stroke="#fffaf0" stroke-width="1.8" fill="none"/>`
+                : variant === "mapa"
             ? `<rect x="8" y="8" width="38" height="30" fill="#b5e48c"/><circle cx="18" cy="18" r="3" fill="#e63946"/><circle cx="30" cy="26" r="3" fill="#e63946"/><circle cx="38" cy="14" r="3" fill="#e63946"/>`
             : variant === "bandeira"
               ? `<rect x="8" y="8" width="38" height="30" fill="#c62835"/><polygon points="27,12 30,20 38,20 31,25 34,33 27,28 20,33 23,25 16,20 24,20" fill="#ffd23f"/>`
@@ -234,6 +240,109 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
       return { w: 28, h: 42, originY: 0.95, outline: 1, body: `<path d="M6 18 H22 L20 38 H8 Z" fill="#3a86c8"/><circle cx="10" cy="12" r="6" fill="#e63946"/><circle cx="18" cy="10" r="6" fill="#ffd23f"/><circle cx="14" cy="5" r="5" fill="#f28dc0"/>` };
     case "quadroAvisos":
       return { w: 108, h: 70, originY: 0.96, outline: 1.1, body: `<rect x="10" y="50" width="4" height="18" fill="#7a4e2d"/><rect x="94" y="50" width="4" height="18" fill="#7a4e2d"/><rect x="2" y="2" width="104" height="52" rx="2" fill="#a8734a"/><rect x="6" y="6" width="96" height="44" fill="#c9a777"/><rect x="74" y="8" width="20" height="16" fill="#fff3a0" transform="rotate(6 84 16)"/>` };
+    case "vitral": {
+      const glass = ["#c62835", "#3a86ff", "#ffd23f", "#2f9e5a", "#7b4bd1"];
+      return {
+        w: 56,
+        h: 100,
+        originY: 1,
+        outline: 1.1,
+        body:
+          `<path d="M3 98 V38 Q3 4 28 4 Q53 4 53 38 V98 Z" fill="#e9dcc5"/>` +
+          `<path d="M9 94 V38 Q9 11 28 11 Q47 11 47 38 V94 Z" fill="#35507a"/>` +
+          [0, 1, 2, 3, 4, 5].map((i) => `<rect x="${11 + (i % 2) * 18}" y="${30 + Math.floor(i / 2) * 22}" width="16" height="20" rx="2" fill="${glass[i % 5]}" opacity="0.9"/>`).join("") +
+          `<path d="M28 11 V94 M9 52 H47" stroke="#e9dcc5" stroke-width="2.5"/><circle cx="28" cy="26" r="7" fill="#ffd23f" stroke="#e9dcc5" stroke-width="2"/>`,
+      };
+    }
+    case "castical": {
+      const lit = variant !== "apagado";
+      const flame = (x: number, y: number) => (lit ? `<path d="M${x} ${y} Q${x - 4} ${y - 6} ${x} ${y - 12} Q${x + 4} ${y - 6} ${x} ${y} Z" fill="#ffb02e"/><path d="M${x} ${y - 1} Q${x - 1.6} ${y - 4} ${x} ${y - 7} Q${x + 1.6} ${y - 4} ${x} ${y - 1} Z" fill="#fff3a0"/>` : "");
+      return {
+        w: 40,
+        h: 78,
+        originY: 0.96,
+        outline: 1,
+        body:
+          `<ellipse cx="20" cy="73" rx="12" ry="4" fill="#b8860b"/><rect x="18" y="30" width="4" height="42" fill="#d9a520"/>` +
+          `<path d="M6 26 Q6 36 20 36 Q34 36 34 26" stroke="#d9a520" stroke-width="3" fill="none"/>` +
+          [6, 20, 34].map((x) => `<rect x="${x - 3}" y="16" width="6" height="12" rx="1" fill="#fffaf0"/>` + flame(x, 15)).join(""),
+      };
+    }
+    case "cavalete":
+      return {
+        w: 60,
+        h: 46,
+        originY: 0.95,
+        outline: 1,
+        body:
+          `<path d="M8 44 L14 12 M52 44 L46 12" stroke="#55555c" stroke-width="4" stroke-linecap="round"/>` +
+          `<rect x="4" y="6" width="52" height="16" rx="2" fill="#ffd23f"/>` +
+          Array.from({ length: 7 }, (_, i) => `<path d="M${8 + i * 8} 22 L${14 + i * 8} 6 H${18 + i * 8} L${12 + i * 8} 22 Z" fill="#1e1424"/>`).join("") +
+          `<rect x="4" y="22" width="52" height="3" fill="#b62f3e"/>`,
+      };
+    case "tapeteCorredor": {
+      const [cor, tam] = (variant ?? "vermelho-medio").split("-");
+      const c = ({ vermelho: "#b8323b", verde: "#2f7a52", azul: "#3b5fa8" } as Record<string, string>)[cor] ?? "#b8323b";
+      const h = ({ curto: 150, medio: 250, longo: 340 } as Record<string, number>)[tam] ?? 250;
+      return {
+        w: 64,
+        h,
+        originY: 0.5,
+        outline: 0,
+        body:
+          `<rect x="2" y="2" width="60" height="${h - 4}" rx="3" fill="${c}"/>` +
+          `<rect x="6" y="6" width="52" height="${h - 12}" fill="none" stroke="#e8c15a" stroke-width="3"/>` +
+          `<rect x="12" y="12" width="40" height="${h - 24}" fill="none" stroke="${shade(c, 0.3)}" stroke-width="1.6"/>` +
+          Array.from({ length: Math.floor((h - 40) / 34) }, (_, i) => `<path d="M32 ${26 + i * 34} l7 8 l-7 8 l-7 -8 Z" fill="#e8c15a"/>`).join(""),
+      };
+    }
+    case "balizaFila": {
+      const fita = variant === "fita";
+      return {
+        w: fita ? 62 : 16,
+        h: 40,
+        originY: 0.96,
+        outline: 1,
+        body:
+          `<ellipse cx="8" cy="37" rx="7" ry="3" fill="#55555c"/><rect x="6.5" y="10" width="3" height="27" fill="#9da8bd"/><circle cx="8" cy="8" r="4.5" fill="#c62835"/>` +
+          (fita ? `<path d="M9 14 H62 V19 H9 Z" fill="#c62835"/><path d="M9 14 H62" stroke="#fffaf0" stroke-width="1.4"/>` : ""),
+      };
+    }
+    case "totemSenha":
+      return {
+        w: 36,
+        h: 62,
+        originY: 0.95,
+        outline: 1.1,
+        body: box(3, 14, 30, 8, 40, "#c62835", 4) + `<rect x="7" y="4" width="22" height="14" rx="3" fill="#1e1424"/>` + txt(18, 15, 7, "SENHA", "#ff4d4d") + `<rect x="9" y="34" width="18" height="12" rx="2" fill="#fffaf0"/><rect x="12" y="46" width="12" height="5" rx="1" fill="#1e1424"/>`,
+      };
+    case "alavanca": {
+      const on = variant !== "vermelha";
+      const c = on ? "#2f9e5a" : "#c62835";
+      return {
+        w: 44,
+        h: 56,
+        originY: 0.95,
+        outline: 1.1,
+        body:
+          box(4, 30, 36, 8, 18, "#55555c", 3) +
+          `<rect x="9" y="26" width="26" height="6" rx="2" fill="#2a2a35"/>` +
+          `<path d="M22 28 L${on ? 12 : 32} 8" stroke="#b8b8c0" stroke-width="5" stroke-linecap="round"/>` +
+          `<circle cx="${on ? 12 : 32}" cy="7" r="6" fill="${c}" stroke="#1e1424" stroke-width="1.5"/>` +
+          `<circle cx="22" cy="44" r="4" fill="${c}"/>`,
+      };
+    }
+    case "cafezinho":
+      return {
+        w: 60,
+        h: 54,
+        originY: 0.95,
+        outline: 1.1,
+        body:
+          box(3, 26, 54, 8, 8, "#a8734a") + legs(6, 54, 42, 10) +
+          `<rect x="10" y="6" width="14" height="24" rx="4" fill="#c62835"/><rect x="12" y="2" width="10" height="6" rx="2" fill="#55555c"/>` +
+          `<rect x="32" y="20" width="8" height="8" rx="1.5" fill="#fffaf0"/><rect x="44" y="20" width="8" height="8" rx="1.5" fill="#fffaf0"/>`,
+      };
     // ---------- rua ----------
     case "canteiro":
       return { w: 76, h: 34, originY: 0.9, outline: 1, body: box(3, 14, 70, 10, 8, "#c9c2b0") + Array.from({ length: 7 }, (_, i) => `<circle cx="${10 + i * 9.5}" cy="${12 + (i % 2) * 3}" r="5" fill="${["#e63946", "#ffd23f", "#f28dc0", "#ffffff", "#c77dff"][i % 5]}"/><path d="M${10 + i * 9.5} ${16 + (i % 2) * 3} V22" stroke="#3f9b4a" stroke-width="2"/>`).join("") };

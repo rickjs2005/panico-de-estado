@@ -24,6 +24,13 @@ export const TERMINAL: DistrictContent = {
     { rect: lot(3970, 2670, 4550, 3270), kind: "concreto" },
     { rect: { x: 3290, y: 3270, w: 1260, h: 160 }, kind: "concreto" },
   ],
+  decals: [
+    { kind: "degraus", rect: { x: 3440, y: 2170, w: 100, h: 18 } },
+    { kind: "tapete", rect: { x: 3466, y: 2188, w: 48, h: 50 }, color: "#c62835" },
+    { kind: "setas", rect: { x: 4117, y: 2236, w: 36, h: 52 } },
+    { kind: "setas", rect: { x: 4372, y: 2236, w: 36, h: 52 } },
+    { kind: "setas", rect: { x: 4097, y: 2906, w: 36, h: 50 } },
+  ],
   buildings: [
     { id: "ter-alfandega", district: D, kind: "alfandega", x: 3340, y: 2050, w: 300, d: 120, h: 120, wall: "#f2c230", roof: "laje", sign: "ALFÂNDEGA DO IMPOSSÍVEL", hooks: { characters: ["despachante"] } },
     { id: "ter-armazem-1", district: D, kind: "armazem", x: 4015, y: 2070, w: 240, d: 150, h: 130, wall: "#d1453b", roof: "laje", sign: "ARMAZÉM BRASIL→CHINA 1" },

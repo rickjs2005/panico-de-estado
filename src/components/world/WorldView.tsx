@@ -142,12 +142,17 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
           {/* objetivo */}
           <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-start gap-2 p-2 sm:p-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
             {hasMap ? (
-              <div className="max-w-[min(26rem,calc(100%-10rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-2.5 py-1.5 shadow-[0_3px_0_#1e1424] sm:px-3">
+              <div className="max-w-[min(26rem,calc(100%-10rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-2.5 py-1.5 shadow-[0_3px_0_#1e1424] sm:px-3 [@media(max-height:480px)]:py-1">
                 <div className="flex flex-wrap items-center gap-x-2">
-                  <p className="text-[12px] font-black leading-tight sm:text-[14px]">📍 {hud.place ?? "Cidade"}</p>
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[9px]">Brasil hipotético · ficção satírica</span>
+                  <p className="text-[12px] font-black leading-tight sm:text-[14px] [@media(max-height:480px)]:text-[11px]">📍 {hud.place ?? "Cidade"}</p>
+                  {hud.hora && (
+                    <span className="rounded-full bg-[#1e1424] px-1.5 py-px text-[9px] font-black text-[#ffe9a8] sm:text-[10px]" title={`Hora da cidade · ${hud.periodo ?? ""}`}>
+                      {hud.periodo === "noite" || hud.periodo === "madrugada" ? "🌙" : "☀"} {hud.hora}
+                    </span>
+                  )}
+                  <span className="text-[8px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[9px] [@media(max-height:480px)]:text-[8px]">Brasil hipotético · ficção satírica</span>
                 </div>
-                <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px]">
+                <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px] [@media(max-height:480px)]:text-[10px]">
                   {touch && hud.objective.startsWith("Explore a cidade") ? "Explore a cidade e entre nos prédios. 🗺️ abre o mapa." : hud.objective}
                 </p>
                 {hud.stamina !== null && (

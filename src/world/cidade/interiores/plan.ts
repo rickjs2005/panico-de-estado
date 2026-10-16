@@ -9,6 +9,7 @@ import type {
   InteriorDef,
   InteriorProp,
   InteriorWall,
+  PlaceCondition,
   SpotKind,
   TemplateId,
 } from "../types";
@@ -182,9 +183,9 @@ export class Plan {
     this.def.npcs.push({ id: this.uid("morador"), district: this.b.district, name, look, facing: "front", lines, ...extra, flip, route, x: p.x, y: p.y });
   }
 
-  poster(text: string, x: number, color = "#fffaf0", bg = "#c62835", y = 46) {
+  poster(text: string, x: number, color = "#fffaf0", bg = "#c62835", y = 46, when?: PlaceCondition) {
     const p = this.pt(x, y);
-    this.def.posters.push({ text, x: p.x, y: p.y, color, bg });
+    this.def.posters.push({ text, x: p.x, y: p.y, color, bg, when });
   }
 
   cachaca(name: string, x: number, y: number) {

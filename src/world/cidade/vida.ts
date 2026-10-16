@@ -91,11 +91,12 @@ export const AMBIENT: CityNpc[] = [
   ...queue(
     "civico",
     [
-      { x: 2342, y: 1700 },
-      { x: 2312, y: 1700 },
-      { x: 2282, y: 1700 },
+      { x: 2456, y: 1716 },
+      { x: 2486, y: 1716 },
+      { x: 2516, y: 1716 },
     ],
     "side",
+    true,
   ),
   // Largo da Feira
   walk("comercial", "passeio", [
@@ -168,53 +169,5 @@ export const AMBIENT: CityNpc[] = [
 
 // ------------------------------------------------------------------ trânsito
 
-export interface TrafficLoop {
-  id: string;
-  /** Faixa da direita, já deslocada do eixo da via, no sentido horário. */
-  path: Point[];
-  /** Quanto o carro pode desviar para a esquerda ao ultrapassar um obstáculo parado. */
-  pass: number;
-  cars: { id: string; color: string; at: number }[];
-}
-
-const RING = 27;
-const AV = 62;
-const loop = (id: string, x0: number, y0: number, x1: number, y1: number, cars: [string, string][]): TrafficLoop => ({
-  id,
-  path: [
-    { x: x0, y: y0 },
-    { x: x1, y: y0 },
-    { x: x1, y: y1 },
-    { x: x0, y: y1 },
-  ],
-  pass: 44,
-  cars: cars.map(([color], i) => ({ id: `transito-${id}-${i + 1}`, color, at: (i + 0.15) / cars.length })),
-});
-
-/** Eixos: Rua do Canal x=195, Av. do Boato x=1600, Av. da Exportação x=3200, Rua do Muro x=4605; Rua da Serra y=215, Av. do Povo y=1800, Via do Contêiner y=2615, Rua da Orla y=3330. */
-export const TRAFFIC: TrafficLoop[] = [
-  loop("vila", 195 + RING, 215 + RING, 1600 - AV, 1800 - AV, [
-    ["#2f6fd6", ""],
-    ["#f2c230", ""],
-  ]),
-  loop("centro", 1600 + AV, 215 + RING, 3200 - AV, 1800 - AV, [
-    ["#3aa655", ""],
-    ["#e07a5f", ""],
-  ]),
-  loop("campus", 3200 + AV, 215 + RING, 4605 - RING, 1800 - AV, [
-    ["#7b4bd1", ""],
-    ["#f4efe4", ""],
-  ]),
-  loop("fabricas", 195 + RING, 1800 + AV, 1600 - AV, 3330 - RING, [
-    ["#8a8f98", ""],
-    ["#e2533b", ""],
-  ]),
-  loop("feira", 1600 + AV, 1800 + AV, 3200 - AV, 3330 - RING, [
-    ["#f2a33a", ""],
-    ["#2f6fd6", ""],
-  ]),
-  loop("porto", 3200 + AV, 1800 + AV, 4605 - RING, 2615 - RING, [
-    ["#d1453b", ""],
-    ["#3aa655", ""],
-  ]),
-];
+/** Cores dos carros que circulam pelas ruas (o trânsito em si fica em `ruas.ts` e `game/city/traffic.ts`). */
+export const CORES_TRANSITO = ["#2f6fd6", "#f2c230", "#3aa655", "#e07a5f", "#7b4bd1", "#f4efe4", "#8a8f98", "#e2533b", "#f2a33a", "#d1453b"];

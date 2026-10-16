@@ -17,6 +17,14 @@ export const EDUCACIONAL: DistrictContent = {
     { rect: lot(4010, 1010, 4550, 1710), kind: "grama" },
     { rect: { x: 4300, y: 1440, w: 210, h: 230 }, kind: "patio" },
   ],
+  decals: [
+    { kind: "degraus", rect: { x: 3725, y: 610, w: 150, h: 24 } },
+    { kind: "tapete", rect: { x: 3776, y: 634, w: 48, h: 64 }, color: "#7b4bd1" },
+    { kind: "degraus", rect: { x: 4292, y: 580, w: 76, h: 16 } },
+    { kind: "tapete", rect: { x: 4306, y: 596, w: 48, h: 50 }, color: "#2f7a52" },
+    { kind: "degraus", rect: { x: 3460, y: 1280, w: 90, h: 18 } },
+    { kind: "setas", rect: { x: 3487, y: 1300, w: 36, h: 56 } },
+  ],
   buildings: [
     {
       id: "edu-universidade",

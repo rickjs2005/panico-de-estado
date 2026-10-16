@@ -19,6 +19,8 @@ export class Npc {
   private rush: { from: Point; to: Point; forward: boolean } | null = null;
   /** Fica parado enquanto conversa. */
   private talkUntil = 0;
+  /** A rotina diária manda neste morador (andando até um prédio ou dentro dele): o percurso próprio fica parado. */
+  controlado = false;
 
   constructor(
     private scene: Phaser.Scene,

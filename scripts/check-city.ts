@@ -20,15 +20,21 @@ import {
   districtById,
   doorPoint,
   interiorById,
+  interiorNpcs,
   interiorProps,
   interiorSolids,
+  interiorSpots,
   propRect,
   sideDoorFrac,
   stalls,
   type Solid,
 } from "../src/world/cidade";
 import { initialPlaces, PLACES } from "../src/world/cidade/places";
-import { AMBIENT, TRAFFIC } from "../src/world/cidade/vida";
+import { AMBIENT, CORES_TRANSITO } from "../src/world/cidade/vida";
+import { ARESTAS, NOS, conectada, curva, semSaida } from "../src/world/cidade/ruas";
+import { caminho, comprimento } from "../src/world/cidade/navegacao";
+import { MIN_POR_DIA } from "../src/world/cidade/relogio";
+import { agendaDe, alvoEm, BAR } from "../src/world/cidade/rotinas";
 import { cityPropArt } from "../src/world/game/city/cityArt";
 import { LOOKS } from "../src/world/looks";
 import type { Point, Rect } from "../src/world/types";
@@ -45,7 +51,7 @@ const groups: [string, { id: string }[]][] = [
   ["objeto", [...PROPS, ...INTERIORS.flatMap((i) => i.props)]],
   ["lugar", POIS],
   ["morador", allNpcs],
-  ["veículo", [...VEHICLES, ...TRAFFIC.flatMap((t) => t.cars)]],
+  ["veículo", VEHICLES],
   ["estacionamento", PARKING],
   ["cachaça", CACHACA],
   ["interior", INTERIORS],
@@ -205,6 +211,30 @@ for (const i of INTERIORS) {
   if (i.exit.y < i.room.y + i.room.h - 30) warn(i.id, "a saída precisa ficar junto à parede de baixo");
   const propIds = new Set(i.props.map((p) => p.id));
   for (const s of i.spots) if (s.prop && !propIds.has(s.prop)) warn(s.id, `aponta para objeto inexistente ${s.prop}`);
+  // estados citados por objetos, interações, cartazes e moradores precisam existir em places.ts
+  const conds = [
+    ...i.props.map((p) => ({ id: p.id, c: p.when })),
+    ...i.spots.flatMap((s) => [{ id: s.id, c: s.when }, { id: s.id, c: s.setPlace }]),
+    ...i.posters.map((p) => ({ id: `${i.id}/cartaz "${p.text}"`, c: p.when })),
+    ...i.npcs.map((n) => ({ id: n.id, c: n.when })),
+  ];
+  for (const { id, c } of conds) {
+    if (!c) continue;
+    const def = (PLACES as Record<string, { states: Record<string, string> }>)[c.place];
+    if (!def) warn(id, `cita um lugar inexistente: ${c.place}`);
+    else if (!(c.state in def.states)) warn(id, `cita um estado inexistente: ${c.place}=${c.state}`);
+  }
+  // quem muda um lugar precisa poder desfazer: em cada estado do lugar tem de existir a interação de volta
+  for (const s of i.spots) {
+    if (!s.setPlace) continue;
+    const def = (PLACES as Record<string, { states: Record<string, string> }>)[s.setPlace.place];
+    if (!def) continue;
+    for (const st of Object.keys(def.states)) {
+      const places = { ...initialPlaces(), [s.setPlace.place]: st } as Record<string, string>;
+      const here = interiorSpots(i, places).filter((x) => x.setPlace);
+      if (!here.length) warn(s.id, `com ${s.setPlace.place}=${st} não existe interação para mudar o estado de novo`);
+    }
+  }
   for (const p of i.props) {
     if (!inside(p, { x: i.room.x - 1, y: i.room.y - 1, w: i.room.w + 2, h: i.room.h + 2 })) warn(p.id, "objeto fora do interior");
     const r = propRect(p);
@@ -222,8 +252,8 @@ for (const i of INTERIORS) {
     if (!reached(seen, i.entry, 0)) warn(i.id, `a entrada fica dentro de algo sólido${tag}`);
     if (!reached(seen, i.exit, 20)) warn(i.id, `não dá para chegar à saída${tag}`);
     if (i.cachaca && !reached(seen, i.cachaca, 30)) warn(i.id, `balcão de cachaça inalcançável${tag}`);
-    for (const s of i.spots) if (!reached(seen, s, 16)) warn(s.id, `interação "${s.label}" inalcançável${tag}`);
-    for (const n of i.npcs) if (!reached(seen, n, 50)) warn(`${i.id}/${n.id}`, `morador inalcançável${tag}`);
+    for (const s of interiorSpots(i, places)) if (!reached(seen, s, 16)) warn(s.id, `interação "${s.label}" inalcançável${tag}`);
+    for (const n of interiorNpcs(i, places)) if (!reached(seen, n, 50)) warn(`${i.id}/${n.id}`, `morador inalcançável${tag}`);
     // cada cômodo precisa ser visitável
     for (const room of i.rooms) {
       const c = { x: room.rect.x + room.rect.w / 2, y: room.rect.y + room.rect.h / 2 };
@@ -235,28 +265,40 @@ for (const i of INTERIORS) {
   spotCount += i.spots.length;
 }
 
-// ---------- trânsito: circuitos sobre o asfalto, longe de prédios e objetos ----------
-for (const loop of TRAFFIC) {
-  const pts = loop.path;
-  for (let k = 0; k < pts.length; k++) {
-    const a = pts[k];
-    const b = pts[(k + 1) % pts.length];
-    const len = Math.hypot(b.x - a.x, b.y - a.y);
-    for (let t = 0; t <= len; t += 20) {
-      const p = { x: a.x + ((b.x - a.x) * t) / len, y: a.y + ((b.y - a.y) * t) / len };
-      if (!ROADS.some((r) => inside(p, r.rect))) {
-        warn(`trânsito ${loop.id}`, `sai do asfalto em (${Math.round(p.x)}, ${Math.round(p.y)})`);
-        break;
-      }
-      const hit = solids.find((s) => p.x > s.x - 18 && p.x < s.x + s.w + 18 && p.y > s.y - 18 && p.y < s.y + s.h + 18);
-      if (hit) {
-        warn(`trânsito ${loop.id}`, `passa colado em ${hit.tag} em (${Math.round(p.x)}, ${Math.round(p.y)})`);
-        break;
-      }
-      for (const v of VEHICLES) if (Math.hypot(v.x - p.x, v.y - p.y) < 40) warn(`trânsito ${loop.id}`, `passa por cima do carro estacionado ${v.id}`);
+// ---------- trânsito: rede de ruas conectada, faixas sobre o asfalto e longe de prédios e objetos ----------
+if (!conectada()) warn("trânsito", "a rede de ruas não é conectada (um carro não consegue ir de qualquer trecho a qualquer outro)");
+for (const n of semSaida()) warn(`trânsito ${n.id}`, "cruzamento sem saída");
+if (CORES_TRANSITO.length < 6) warn("trânsito", "poucas cores de carro");
+const amostra = (a: Point, b: Point, f: (p: Point) => void) => {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  for (let t = 0; t <= len; t += 20) f({ x: a.x + ((b.x - a.x) * t) / (len || 1), y: a.y + ((b.y - a.y) * t) / (len || 1) });
+};
+const confere = (nome: string, p: Point) => {
+  if (!ROADS.some((r) => inside(p, r.rect))) return `sai do asfalto em (${Math.round(p.x)}, ${Math.round(p.y)})`;
+  const hit = solids.find((s) => p.x > s.x - 18 && p.x < s.x + s.w + 18 && p.y > s.y - 18 && p.y < s.y + s.h + 18);
+  if (hit) return `passa colado em ${hit.tag} em (${Math.round(p.x)}, ${Math.round(p.y)})`;
+  void nome;
+  return null;
+};
+for (const e of ARESTAS) {
+  if (e.len < 20) warn(`trânsito ${e.id}`, `faixa curta demais (${Math.round(e.len)} px)`);
+  let erro: string | null = null;
+  amostra(e.a, e.b, (p) => (erro ??= confere(e.id, p)));
+  if (erro) warn(`trânsito ${e.id}`, erro);
+  // curvas até cada saída do cruzamento
+  for (const s of e.para.saidas) {
+    if (s === e.reversa && e.para.saidas.length > 1) continue;
+    const c = curva(e, s);
+    let erroCurva: string | null = null;
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      const p = { x: (1 - u) * (1 - u) * c.p0.x + 2 * u * (1 - u) * c.c.x + u * u * c.p2.x, y: (1 - u) * (1 - u) * c.p0.y + 2 * u * (1 - u) * c.c.y + u * u * c.p2.y };
+      erroCurva ??= confere(e.id, p);
     }
+    if (erroCurva) warn(`trânsito curva ${e.id} → ${s.id}`, erroCurva);
   }
 }
+void NOS;
 
 // ---------- carro: do carro oficial até todos os estacionamentos e veículos ----------
 const carGrid = blockedGrid(solids, CITY_AREA, 17);
@@ -278,11 +320,46 @@ for (const d of DISTRICTS) {
   if (!ok) warn(`distrito ${d.id}`, "sem rua acessível de carro");
 }
 
+// ---------- rotinas: todo morador da rua sai de casa, chega ao ponto, almoça e volta ----------
+let maiorCaminho = 0;
+const dentroAs = (id: string, h: number) => AMBIENT.filter((n) => { const a = alvoEm(agendaDe(n), h * 60); return a.tipo === "dentro"; }).length;
+for (const n of AMBIENT) {
+  const ag = agendaDe(n);
+  const casa = BUILDINGS.find((b) => b.id === ag.casa);
+  const almoco = BUILDINGS.find((b) => b.id === ag.almoco);
+  const bar = BUILDINGS.find((b) => b.id === BAR);
+  if (!casa) warn(n.id, `casa inexistente: ${ag.casa}`);
+  if (!almoco) warn(n.id, `local de almoço inexistente: ${ag.almoco}`);
+  if (!casa || !almoco || !bar) continue;
+  const ponto = { x: n.x, y: n.y };
+  for (const [nome, de, para] of [
+    ["casa → ponto", doorPoint(casa), ponto],
+    ["ponto → almoço", ponto, doorPoint(almoco)],
+    ["almoço → ponto", doorPoint(almoco), ponto],
+    ["ponto → bar", ponto, doorPoint(bar)],
+    ["bar → casa", doorPoint(bar), doorPoint(casa)],
+    ["ponto → casa", ponto, doorPoint(casa)],
+  ] as const) {
+    const c = caminho(de, para);
+    if (!c) warn(`rotina ${n.id}`, `sem caminho a pé: ${nome}`);
+    else maiorCaminho = Math.max(maiorCaminho, comprimento(c));
+  }
+  // o dia fecha: de madrugada em casa, no meio do dia na rua ou no almoço
+  if (alvoEm(ag, 3 * 60).tipo !== "dentro") warn(`rotina ${n.id}`, "de madrugada não está em casa");
+  if (alvoEm(ag, 10 * 60).tipo !== "ponto") warn(`rotina ${n.id}`, "de manhã não está no ponto");
+  const dia = Array.from({ length: MIN_POR_DIA / 10 }, (_, i) => alvoEm(ag, i * 10));
+  let trocas = 0;
+  for (let i = 1; i < dia.length; i++) if (JSON.stringify(dia[i]) !== JSON.stringify(dia[i - 1])) trocas++;
+  if (trocas > 10) warn(`rotina ${n.id}`, `${trocas} trocas de lugar num dia (esperado até 10)`);
+}
+void dentroAs;
+console.log(`rotinas: ${AMBIENT.length} moradores com agenda; maior caminho a pé ≈ ${Math.round(maiorCaminho)} px`);
+
 const reachableArea = walk.g.reduce((a, v) => a + v, 0) * CELL * CELL;
 const accessible = BUILDINGS.filter((b) => b.interior && interiorById(b.interior)).length;
 console.log(
   `cidade: ${CITY.w}×${CITY.h}, ${DISTRICTS.length} distritos, ${ROADS.length} ruas, ${BUILDINGS.length} edificações (${accessible} com interior), ${PROPS.length} objetos, ` +
-    `${POIS.length} lugares, ${VEHICLES.length} carros estacionados, ${TRAFFIC.reduce((a, t) => a + t.cars.length, 0)} carros no trânsito, ${PARKING.length} estacionamentos, ` +
+    `${POIS.length} lugares, ${VEHICLES.length} carros estacionados, ${ARESTAS.length} trechos de rua com trânsito, ${PARKING.length} estacionamentos, ` +
     `${NPCS.length + AMBIENT.length} moradores na rua, ${INTERIORS.reduce((a, i) => a + i.npcs.length, 0)} nos interiores, ${INTERIORS.length} interiores com ${INTERIORS.reduce((a, i) => a + i.rooms.length, 0)} cômodos e ${spotCount} interações, ` +
     `${CACHACA.length} pontos de cachaça; área caminhável ≈ ${(reachableArea / 1e6).toFixed(1)} Mpx²`,
 );

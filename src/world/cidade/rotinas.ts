@@ -1,0 +1,95 @@
+import { BUILDINGS, DISTRICTS } from "./index";
+import { normaliza } from "./relogio";
+import type { CityNpc, DistrictId } from "./types";
+
+/**
+ * Rotina diária dos moradores da rua: dormem em casa, saem de manhã para o seu ponto na rua,
+ * almoçam num estabelecimento, voltam ao ponto e, de noite, uns passam no bar e todos voltam
+ * para casa. Tudo é determinístico a partir do id do morador: o mesmo morador tem sempre a mesma
+ * casa e o mesmo horário, e quem faz parte do mesmo grupo (conversa, fila) sai junto.
+ */
+
+export type Alvo = { tipo: "dentro"; predio: string } | { tipo: "ponto" };
+
+export interface Agenda {
+  casa: string;
+  almoco: string;
+  bar: boolean;
+  /** Atraso (em minutos) que escalona os horários: ninguém sai na mesma hora. */
+  folga: number;
+}
+
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+const CASAS = BUILDINGS.filter((b) => b.kind === "casa" || b.kind === "conjunto");
+
+/** Cada distrito mora nas casas mais próximas dele: quem trabalha longe da vila não passa metade do dia a pé. */
+function moradiaDe(d: DistrictId): string[] {
+  const area = DISTRICTS.find((x) => x.id === d)!.area;
+  const cx = area.x + area.w / 2;
+  const cy = area.y + area.h / 2;
+  const dist = (b: (typeof CASAS)[number]) => Math.hypot(b.x + b.w / 2 - cx, b.y - cy);
+  return [...CASAS].sort((a, b) => dist(a) - dist(b)).slice(0, 6).map((b) => b.id);
+}
+const MORADIA = Object.fromEntries((["residencial", "civico", "comercial", "educacional", "industrial", "terminal"] as DistrictId[]).map((d) => [d, moradiaDe(d)])) as Record<DistrictId, string[]>;
+
+/** Onde cada distrito almoça. */
+const ALMOCO: Record<DistrictId, string> = {
+  residencial: "com-padaria",
+  comercial: "com-padaria",
+  educacional: "edu-cantina",
+  civico: "com-pastelaria",
+  industrial: "ind-fabrica",
+  terminal: "com-pastelaria",
+};
+
+export const BAR = "com-bar-tiao";
+
+export function agendaDe(npc: Pick<CityNpc, "id" | "district" | "group">): Agenda {
+  const chave = npc.group ?? npc.id;
+  const h = hash(chave);
+  const pool = MORADIA[npc.district];
+  return {
+    casa: pool[h % pool.length],
+    almoco: ALMOCO[npc.district],
+    bar: (h >>> 8) % 4 === 0,
+    folga: (h >>> 4) % 40,
+  };
+}
+
+const hm = (h: number, m = 0) => h * 60 + m;
+
+/** Onde o morador deve estar a esta hora. */
+export function alvoEm(a: Agenda, min: number): Alvo {
+  const m = normaliza(min);
+  const f = a.folga;
+  const casa: Alvo = { tipo: "dentro", predio: a.casa };
+  if (m < hm(6, 30) + f || m >= hm(21, 30) + f / 2) return casa;
+  if (m < hm(12) + f / 2) return { tipo: "ponto" };
+  if (m < hm(13, 30) + f / 2) return { tipo: "dentro", predio: a.almoco };
+  if (m < hm(18, 30)) return { tipo: "ponto" };
+  if (a.bar) return m < hm(19) + f / 2 ? { tipo: "ponto" } : { tipo: "dentro", predio: BAR };
+  return m < hm(19, 30) + f ? { tipo: "ponto" } : casa;
+}
+
+export type Atividade = "ponto" | "indo-ponto" | "indo-casa" | "indo-almoco" | "indo-bar" | "dentro";
+
+/** Uma fala que combina com o que o morador está fazendo e com a hora. */
+export function falaDe(atividade: Atividade, min: number, n: number): string {
+  const m = normaliza(min);
+  const manha = m < hm(12);
+  const falas: Record<Atividade, string[]> = {
+    "indo-ponto": manha ? ["Acordei com o boato do dia e já estou atrasado.", "Café coletivo só até as 8. Corre!"] : ["Voltando pro meu cantinho. O almoço acabou rápido.", "Cheguei a tempo da tarde do boato."],
+    "indo-casa": ["Vou pra casa. Hoje o povo já trabalhou por todo mundo.", "A rua de noite é de todos, mas a cama é minha."],
+    "indo-almoco": ["Hora do almoço! O prato é coletivo, mas a fome é minha.", "Vou ali comer. Volto antes do próximo boato."],
+    "indo-bar": ["Hoje é dia de bar do Tião. Fiado é política pública.", "Só um gole. Ou três decretos."],
+    dentro: ["Estou em casa, mas a casa é de todos."],
+    ponto: m >= hm(18) ? ["Já está escurecendo. Daqui a pouco eu vou pra casa.", "A noite chegou e o boato também."] : [],
+  };
+  const lista = falas[atividade];
+  return lista.length ? lista[n % lista.length] : "";
+}

@@ -18,6 +18,13 @@ export const RESIDENCIAL: DistrictContent = {
     { rect: { x: 330, y: 1400, w: 430, h: 250 }, kind: "terra" },
     { rect: lot(950, 1340, 1510, 1710), kind: "grama" },
   ],
+  decals: [
+    { kind: "degraus", rect: { x: 1170, y: 600, w: 120, h: 21 } },
+    { kind: "tapete", rect: { x: 1206, y: 621, w: 48, h: 56 }, color: "#3a6ea5" },
+    { kind: "degraus", rect: { x: 1090, y: 1140, w: 90, h: 18 } },
+    { kind: "degraus", rect: { x: 1055, y: 1570, w: 60, h: 15 } },
+    { kind: "setas", rect: { x: 1067, y: 1590, w: 36, h: 58 }, color: "#2f9e5a" },
+  ],
   buildings: [
     casa(D, "res-casa-01", 300, 400, 150, "#f2a7b8"),
     casa(D, "res-casa-02", 470, 400, 150, "#7fb3d5", "laje"),
@@ -32,6 +39,8 @@ export const RESIDENCIAL: DistrictContent = {
     casa(D, "res-casa-08", 1260, 1470, 200, "#f4e1c1", "laje"),
   ],
   props: [
+    { kind: "canteiro", x: 1140, y: 660 },
+    { kind: "canteiro", x: 1322, y: 660 },
     { kind: "varal", x: 375, y: 575 },
     { kind: "varal", x: 715, y: 575 },
     { kind: "placaColetiva", x: 300, y: 530, text: "PROPRIEDADE COLETIVA" },

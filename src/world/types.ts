@@ -35,6 +35,9 @@ export interface HudState {
   place?: string | null;
   /** A cidade tem mapa. */
   map?: boolean;
+  /** Hora do dia da cidade ("08:30") e o período ("manhã"). */
+  hora?: string;
+  periodo?: string;
   /** Dentro de uma edificação (nome do prédio e do cômodo). */
   inside?: { building: string; name: string; room: string | null } | null;
 }

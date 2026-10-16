@@ -28,6 +28,8 @@ export interface SpotContext {
   counters: Map<string, number>;
   /** Quando a pessoa se senta ou deita. */
   seat: (spot: InteractionSpot, pose: "sentado" | "deitado") => void;
+  /** Muda o estado de um lugar: salva, redesenha a rua e refaz o interior onde o jogador está. */
+  changePlace: (place: string, state: string) => void;
 }
 
 const DEFAULT_LINES: Partial<Record<InteractionSpot["kind"], string[]>> = {
@@ -230,6 +232,17 @@ export function runSpot(ctx: SpotContext, spot: InteractionSpot): number {
       ctx.scene.cameras.main.shake(260, 0.0025);
       if (text) ctx.say(text, 2600);
       return 900;
+    case "decreto": {
+      const target = spot.setPlace;
+      sound.carimbo();
+      const opening = target?.state === "aberta";
+      const st = spot.stamp ?? { text: opening ? "REVOGADO!" : "DECRETADO!", color: opening ? "#fffaf0" : "#fff4ce", bg: opening ? "#1f8a4c" : "#b62f3e" };
+      stamp(ctx, px, py - 10, st.text, st.color, st.bg);
+      ctx.scene.cameras.main.shake(120, 0.003);
+      if (text) ctx.say(text, 2800);
+      if (target) ctx.scene.time.delayedCall(700, () => ctx.changePlace(target.place, target.state));
+      return 1200;
+    }
     case "carimbo":
       sound.carimbo();
       stamp(ctx, px, py - 10, Math.random() < 0.5 ? "CARIMBADO!" : "DEFERIDO!", "#c62835", "#fff4ce");

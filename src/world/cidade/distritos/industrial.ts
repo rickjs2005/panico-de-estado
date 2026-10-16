@@ -15,6 +15,14 @@ export const INDUSTRIAL: DistrictContent = {
     { rect: lot(250, 2630, 860, 3270), kind: "concreto" },
     { rect: lot(970, 2630, 1510, 3270), kind: "patio" },
   ],
+  decals: [
+    { kind: "degraus", rect: { x: 515, y: 2220, w: 80, h: 15 } },
+    { kind: "setas", rect: { x: 537, y: 2238, w: 36, h: 60 } },
+    { kind: "setas", rect: { x: 1107, y: 2226, w: 36, h: 52 } },
+    { kind: "setas", rect: { x: 1340, y: 2226, w: 36, h: 52 } },
+    { kind: "setas", rect: { x: 402, y: 2926, w: 36, h: 52 } },
+    { kind: "setas", rect: { x: 675, y: 2926, w: 36, h: 52 } },
+  ],
   buildings: [
     { id: "ind-fabrica", district: D, kind: "fabrica", x: 285, y: 2110, w: 540, d: 110, h: 140, top: 90, wall: "#b5523b", roof: "laje", sign: "FÁBRICA ESTATAL Nº 1" },
     { id: "ind-galpao-1", district: D, kind: "galpao", x: 1015, y: 2070, w: 220, d: 140, h: 120, wall: "#9aa0a8", roof: "laje", sign: "GALPÃO COLETIVO 1" },

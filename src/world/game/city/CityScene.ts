@@ -4,6 +4,7 @@ import { bus, touchInput, worldState } from "../../bridge";
 import {
   BUILDINGS,
   CITY,
+  DECALS,
   GROUNDS,
   INTERIORS,
   LIMITS,
@@ -21,18 +22,20 @@ import {
   doorPoint,
   entryLabel,
   interiorById,
+  interiorSpots,
   sideDoorFrac,
   stalls,
   type Solid,
 } from "../../cidade";
 import { WORLD_H } from "../../cidade/layout";
 import { isPlace, PLACES, type PlaceId } from "../../cidade/places";
-import { discover, readCity, saveWaypoint, setPlaceState, visit, type CityProgress } from "../../cidade/progress";
+import { discover, readCity, saveHora, saveWaypoint, setPlaceState, visit, type CityProgress } from "../../cidade/progress";
+import { escuridao, formataHora, HORA_INICIAL, periodoDe } from "../../cidade/relogio";
 import type { CachacaStop, CityBuilding, CityNpc, CityProp, DistrictDef, InteractionSpot, InteriorDef } from "../../cidade/types";
-import { AMBIENT, CHATTER, TRAFFIC } from "../../cidade/vida";
+import { AMBIENT, CHATTER } from "../../cidade/vida";
 import { drainStamina, MAX_STAMINA } from "../../stamina";
 import type { HeroId, HudState, Point, Rect } from "../../types";
-import { INK } from "../art";
+import { INK, toInt } from "../art";
 import { CITY_TEX, RES, tex } from "../bake";
 import { Bubble } from "../Bubble";
 import { Car, type CarControls } from "../Car";
@@ -43,6 +46,7 @@ import { cityPropArt } from "./cityArt";
 import { Culler } from "./culler";
 import { InteriorView } from "./interior";
 import { restoreToggles, runSpot, type SpotContext } from "./interactions";
+import { Rotinas } from "./Rotinas";
 import { Traffic, type Obstacle } from "./traffic";
 
 export interface CityData {
@@ -110,6 +114,9 @@ export class CityScene extends Phaser.Scene {
   private focus!: Phaser.GameObjects.Container;
   private focusText!: Phaser.GameObjects.Text;
   private nextChat = 0;
+  private rotinas!: Rotinas;
+  private noite!: Phaser.GameObjects.Rectangle;
+  private horaSalvaEm = 0;
   private keys!: Keys;
   private culler = new Culler();
   private buildings: { def: CityBuilding; img: Phaser.GameObjects.Image; top: number }[] = [];
@@ -172,7 +179,10 @@ export class CityScene extends Phaser.Scene {
     this.rebuildSolids();
 
     for (const def of [...NPCS, ...AMBIENT]) this.npcs.push(new Npc(this, def));
-    this.traffic = new Traffic(this, TRAFFIC);
+    // moradores da rua vivem uma rotina diária (casa, ponto, almoço, bar); a luz da rua acompanha a hora
+    this.rotinas = new Rotinas(this, this.npcs.slice(NPCS.length), this.progress.hora ?? HORA_INICIAL);
+    this.noite = this.add.rectangle(0, 0, 7000, 5000, 0x0b1236, 1).setAlpha(0).setDepth(900000);
+    this.traffic = new Traffic(this, this.rotinas.minuto, SPAWN.hero);
     for (const v of VEHICLES) {
       const car = new Car(this, v.x, v.y, v.angle, v.color);
       this.cars.push(car);
@@ -257,6 +267,7 @@ export class CityScene extends Phaser.Scene {
       const t = this.add.tileSprite(g.rect.x, g.rect.y, g.rect.w, g.rect.h, key).setOrigin(0).setTileScale(ts).setDepth(-90);
       this.culler.add(t, g.rect);
     }
+    this.drawDecals();
     // ruas desenhadas em blocos: só os blocos perto da câmera custam desenho
     for (let cy = 0; cy < CITY.h; cy += CHUNK) {
       for (let cx = 0; cx < CITY.w; cx += CHUNK) {
@@ -265,6 +276,48 @@ export class CityScene extends Phaser.Scene {
         this.drawRoads(g, chunk);
         this.culler.add(g, chunk);
       }
+    }
+  }
+
+  /** Tapetes, degraus e setas pintadas no chão, em frente às portas e nas filas. */
+  private drawDecals() {
+    for (const d of DECALS) {
+      const { x, y, w, h } = d.rect;
+      const g = this.add.graphics().setDepth(-74);
+      if (d.kind === "tapete") {
+        const c = toInt(d.color ?? "#b8323b");
+        g.fillStyle(0x1e1424, 0.22);
+        g.fillRoundedRect(x + 2, y + 3, w, h, 4);
+        g.fillStyle(c, 1);
+        g.fillRoundedRect(x, y, w, h, 4);
+        g.lineStyle(2.5, 0xe8c15a, 1);
+        g.strokeRoundedRect(x + 4, y + 4, w - 8, h - 8, 3);
+        g.fillStyle(0xe8c15a, 1);
+        for (let py = y + 16; py < y + h - 10; py += 22) g.fillTriangle(x + w / 2, py - 5, x + w / 2 + 5, py, x + w / 2, py + 5);
+      } else if (d.kind === "degraus") {
+        const n = 3;
+        const stone = toInt(d.color ?? "#d9d0bd");
+        for (let i = 0; i < n; i++) {
+          const inset = i * 6;
+          const sy = y + (h / n) * i;
+          g.fillStyle(0x1e1424, 0.18);
+          g.fillRect(x + inset, sy + h / n - 3, w - inset * 2, 3);
+          g.fillStyle(Phaser.Display.Color.ValueToColor(stone).lighten(i * 5).color, 1);
+          g.fillRect(x + inset, sy, w - inset * 2, h / n - 3);
+          g.fillStyle(0xffffff, 0.35);
+          g.fillRect(x + inset, sy, w - inset * 2, 2);
+        }
+      } else {
+        // setas de fila apontando para cima (para a porta)
+        g.fillStyle(toInt(d.color ?? "#f2c230"), 0.9);
+        for (let py = y + 4; py + 14 <= y + h; py += 26) {
+          const cx = x + w / 2;
+          g.fillTriangle(cx, py, cx - 14, py + 14, cx - 7, py + 14);
+          g.fillTriangle(cx, py, cx + 14, py + 14, cx + 7, py + 14);
+          g.fillTriangle(cx - 7, py + 14, cx + 7, py + 14, cx, py + 6);
+        }
+      }
+      this.culler.add(g, { x: x - 10, y: y - 10, w: w + 20, h: h + 20 });
     }
   }
 
@@ -456,8 +509,23 @@ export class CityScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ prédios e objetos
 
+  /** Sombra no chão: uma faixa de contato embaixo da fachada e a sombra lançada à direita do prédio. */
+  private buildingShadow(b: CityBuilding) {
+    const g = this.add.graphics().setDepth(-76);
+    const base = b.y + b.d;
+    g.fillStyle(0x1e1424, 0.2);
+    g.fillRect(b.x - 2, base, b.w + 4, 7);
+    g.fillStyle(0x1e1424, 0.1);
+    g.fillRect(b.x - 2, base + 7, b.w + 4, 5);
+    g.fillStyle(0x1e1424, 0.13);
+    g.fillTriangle(b.x + b.w, b.y, b.x + b.w + 30, b.y + 16, b.x + b.w + 30, base + 16);
+    g.fillTriangle(b.x + b.w, b.y, b.x + b.w + 30, base + 16, b.x + b.w, base);
+    this.culler.add(g, { x: b.x - 10, y: b.y - 10, w: b.w + 50, h: b.d + 50 });
+  }
+
   private placeBuildings() {
     for (const def of BUILDINGS) {
+      this.buildingShadow(def);
       const top = def.y - def.h - (def.top ?? 0);
       const img = this.add
         .image(def.x, top, CITY_TEX.get(def.id) ?? "shadow")
@@ -573,6 +641,7 @@ export class CityScene extends Phaser.Scene {
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.inside = room;
       this.interior = new InteriorView(this, room, this.progress.places);
+      this.chamaVisitantes(room);
       restoreToggles(this.spotContext());
       this.rebuildSolids();
       this.player.setPosition(room.entry.x, room.entry.y);
@@ -654,7 +723,39 @@ export class CityScene extends Phaser.Scene {
       toggles: this.toggles,
       counters: this.counters,
       seat: (spot, pose) => this.sit(spot, pose),
+      changePlace: (place, state) => this.changePlace(place, state),
     };
+  }
+
+  /** Interação que muda um lugar: salva, redesenha a rua e refaz o interior com o novo estado. */
+  private changePlace(place: string, state: string) {
+    if (!isPlace(place) || this.progress.places[place] === state) return;
+    this.setPlace(place, state);
+    this.refreshInterior();
+    sound.porta();
+    this.cameras.main.flash(220, 255, 244, 206);
+    const name = PLACES[place].name;
+    this.toast(`${name}: ${(PLACES[place].states as Record<string, string>)[state] ?? state}`);
+  }
+
+  /** Refaz o interior atual no lugar, para refletir um estado que mudou enquanto o jogador está dentro. */
+  private refreshInterior() {
+    if (!this.inside || !this.interior) return;
+    const room = this.inside;
+    this.interior.destroy();
+    this.bubbles.forEach((bb) => bb.destroy());
+    this.bubbles.clear();
+    this.interior = new InteriorView(this, room, this.progress.places);
+    this.chamaVisitantes(room);
+    restoreToggles(this.spotContext());
+    this.rebuildSolids();
+    this.updateCulling(true);
+  }
+
+  /** Moradores que, pela rotina, estão dentro deste prédio agora aparecem no interior. */
+  private chamaVisitantes(room: InteriorDef) {
+    if (!this.interior) return;
+    for (const def of this.rotinas.visitantes(room, this.interior.solids)) this.interior.npcs.push(new Npc(this, def));
   }
 
   private useSpot(spot: InteractionSpot) {
@@ -694,8 +795,11 @@ export class CityScene extends Phaser.Scene {
     const viewW = this.scale.width / this.zoomTarget;
     const viewH = this.scale.height / this.zoomTarget;
     const w = Math.max(r.w + pad * 2, viewW);
-    const h = Math.max(r.h + pad * 2, viewH);
-    this.cameras.main.setBounds(r.x + r.w / 2 - w / 2, r.y + r.h / 2 - h / 2 + 20, w, h);
+    // margem curta embaixo (só a placa de saída): em telas baixas, sobra mais cômodo à frente do personagem
+    const top = 50;
+    const bottom = 64;
+    const h = Math.max(r.h + top + bottom, viewH);
+    this.cameras.main.setBounds(r.x + r.w / 2 - w / 2, r.y - top - (h - (r.h + top + bottom)) / 2, w, h);
     this.cameras.main.setBackgroundColor("#140f1c");
   }
 
@@ -754,7 +858,28 @@ export class CityScene extends Phaser.Scene {
         signAt(d.x, facadeBottom - (big ? 128 : 96), big ? "INTERDITADA POR DECRETO" : "LACRADA PELO MINISTÉRIO", "#b62f3e", "#fff4ce");
         if (animated) tweens.push(this.tweens.add({ targets: lock, y: { from: lock.y - 120, to: lock.y }, duration: 650, ease: "Bounce.easeOut" }));
       } else {
-        signAt(d.x, facadeBottom - 80, id === "igreja-matriz" ? "IGREJA ABERTA" : "CULTO ÀS 19H", "#1f8a4c", "#fffaf0");
+        // porta da frente aberta: luz quente saindo, folhas da porta abertas e o aviso verde
+        const big = id === "igreja-matriz";
+        const glow = this.add.graphics().setDepth(depth);
+        const dw = big ? 30 : 24;
+        glow.fillStyle(0xffd88a, 0.9);
+        glow.fillRoundedRect(d.x - dw, facadeBottom - 62, dw * 2, 62, { tl: dw, tr: dw, bl: 0, br: 0 });
+        glow.fillStyle(0xfff3c4, 0.9);
+        glow.fillRoundedRect(d.x - dw * 0.55, facadeBottom - 52, dw * 1.1, 52, { tl: dw * 0.55, tr: dw * 0.55, bl: 0, br: 0 });
+        glow.fillStyle(0x7a3e1d, 1);
+        glow.fillRect(d.x - dw - 12, facadeBottom - 58, 12, 58);
+        glow.fillRect(d.x + dw, facadeBottom - 58, 12, 58);
+        glow.lineStyle(2, 0x1e1424, 1);
+        glow.strokeRect(d.x - dw - 12, facadeBottom - 58, 12, 58);
+        glow.strokeRect(d.x + dw, facadeBottom - 58, 12, 58);
+        keep(glow, { x: d.x - 60, y: facadeBottom - 80, w: 120, h: 90 });
+        const ray = this.add.graphics().setDepth(-73);
+        ray.fillStyle(0xffe9a8, 0.3);
+        ray.fillTriangle(d.x - dw, facadeBottom, d.x + dw, facadeBottom, d.x + dw + 22, facadeBottom + 70);
+        ray.fillTriangle(d.x - dw, facadeBottom, d.x + dw + 22, facadeBottom + 70, d.x - dw - 22, facadeBottom + 70);
+        keep(ray, { x: d.x - 60, y: facadeBottom, w: 120, h: 80 });
+        signAt(d.x, facadeBottom - (big ? 90 : 76), big ? "IGREJA ABERTA" : "CULTO ÀS 19H", "#1f8a4c", "#fffaf0");
+        if (animated) tweens.push(this.tweens.add({ targets: glow, alpha: { from: 0, to: 1 }, duration: 600 }));
       }
     } else if (id === "deposito-kits") {
       if (state === "abastecido") {
@@ -873,6 +998,8 @@ export class CityScene extends Phaser.Scene {
     } else {
       tx = this.player.x;
       ty = this.player.y - 30;
+      // dentro do prédio o cômodo se abre para cima: a câmera olha um pouco à frente do personagem
+      if (this.inside) ty -= Math.min(90, (this.scale.height / this.zoomTarget) * 0.14);
     }
     const k = 1 - Math.exp(-dt * 7);
     this.camTarget.x += (tx - this.camTarget.x) * k;
@@ -950,14 +1077,20 @@ export class CityScene extends Phaser.Scene {
     // moradores da rua continuam vivos enquanto o jogador está num interior, mas só os próximos da câmera gastam processamento
     const streetView = this.inside ? null : cam;
     for (const n of this.npcs) {
-      if (!streetView || n.x < cam.x - 500 || n.x > cam.right + 500 || n.y < cam.y - 500 || n.y > cam.bottom + 500) continue;
+      if (n.controlado || !streetView || n.x < cam.x - 500 || n.x > cam.right + 500 || n.y < cam.y - 500 || n.y > cam.bottom + 500) continue;
       n.update(frame, now, near);
+    }
+    this.rotinas.update(frame, (n) => !this.inside && n.x > cam.x - 300 && n.x < cam.right + 300 && n.y > cam.y - 300 && n.y < cam.bottom + 300);
+    this.atualizaNoite();
+    if (now - this.horaSalvaEm > 6000) {
+      this.horaSalvaEm = now;
+      saveHora(this.rotinas.minuto);
     }
     if (this.interior) {
       for (const n of this.interior.npcs) n.update(frame, now, near);
       this.interior.update(this.player.x, this.player.y, frame);
     }
-    this.traffic.update(frame, now, this.trafficObstacles(), cam, this.inside ? null : pos);
+    this.traffic.update(frame, now, this.trafficObstacles(), cam, this.inside ? null : pos, this.rotinas.minuto);
     this.checkDodges();
     if (!this.inside && now > this.nextChat) this.ambientChat(now);
     for (const w of this.water) w.tilePositionX += frame * 6;
@@ -1192,6 +1325,14 @@ export class CityScene extends Phaser.Scene {
     this.actionQueued = true;
   }
 
+  /** Escurece a rua à noite (dentro dos prédios a luz é sempre a mesma). */
+  private atualizaNoite() {
+    const cam = this.cameras.main;
+    const alvo = this.inside ? 0 : 0.4 * escuridao(this.rotinas.minuto);
+    this.noite.setPosition(cam.midPoint.x, cam.midPoint.y);
+    if (Math.abs(this.noite.alpha - alvo) > 0.002) this.noite.setAlpha(this.noite.alpha + (alvo - this.noite.alpha) * 0.08);
+  }
+
   private updateCandidate() {
     if (this.transition) {
       this.candidate = null;
@@ -1212,7 +1353,7 @@ export class CityScene extends Phaser.Scene {
       const room = this.inside;
       const d = Math.hypot(room.exit.x - px, room.exit.y - py);
       if (d < 60) cands.push({ label: "Sair para a rua", priority: 1, dist: d - 12, run: () => this.leaveInterior(), focus: null });
-      for (const spot of room.spots) {
+      for (const spot of interiorSpots(room, this.progress.places)) {
         const ds = Math.hypot(spot.x - px, spot.y - py);
         if (ds >= SPOT_DIST) continue;
         const prop = spot.prop ? this.interior.props.get(spot.prop) : undefined;
@@ -1235,13 +1376,13 @@ export class CityScene extends Phaser.Scene {
         const dm = Math.hypot(main.x - px, main.y - py);
         const locked = !!b.place && isPlace(b.place) && this.progress.places[b.place] === "interditada";
         if (dm < DOOR_DIST) {
-          if (locked) cands.push({ label: "Ler o decreto na porta", priority: 1, dist: dm, run: () => this.readDecree(b), focus: { x: main.x, y: b.y + b.d - 60 } });
+          if (locked) cands.push({ label: "Ler o decreto na porta", priority: 1, dist: dm, run: () => this.readDecree(b), focus: { x: main.x, y: b.y + b.d - 142 } });
           else cands.push({ label: entryLabel(b), priority: 1, dist: dm, run: () => this.enterInterior(b, main), focus: { x: main.x, y: b.y + b.d - 60 } });
         }
         if (sideDoorFrac(b) !== null) {
           const side = doorPoint(b, true);
           const ds = Math.hypot(side.x - px, side.y - py);
-          if (ds < DOOR_DIST) cands.push({ label: "Entrar pela porta lateral", priority: 1, dist: ds, run: () => this.enterInterior(b, side), focus: { x: side.x, y: b.y + b.d - 60 } });
+          if (ds < DOOR_DIST) cands.push({ label: "Entrar pela porta lateral", priority: 1, dist: ds, run: () => this.enterInterior(b, side), focus: { x: side.x, y: b.y + b.d - 84 } });
         }
       }
       for (const n of this.npcs) {
@@ -1364,7 +1505,9 @@ export class CityScene extends Phaser.Scene {
     n.attend(this.player.x, this.player.y);
     this.player.faceToward(n.x - this.player.x, n.y - this.player.y);
     const lines = n.def.lines;
-    this.say(n.id, lines[n.lineIdx % lines.length], 2600);
+    // moradores com rotina comentam o que estão fazendo agora (de vez em quando)
+    const doMomento = n.lineIdx % 2 === 0 ? this.rotinas.fala(n.id, Math.floor(n.lineIdx / 2)) : null;
+    this.say(n.id, doMomento ?? lines[n.lineIdx % lines.length], 2600);
     n.lineIdx++;
     sound.pop();
   }
@@ -1573,7 +1716,7 @@ export class CityScene extends Phaser.Scene {
     const w = worldState.waypoint;
     let objective = "Explore a cidade e entre em qualquer prédio. M (ou o botão Mapa) mostra onde você está.";
     const room = this.inside ? this.currentRoom() : null;
-    if (this.inside) objective = this.seated ? "Mexa-se para levantar." : "Explore os cômodos e mexa nas coisas. Saída: tapete vermelho embaixo.";
+    if (this.inside) objective = this.seated ? "Mexa-se para levantar." : "Saída: o tapete vermelho, embaixo.";
     else if (w) {
       const p = this.activePos();
       const meters = Math.round(Math.hypot(w.x - p.x, w.y - p.y) / 4 / 10) * 10;
@@ -1589,6 +1732,8 @@ export class CityScene extends Phaser.Scene {
       completed: 0,
       total: 0,
       place: this.inside ? `${this.inside.name}${room ? ` · ${room}` : ""}` : (this.district?.name ?? null),
+      hora: formataHora(this.rotinas.minuto),
+      periodo: periodoDe(this.rotinas.minuto),
       map: true,
       inside: this.inside ? { building: this.inside.building, name: this.inside.name, room } : null,
     };
@@ -1625,7 +1770,7 @@ export class CityScene extends Phaser.Scene {
         cars: [...this.carIds.entries()].map(([c, id]) => ({ id, x: Math.round(c.x), y: Math.round(c.y) })),
         seated: this.seated?.pose ?? null,
         interiorObjects: this.interior?.objs.length ?? 0,
-        traffic: this.traffic.cars.map((t) => ({ id: t.id, x: Math.round(t.car.x), y: Math.round(t.car.y), speed: Math.round(t.speedNow) })),
+        traffic: this.traffic.cars.filter((t) => t.ativo).map((t) => ({ id: t.id, x: Math.round(t.car.x), y: Math.round(t.car.y), speed: Math.round(t.speedNow) })),
         action: this.candidate?.label ?? null,
         stamina: Math.round(this.stamina),
         places: { ...this.progress.places },
@@ -1674,17 +1819,22 @@ export class CityScene extends Phaser.Scene {
       leave: () => this.leaveInterior(),
       /** Teleporta para uma interação do interior atual e devolve o rótulo. */
       gotoSpot: (index: number) => {
-        const spot = this.inside?.spots[index];
+        const spot = this.inside ? interiorSpots(this.inside, this.progress.places)[index] : undefined;
         if (!spot) return null;
         this.standUp();
         this.player.setPosition(spot.x, spot.y);
         this.camTarget = { x: spot.x, y: spot.y };
         return spot.label;
       },
-      spots: () => this.inside?.spots.map((sp) => ({ id: sp.id, kind: sp.kind, label: sp.label, x: sp.x, y: sp.y })) ?? [],
+      spots: () => (this.inside ? interiorSpots(this.inside, this.progress.places) : []).map((sp) => ({ id: sp.id, kind: sp.kind, label: sp.label, x: sp.x, y: sp.y })) ?? [],
       interiors: () => INTERIORS.map((i) => ({ id: i.id, building: i.building, template: i.template, name: i.name, spots: i.spots.length, rooms: i.rooms.length })),
       candidate: () => this.candidate?.label ?? null,
       toggles: () => Object.fromEntries(this.toggles),
+      trafegoDebug: () => this.traffic.cars.filter((c) => c.ativo && c.speedNow < 5).map((c) => c.debug()),
+      /** Muda a hora da cidade (em horas, por exemplo 21.5) e ajeita os moradores na hora. */
+      setHora: (h: number) => this.rotinas.ajustar(h * 60),
+      hora: () => formataHora(this.rotinas.minuto, 1),
+      rotinas: () => ({ ...this.rotinas.resumo(), ocupacao: this.rotinas.ocupacao() }),
     };
   }
 }

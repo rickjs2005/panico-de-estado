@@ -8,7 +8,22 @@ import { TERMINAL } from "./distritos/terminal";
 import { stalls } from "./helpers";
 import { entryLabel, interiorFor, interiorId } from "./interiores";
 import { CITY, DISTRICTS, LIMITS, ROADS, WORLD_H } from "./layout";
-import type { CityBuilding, CityProp, CityPropKind, DistrictContent, DistrictDef, DistrictId, InteriorDef, InteriorProp, Poi } from "./types";
+import type {
+  CityBuilding,
+  CityNpc,
+  CityProp,
+  CityPropKind,
+  DecalDef,
+  DistrictContent,
+  DistrictDef,
+  DistrictId,
+  InteractionSpot,
+  InteriorDef,
+  InteriorPoster,
+  InteriorProp,
+  PlaceCondition,
+  Poi,
+} from "./types";
 
 /**
  * A cidade montada a partir dos distritos. Tudo o que a cena, o mapa e as checagens
@@ -48,6 +63,7 @@ export function buildingById(id: string): CityBuilding | undefined {
 export const PARKING = all("parking");
 export const VEHICLES = all("vehicles");
 export const GROUNDS = all("grounds");
+export const DECALS: DecalDef[] = Object.values(DISTRICT_CONTENT).flatMap((c) => c.decals ?? []);
 export const NPCS = all("npcs");
 
 /** Paradas de cachaça (energia de corrida) na rua. */
@@ -76,10 +92,12 @@ function avenueLights(): CityProp[] {
     const { x, y, w, h } = r.rect;
     // os postes pulam a frente das portas
     const nearDoor = (px: number) => BUILDINGS.some((b) => Math.abs(doorPoint(b).x - px) < 40 && Math.abs(b.y + b.d - (y - 10)) < 130);
+    // poste não fica no meio de uma rua que desemboca na avenida
+    const naRua = (px: number, py: number) => ROADS.some((o) => o !== r && o.kind !== "avenida" && px > o.rect.x - 24 && px < o.rect.x + o.rect.w + 24 && py > o.rect.y - 24 && py < o.rect.y + o.rect.h + 24);
     if (w > h) {
-      for (let px = x + 140; px < x + w - 80; px += 320) if (!nearDoor(px)) out.push({ kind: "poste", x: px, y: y - 10 });
+      for (let px = x + 140; px < x + w - 80; px += 320) if (!nearDoor(px) && !naRua(px, y - 10)) out.push({ kind: "poste", x: px, y: y - 10 });
     } else {
-      for (let py = y + 200; py < y + h - 80; py += 320) out.push({ kind: "poste", x: x - 12, y: py });
+      for (let py = y + 200; py < y + h - 80; py += 320) if (!naRua(x - 12, py)) out.push({ kind: "poste", x: x - 12, y: py });
     }
   }
   return out;
@@ -223,12 +241,20 @@ export const PROP_SOLID: Record<CityPropKind, { w: number; h: number } | null> =
   carrinhoPipoca: { w: 44, h: 22 },
   bicicletario: { w: 90, h: 14 },
   muroBaixo: { w: 120, h: 12 },
+  vitral: null,
+  castical: { w: 14, h: 10 },
+  cavalete: { w: 44, h: 12 },
+  tapeteCorredor: null,
+  balizaFila: { w: 8, h: 8 },
+  totemSenha: { w: 30, h: 14 },
+  cafezinho: { w: 50, h: 22 },
+  alavanca: { w: 26, h: 12 },
 };
 
 /** Objetos pendurados na parede do fundo dos interiores (desenhados logo à frente da parede). */
-export const WALL_PROPS = new Set<CityPropKind>(["prateleira", "painelSenha", "quadro", "janela", "relogio", "lousa", "painelFerramentas", "painelLoteria", "telao"]);
+export const WALL_PROPS = new Set<CityPropKind>(["prateleira", "painelSenha", "quadro", "janela", "relogio", "lousa", "painelFerramentas", "painelLoteria", "telao", "vitral"]);
 /** Objetos rentes ao chão (desenhados por baixo de tudo). */
-export const FLAT_PROPS = new Set<CityPropKind>(["tapete", "colchao"]);
+export const FLAT_PROPS = new Set<CityPropKind>(["tapete", "colchao", "tapeteCorredor"]);
 
 export function propRect(p: CityProp): Rect | null {
   const s = PROP_SOLID[p.kind];
@@ -275,9 +301,29 @@ export function interiorWalls(i: InteriorDef): Rect[] {
   ];
 }
 
+/** Vale se o item não depende de um lugar ou se o lugar está no estado exigido. */
+export function whenHolds(when: PlaceCondition | undefined, places: Record<string, string>): boolean {
+  return !when || places[when.place] === when.state;
+}
+
 /** Objetos do interior visíveis com os estados atuais dos lugares. */
 export function interiorProps(i: InteriorDef, places: Record<string, string>): InteriorProp[] {
-  return i.props.filter((p) => !p.when || places[p.when.place] === p.when.state);
+  return i.props.filter((p) => whenHolds(p.when, places));
+}
+
+/** Interações disponíveis com os estados atuais dos lugares. */
+export function interiorSpots(i: InteriorDef, places: Record<string, string>): InteractionSpot[] {
+  return i.spots.filter((s) => whenHolds(s.when, places));
+}
+
+/** Cartazes visíveis com os estados atuais dos lugares. */
+export function interiorPosters(i: InteriorDef, places: Record<string, string>): InteriorPoster[] {
+  return i.posters.filter((p) => whenHolds(p.when, places));
+}
+
+/** Moradores de interior presentes com os estados atuais dos lugares. */
+export function interiorNpcs(i: InteriorDef, places: Record<string, string>): CityNpc[] {
+  return i.npcs.filter((n) => whenHolds(n.when, places));
 }
 
 /** Tudo o que é sólido dentro de um interior. */

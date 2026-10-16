@@ -204,6 +204,14 @@ export type CityPropKind =
   | "escadaRolante"
   | "vaso"
   | "quadroAvisos"
+  | "vitral"
+  | "castical"
+  | "cavalete"
+  | "tapeteCorredor"
+  | "balizaFila"
+  | "totemSenha"
+  | "cafezinho"
+  | "alavanca"
   // rua: personalidade dos bairros
   | "canteiro"
   | "horta"
@@ -274,10 +282,24 @@ export interface CityNpc extends NpcDef {
   behavior?: AmbientBehavior;
   /** Moradores do mesmo grupo conversam entre si. */
   group?: string;
+  /** Morador de interior que só aparece quando um lugar está num estado. */
+  when?: PlaceCondition;
+}
+
+/** Detalhes pintados no chão: tapetes na frente das portas, degraus, setas de fila. Não colidem. */
+export type DecalKind = "tapete" | "degraus" | "setas";
+
+export interface DecalDef {
+  kind: DecalKind;
+  rect: Rect;
+  /** Cor principal (padrão por tipo). */
+  color?: string;
 }
 
 export interface DistrictContent {
   buildings: CityBuilding[];
+  /** Detalhes de chão do distrito. */
+  decals?: DecalDef[];
   props: CityProp[];
   grounds: GroundDef[];
   pois: Poi[];
@@ -330,7 +352,14 @@ export type SpotKind =
   | "livro"
   | "computador"
   | "ventilador"
-  | "jukebox";
+  | "jukebox"
+  | "decreto";
+
+/** Estado de um lugar (`places.ts`) exigido para um item de interior aparecer. */
+export interface PlaceCondition {
+  place: string;
+  state: string;
+}
 
 export interface InteractionSpot {
   id: string;
@@ -346,6 +375,12 @@ export interface InteractionSpot {
   lines?: string[];
   /** Posição do personagem sentado ou deitado. */
   seat?: Point & { facing: "front" | "back" | "side"; flip?: boolean };
+  /** Só existe quando o lugar está neste estado. */
+  when?: PlaceCondition;
+  /** Usar esta interação muda o estado de um lugar (com consequência visual e persistente). */
+  setPlace?: PlaceCondition;
+  /** Selo que aparece com impacto ao usar uma interação que muda um lugar. */
+  stamp?: { text: string; color: string; bg: string };
 }
 
 export interface InteriorPoster {
@@ -354,6 +389,7 @@ export interface InteriorPoster {
   y: number;
   color: string;
   bg: string;
+  when?: PlaceCondition;
 }
 
 export type TemplateId =
@@ -393,7 +429,7 @@ export type TemplateId =
 /** Objeto de interior que só aparece num estado do lugar (por exemplo, depósito abastecido). */
 export interface InteriorProp extends CityProp {
   id: string;
-  when?: { place: string; state: string };
+  when?: PlaceCondition;
 }
 
 export interface InteriorDef {
