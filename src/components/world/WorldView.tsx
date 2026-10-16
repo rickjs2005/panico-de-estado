@@ -7,6 +7,7 @@ import { sound } from "@/lib/sound";
 import { bus, resetTouchInput, touchInput } from "@/world/bridge";
 import type { HeroId, HudState } from "@/world/types";
 import type { GameHandle } from "@/world/game/createGame";
+import CityMap from "./CityMap";
 import Joystick from "./Joystick";
 
 const SOUND_KEY = "panico-de-estado:som";
@@ -30,13 +31,35 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   const [menu, setMenu] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [banner, setBanner] = useState<{ name: string; tagline: string; color: string } | null>(null);
   const touch = useTouch();
+  const hasMap = !!hud?.map;
 
   useEffect(() => {
-    bus.emit("pause", menu);
-    if (menu) resetTouchInput();
+    const paused = menu || mapOpen;
+    bus.emit("pause", paused);
+    if (paused) resetTouchInput();
     return () => bus.emit("pause", false);
-  }, [menu]);
+  }, [menu, mapOpen]);
+
+  useEffect(() => {
+    if (!banner) return;
+    const t = window.setTimeout(() => setBanner(null), 2800);
+    return () => window.clearTimeout(t);
+  }, [banner]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMapOpen(false);
+        return;
+      }
+      if ((e.key === "m" || e.key === "M") && hasMap && !menu && !e.repeat) setMapOpen((o) => !o);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasMap, menu]);
 
   useEffect(() => {
     const on = readPref(SOUND_KEY, "on") !== "off";
@@ -51,6 +74,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       bus.on("hud", setHud),
       bus.on("ready", () => setReady(true)),
       bus.on("toast", (msg) => setToast(msg)),
+      bus.on("district", (d) => setBanner(d)),
     ];
     const debug = new URLSearchParams(window.location.search).has("debug");
     void import("@/world/game/createGame").then(({ createGame }) => {
@@ -117,37 +141,84 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
         <>
           {/* objetivo */}
           <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-start gap-2 p-2 sm:p-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
-            <div className="max-w-[min(30rem,calc(100%-6.5rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-3 py-1.5 shadow-[0_3px_0_#1e1424]">
-              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[10px]">
-                Brasil hipotético do {hero === "lula" ? "Lula" : "Flávio"} · ficção satírica
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-wider text-[#c62835] sm:text-[11px]">
-                {hud.missionTitle ? `Missão · ${hud.missionTitle}` : "Exploração"}
-                {hud.done ? " · concluída ✓" : ""}
-              </p>
-              <p className="text-[13px] font-bold leading-snug sm:text-[15px]">{hud.objective}</p>
-              {hud.total > 1 && <p className="mt-1 text-[10px] font-bold text-[#66556a]">Boatos concretizados: {hud.completed}/{hud.total}</p>}
-              {hud.stamina !== null && (
-                <div className="mt-2 border-t border-[#1e1424]/15 pt-1.5">
-                  <div className="flex items-center justify-between gap-2 text-[10px] font-black">
-                    <span>Cachaça · energia de corrida</span><span>{hud.stamina}%</span>
-                  </div>
-                  <div role="progressbar" aria-label="Energia de corrida" aria-valuenow={hud.stamina} aria-valuemin={0} aria-valuemax={100} className="mt-1 h-2 overflow-hidden rounded-full bg-[#1e1424]/15">
-                    <div className={`h-full rounded-full transition-[width] ${hud.stamina < 25 ? "bg-[#c62835]" : "bg-[#c48827]"}`} style={{ width: `${hud.stamina}%` }} />
-                  </div>
-                  {hud.stamina < 25 && <p className="mt-1 text-[10px] font-semibold">Reabasteça no bar, na padaria ou no terminal.</p>}
+            {hasMap ? (
+              <div className="max-w-[min(26rem,calc(100%-10rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-2.5 py-1.5 shadow-[0_3px_0_#1e1424] sm:px-3">
+                <div className="flex flex-wrap items-center gap-x-2">
+                  <p className="text-[12px] font-black leading-tight sm:text-[14px]">📍 {hud.place ?? "Cidade"}</p>
+                  <span className="text-[8px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[9px]">Brasil hipotético · ficção satírica</span>
                 </div>
-              )}
-            </div>
+                <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px]">
+                  {touch && hud.objective.startsWith("Explore") ? "Explore a cidade. 🗺️ abre o mapa." : hud.objective}
+                </p>
+                {hud.stamina !== null && (
+                  <div className="mt-1 flex items-center gap-1.5" title="Energia de corrida: recarregue nas placas CACHAÇA · ENERGIA">
+                    <span className="text-[10px]" aria-hidden>
+                      🍶
+                    </span>
+                    <div role="progressbar" aria-label="Energia de corrida" aria-valuenow={hud.stamina} aria-valuemin={0} aria-valuemax={100} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#1e1424]/15">
+                      <div className={`h-full rounded-full transition-[width] ${hud.stamina < 25 ? "bg-[#c62835]" : "bg-[#c48827]"}`} style={{ width: `${hud.stamina}%` }} />
+                    </div>
+                    <span className="text-[10px] font-black">{hud.stamina}%</span>
+                  </div>
+                )}
+                {hud.stamina !== null && hud.stamina < 25 && <p className="mt-0.5 text-[10px] font-semibold">Recarregue nas placas CACHAÇA · ENERGIA (estão no mapa).</p>}
+              </div>
+            ) : (
+            <div className="max-w-[min(30rem,calc(100%-6.5rem))] rounded-xl border-[3px] border-[#1e1424] bg-[#fffaf0]/95 px-3 py-1.5 shadow-[0_3px_0_#1e1424]">
+                <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[10px]">
+                  Brasil hipotético do {hero === "lula" ? "Lula" : "Flávio"} · ficção satírica
+                </p>
+                {hud.place && <p className="text-[12px] font-black leading-tight sm:text-[13px]">📍 {hud.place}</p>}
+                {!hasMap && (
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[#c62835] sm:text-[11px]">
+                    {hud.missionTitle ? `Missão · ${hud.missionTitle}` : "Exploração"}
+                    {hud.done ? " · concluída ✓" : ""}
+                  </p>
+                )}
+                <p className={`${hasMap ? "text-[11px] sm:text-[13px]" : "text-[13px] sm:text-[15px]"} font-bold leading-snug`}>{hud.objective}</p>
+                {hud.total > 1 && <p className="mt-1 text-[10px] font-bold text-[#66556a]">Boatos concretizados: {hud.completed}/{hud.total}</p>}
+                {hud.stamina !== null && (
+                  <div className="mt-2 border-t border-[#1e1424]/15 pt-1.5">
+                    <div className="flex items-center justify-between gap-2 text-[10px] font-black">
+                      <span>Cachaça · energia de corrida</span><span>{hud.stamina}%</span>
+                    </div>
+                    <div role="progressbar" aria-label="Energia de corrida" aria-valuenow={hud.stamina} aria-valuemin={0} aria-valuemax={100} className="mt-1 h-2 overflow-hidden rounded-full bg-[#1e1424]/15">
+                      <div className={`h-full rounded-full transition-[width] ${hud.stamina < 25 ? "bg-[#c62835]" : "bg-[#c48827]"}`} style={{ width: `${hud.stamina}%` }} />
+                    </div>
+                    {hud.stamina < 25 && (
+                      <p className="mt-1 text-[10px] font-semibold">
+                        {hasMap ? "Procure as placas CACHAÇA · ENERGIA (estão no mapa)." : "Reabasteça no bar, na padaria ou no terminal."}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="pointer-events-auto ml-auto flex gap-2">
               <button type="button" onClick={toggleSound} aria-label={soundOn ? "Desligar som" : "Ligar som"} className="hud-btn">
                 {soundOn ? "🔊" : "🔈"}
               </button>
+              {hasMap && (
+                <button type="button" onClick={() => setMapOpen(true)} aria-label="Abrir mapa (M)" className="hud-btn">
+                  🗺️
+                </button>
+              )}
               <button type="button" onClick={() => setMenu(true)} aria-label="Menu" className="hud-btn">
                 ☰
               </button>
             </div>
           </div>
+
+          {banner && (
+            <div className="pointer-events-none absolute left-1/2 top-[24%] -translate-x-1/2 -translate-y-1/2 text-center">
+              <p className="whitespace-nowrap text-2xl font-black text-[#fffaf0] sm:text-4xl" style={{ WebkitTextStroke: "2px #1e1424", textShadow: `0 4px 0 #1e1424, 0 0 18px ${banner.color}` }}>
+                {banner.name}
+              </p>
+              <p className="mt-1 inline-block rounded-full border-2 border-[#1e1424] px-3 py-0.5 text-xs font-bold text-[#fffaf0] sm:text-sm" style={{ background: banner.color }}>
+                {banner.tagline}
+              </p>
+            </div>
+          )}
 
           {toast && (
             <div className="pointer-events-none absolute left-1/2 top-44 w-max max-w-[90vw] -translate-x-1/2 rounded-xl border-[3px] border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-center text-sm font-black shadow-[0_3px_0_#1e1424]">
@@ -238,6 +309,8 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
           )}
         </>
       )}
+
+      {mapOpen && <CityMap onClose={() => setMapOpen(false)} />}
 
       {menu && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-black/55 p-4" onClick={() => setMenu(false)}>

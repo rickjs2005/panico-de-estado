@@ -63,12 +63,13 @@ export class Car {
     public x: number,
     public y: number,
     public angle: number,
+    readonly color?: string,
   ) {
     const s = 1 / RES.car;
     this.shadow = scene.add.image(3, 4, tex.car("sombra")).setScale(s);
     const parts: Phaser.GameObjects.GameObject[] = [this.shadow];
     for (const sl of SLICES) {
-      const img = scene.add.image(0, -sl.h, tex.car(sl.layer)).setScale(s);
+      const img = scene.add.image(0, -sl.h, tex.car(sl.layer, color)).setScale(s);
       this.slices.push({ img, h: sl.h });
       parts.push(img);
     }

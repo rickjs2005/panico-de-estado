@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
 import type { HeroId } from "../types";
 import { BootScene } from "./BootScene";
+import { CityScene } from "./city/CityScene";
 import { WorldScene } from "./WorldScene";
 
 export interface GameHandle {
@@ -41,6 +42,7 @@ export function createGame(
   });
   game.scene.add("boot", BootScene, false);
   game.scene.add("world", WorldScene, false);
+  game.scene.add("city", CityScene, false);
   game.scene.start("boot", { hero, debug: opts.debug });
 
   return {

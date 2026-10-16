@@ -30,4 +30,8 @@ export interface HudState {
   stamina: number | null;
   completed: number;
   total: number;
+  /** Onde o protagonista está: distrito ou interior (só na cidade). */
+  place?: string | null;
+  /** A cidade tem mapa. */
+  map?: boolean;
 }
