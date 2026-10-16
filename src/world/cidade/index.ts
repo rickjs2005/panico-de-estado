@@ -6,16 +6,16 @@ import { INDUSTRIAL } from "./distritos/industrial";
 import { RESIDENCIAL } from "./distritos/residencial";
 import { TERMINAL } from "./distritos/terminal";
 import { stalls } from "./helpers";
-import { INTERIORS } from "./interiors";
+import { entryLabel, interiorFor, interiorId } from "./interiores";
 import { CITY, DISTRICTS, LIMITS, ROADS, WORLD_H } from "./layout";
-import type { CityBuilding, CityProp, CityPropKind, DistrictContent, DistrictDef, DistrictId, InteriorDef, Poi } from "./types";
+import type { CityBuilding, CityProp, CityPropKind, DistrictContent, DistrictDef, DistrictId, InteriorDef, InteriorProp, Poi } from "./types";
 
 /**
  * A cidade montada a partir dos distritos. Tudo o que a cena, o mapa e as checagens
  * precisam sai daqui.
  */
 
-export { CITY, DISTRICTS, INTERIORS, LIMITS, ROADS, WORLD_H, stalls };
+export { CITY, DISTRICTS, LIMITS, ROADS, WORLD_H, entryLabel, stalls };
 
 export const DISTRICT_CONTENT: Record<DistrictId, DistrictContent> = {
   residencial: RESIDENCIAL,
@@ -32,14 +32,28 @@ function all<K extends keyof DistrictContent>(k: K): DistrictContent[K] {
   return out as DistrictContent[K];
 }
 
-export const BUILDINGS: CityBuilding[] = all("buildings");
+/** Todos os prédios, cada um com o id do seu interior. */
+export const BUILDINGS: CityBuilding[] = all("buildings").map((b) => ({ ...b, interior: interiorId(b) }));
+
+/** Um interior por prédio: toda edificação da cidade pode ser visitada. */
+export const INTERIORS: InteriorDef[] = BUILDINGS.map(interiorFor);
+
+export function interiorById(id: string): InteriorDef | undefined {
+  return INTERIORS.find((i) => i.id === id);
+}
+
+export function buildingById(id: string): CityBuilding | undefined {
+  return BUILDINGS.find((b) => b.id === id);
+}
 export const PARKING = all("parking");
 export const VEHICLES = all("vehicles");
 export const GROUNDS = all("grounds");
 export const NPCS = all("npcs");
 
-/** Paradas de cachaça (energia de corrida), na rua e dentro do bar. */
-export const CACHACA = [...all("cachaca"), ...INTERIORS.flatMap((i) => (i.cachaca ? [i.cachaca] : []))];
+/** Paradas de cachaça (energia de corrida) na rua. */
+export const STREET_CACHACA = all("cachaca");
+/** Todas as paradas: na rua e dentro de bares, padarias e afins. */
+export const CACHACA = [...STREET_CACHACA, ...INTERIORS.flatMap((i) => (i.cachaca ? [i.cachaca] : []))];
 
 /** Placas com o nome das ruas, perto de onde cada uma começa e no meio. */
 function streetSigns(): CityProp[] {
@@ -60,8 +74,13 @@ function avenueLights(): CityProp[] {
   const out: CityProp[] = [];
   for (const r of ROADS.filter((a) => a.kind === "avenida")) {
     const { x, y, w, h } = r.rect;
-    if (w > h) for (let px = x + 140; px < x + w - 80; px += 320) out.push({ kind: "poste", x: px, y: y - 10 });
-    else for (let py = y + 200; py < y + h - 80; py += 320) out.push({ kind: "poste", x: x - 12, y: py });
+    // os postes pulam a frente das portas
+    const nearDoor = (px: number) => BUILDINGS.some((b) => Math.abs(doorPoint(b).x - px) < 40 && Math.abs(b.y + b.d - (y - 10)) < 130);
+    if (w > h) {
+      for (let px = x + 140; px < x + w - 80; px += 320) if (!nearDoor(px)) out.push({ kind: "poste", x: px, y: y - 10 });
+    } else {
+      for (let py = y + 200; py < y + h - 80; py += 320) out.push({ kind: "poste", x: x - 12, y: py });
+    }
   }
   return out;
 }
@@ -71,7 +90,8 @@ function withIds(list: CityProp[]): (CityProp & { id: string })[] {
 }
 
 export const PROPS = withIds([...all("props"), ...streetSigns(), ...avenueLights()]);
-export const INTERIOR_PROPS = withIds(INTERIORS.flatMap((i) => i.props));
+/** Objetos de todos os interiores (só para gerar as texturas; a cena monta um interior por vez). */
+export const INTERIOR_PROPS: InteriorProp[] = INTERIORS.flatMap((i) => i.props);
 
 export const POIS: Poi[] = [
   ...all("pois"),
@@ -130,7 +150,85 @@ export const PROP_SOLID: Record<CityPropKind, { w: number; h: number } | null> =
   cadeiraFila: { w: 26, h: 14 },
   painelSenha: null,
   pilhaPapel: { w: 26, h: 16 },
+  // interiores
+  sofa: { w: 108, h: 26 },
+  poltrona: { w: 42, h: 26 },
+  tv: { w: 70, h: 18 },
+  radio: null,
+  geladeira: { w: 44, h: 28 },
+  fogao: { w: 46, h: 28 },
+  pia: { w: 72, h: 28 },
+  mesa: { w: 80, h: 34 },
+  cadeira: { w: 18, h: 12 },
+  cama: { w: 84, h: 56 },
+  rede: { w: 104, h: 10 },
+  armario: { w: 70, h: 26 },
+  estante: { w: 90, h: 22 },
+  planta: { w: 18, h: 12 },
+  tapete: null,
+  quadro: null,
+  janela: null,
+  relogio: null,
+  mesaEscritorio: { w: 90, h: 28 },
+  arquivo: { w: 40, h: 24 },
+  mesaReuniao: { w: 200, h: 48 },
+  bebedouro: { w: 24, h: 16 },
+  bancoIgreja: { w: 140, h: 18 },
+  altar: { w: 140, h: 38 },
+  pulpito: { w: 40, h: 22 },
+  sino: { w: 44, h: 22 },
+  orgao: { w: 80, h: 26 },
+  carteira: { w: 34, h: 22 },
+  lousa: null,
+  gondola: { w: 140, h: 28 },
+  caixaRegistradora: { w: 90, h: 28 },
+  freezer: { w: 90, h: 30 },
+  vitrinePao: { w: 150, h: 28 },
+  forno: { w: 72, h: 32 },
+  maquina: { w: 90, h: 48 },
+  empilhadeira: { w: 50, h: 34 },
+  caixaPapelao: { w: 40, h: 26 },
+  painelFerramentas: null,
+  elevadorCarro: null,
+  caixaEletronico: { w: 40, h: 24 },
+  cofre: { w: 70, h: 34 },
+  painelLoteria: null,
+  rotativa: { w: 200, h: 56 },
+  mesaPingPong: { w: 110, h: 52 },
+  colchao: null,
+  beliche: { w: 92, h: 34 },
+  maquinaLavar: { w: 40, h: 28 },
+  elevador: { w: 84, h: 14 },
+  caixasCorreio: { w: 110, h: 14 },
+  filtro: { w: 22, h: 14 },
+  ventilador: { w: 22, h: 14 },
+  raioX: { w: 130, h: 40 },
+  painelControle: { w: 180, h: 34 },
+  portaPaletes: { w: 300, h: 30 },
+  mesaTelefones: { w: 160, h: 34 },
+  telao: null,
+  violao: { w: 14, h: 10 },
+  fritadeira: { w: 62, h: 28 },
+  compressor: { w: 40, h: 24 },
+  carroOficina: { w: 150, h: 48 },
+  lojinha: { w: 160, h: 38 },
+  escadaRolante: { w: 70, h: 120 },
+  vaso: { w: 20, h: 12 },
+  quadroAvisos: { w: 100, h: 12 },
+  canteiro: { w: 70, h: 18 },
+  horta: { w: 80, h: 30 },
+  cachorro: { w: 22, h: 10 },
+  bicicleta: { w: 40, h: 10 },
+  bandeirolas: null,
+  carrinhoPipoca: { w: 44, h: 22 },
+  bicicletario: { w: 90, h: 14 },
+  muroBaixo: { w: 120, h: 12 },
 };
+
+/** Objetos pendurados na parede do fundo dos interiores (desenhados logo à frente da parede). */
+export const WALL_PROPS = new Set<CityPropKind>(["prateleira", "painelSenha", "quadro", "janela", "relogio", "lousa", "painelFerramentas", "painelLoteria", "telao"]);
+/** Objetos rentes ao chão (desenhados por baixo de tudo). */
+export const FLAT_PROPS = new Set<CityPropKind>(["tapete", "colchao"]);
 
 export function propRect(p: CityProp): Rect | null {
   const s = PROP_SOLID[p.kind];
@@ -141,12 +239,32 @@ export function buildingRect(b: CityBuilding): Rect {
   return { x: b.x, y: b.y, w: b.w, h: b.d };
 }
 
-/** Ponto na calçada, na frente da porta do prédio. */
-export function doorPoint(b: CityBuilding): Point {
-  return { x: b.x + b.w * (b.door ?? 0.5), y: b.y + b.d + 16 };
+/** Posição da porta principal na fachada, em fração da largura. A arte usa o mesmo valor. */
+export function doorFrac(b: Pick<CityBuilding, "id" | "kind" | "door">): number {
+  if (b.door !== undefined) return b.door;
+  if (b.kind === "loja") return 0.37;
+  if (b.kind === "casa") {
+    let h = 0;
+    for (const c of b.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h % 2 ? 0.66 : 0.34;
+  }
+  return 0.5;
 }
 
-/** Paredes de um interior: fundo, laterais e frente (a porta é uma ação, não uma abertura). */
+/** Porta lateral das igrejas interditadas: o decreto lacrou a porta da frente, não esta. */
+export function sideDoorFrac(b: CityBuilding): number | null {
+  if (b.kind === "igreja") return 0.12;
+  if (b.kind === "capela") return 0.86;
+  return null;
+}
+
+/** Ponto na calçada, na frente da porta do prédio (ou da porta lateral). */
+export function doorPoint(b: CityBuilding, side = false): Point {
+  const f = side ? (sideDoorFrac(b) ?? doorFrac(b)) : doorFrac(b);
+  return { x: b.x + b.w * f, y: b.y + b.d + 16 };
+}
+
+/** Paredes externas de um interior: fundo, laterais e frente (a porta é uma ação, não uma abertura). */
 export function interiorWalls(i: InteriorDef): Rect[] {
   const r = i.room;
   return [
@@ -157,9 +275,25 @@ export function interiorWalls(i: InteriorDef): Rect[] {
   ];
 }
 
+/** Objetos do interior visíveis com os estados atuais dos lugares. */
+export function interiorProps(i: InteriorDef, places: Record<string, string>): InteriorProp[] {
+  return i.props.filter((p) => !p.when || places[p.when.place] === p.when.state);
+}
+
+/** Tudo o que é sólido dentro de um interior. */
+export function interiorSolids(i: InteriorDef, places: Record<string, string>): Solid[] {
+  const out: Solid[] = interiorWalls(i).map((w, k) => ({ ...w, tag: `${i.id}-borda-${k}` }));
+  for (const w of i.walls) out.push({ x: w.x, y: w.y, w: w.w, h: w.h, tag: w.id });
+  for (const p of interiorProps(i, places)) {
+    const r = propRect(p);
+    if (r) out.push({ ...r, tag: p.id });
+  }
+  return out;
+}
+
 export type Solid = Rect & { tag?: string };
 
-/** Tudo o que é sólido: limites, prédios, objetos e interiores. */
+/** Tudo o que é sólido na rua: limites, prédios e objetos. Os interiores têm `interiorSolids`. */
 export function citySolids(extra: Solid[] = []): Solid[] {
   const out: Solid[] = [
     { ...LIMITS.morro, tag: "morro" },
@@ -174,11 +308,6 @@ export function citySolids(extra: Solid[] = []): Solid[] {
     const r = propRect(p);
     if (r) out.push({ ...r, tag: p.id });
   }
-  for (const i of INTERIORS) for (const w of interiorWalls(i)) out.push({ ...w, tag: `parede-${i.id}` });
-  for (const p of INTERIOR_PROPS) {
-    const r = propRect(p);
-    if (r) out.push({ ...r, tag: p.id });
-  }
   return [...out, ...extra];
 }
 
@@ -190,6 +319,4 @@ export function districtById(id: DistrictId): DistrictDef {
   return DISTRICTS.find((d) => d.id === id)!;
 }
 
-export function interiorAt(x: number, y: number): InteriorDef | null {
-  return INTERIORS.find((i) => x >= i.room.x && x <= i.room.x + i.room.w && y >= i.room.y && y <= i.room.y + i.room.h) ?? null;
-}
+

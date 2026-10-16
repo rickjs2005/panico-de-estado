@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { bus, worldState } from "@/world/bridge";
-import { BUILDINGS, CITY, DISTRICTS, INTERIORS, LIMITS, POIS, ROADS } from "@/world/cidade";
+import { BUILDINGS, CITY, DISTRICTS, INTERIORS, LIMITS, POIS, ROADS, districtById, doorPoint } from "@/world/cidade";
 import { readCity } from "@/world/cidade/progress";
-import type { Poi, PoiKind } from "@/world/cidade/types";
+import type { CityBuilding, Poi, PoiKind } from "@/world/cidade/types";
 
 const ICON: Record<PoiKind, string> = {
   marco: "⭐",
@@ -29,15 +29,19 @@ const VIEW = { x: 90, y: 110, w: CITY.w - 180, h: 3420 - 110 + 60 };
 export default function CityMap({ onClose }: { onClose: () => void }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [discovered, setDiscovered] = useState<string[]>([]);
+  const [visited, setVisited] = useState<string[]>([]);
+  const [selected, setSelected] = useState<CityBuilding | null>(null);
   const [waypoint, setWaypoint] = useState(worldState.waypoint);
-  const pos = { x: worldState.x, y: worldState.y, inside: worldState.inside };
-  const insideRoom = INTERIORS.find((i) => i.name === pos.inside);
-  const here = insideRoom ? (() => {
-    const b = BUILDINGS.find((x) => x.id === insideRoom.building)!;
-    return { x: b.x + b.w * (b.door ?? 0.5), y: b.y + b.d + 16 };
-  })() : pos;
+  const pos = { x: worldState.x, y: worldState.y };
+  const insideBuilding = worldState.insideBuilding ? BUILDINGS.find((b) => b.id === worldState.insideBuilding) : undefined;
+  const insideRoom = insideBuilding ? INTERIORS.find((i) => i.building === insideBuilding.id) : undefined;
+  const here = insideBuilding ? doorPoint(insideBuilding) : pos;
 
-  useEffect(() => setDiscovered(readCity().discovered), []);
+  useEffect(() => {
+    const p = readCity();
+    setDiscovered(p.discovered);
+    setVisited(p.visited);
+  }, []);
 
   const visible = useMemo(() => POIS.filter((p) => p.landmark || discovered.includes(p.id)), [discovered]);
   const byDistrict = useMemo(
@@ -50,6 +54,8 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
     bus.emit("waypoint", w);
   };
 
+  const interiorOf = (b: CityBuilding) => INTERIORS.find((i) => i.building === b.id);
+
   const onMapClick = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -59,6 +65,15 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
     const m = svg.getScreenCTM();
     if (!m) return;
     const w = pt.matrixTransform(m.inverse());
+    // clique num prédio: mostra a ficha e marca a porta como destino
+    const hit = BUILDINGS.find((b) => w.x >= b.x - 10 && w.x <= b.x + b.w + 10 && w.y >= b.y - b.h - 10 && w.y <= b.y + b.d + 10);
+    if (hit) {
+      setSelected(hit);
+      const d = doorPoint(hit);
+      mark({ x: Math.round(d.x), y: Math.round(d.y), label: interiorOf(hit)?.name ?? hit.id });
+      return;
+    }
+    setSelected(null);
     const near = visible
       .map((p) => ({ p, d: Math.hypot(p.x - w.x, p.y - w.y) }))
       .sort((a, b) => a.d - b.d)[0];
@@ -72,7 +87,11 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
         <p className="rounded-lg border-[3px] border-[#1e1424] bg-[#fffaf0] px-3 py-1 text-sm font-black shadow-[0_3px_0_#1e1424]">
           Mapa · Brasil hipotético do Lula
         </p>
-        <p className="hidden text-xs font-semibold text-bone/80 sm:block">Toque no mapa ou num lugar da lista para marcar o destino. M ou Esc fecha.</p>
+        {insideRoom ? (
+          <p className="rounded-lg bg-[#c62835] px-2 py-1 text-xs font-black text-white">Você está dentro: {insideRoom.name}</p>
+        ) : (
+          <p className="hidden text-xs font-semibold text-bone/80 sm:block">Toque num prédio ou lugar para ver a ficha e marcar o destino. M ou Esc fecha.</p>
+        )}
         <button type="button" onClick={onClose} className="hud-btn ml-auto" aria-label="Fechar mapa">
           ✕
         </button>
@@ -97,9 +116,21 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
             {ROADS.map((r) => (
               <rect key={r.id} x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill={r.kind === "avenida" ? "#45454f" : "#6b6b78"} />
             ))}
-            {BUILDINGS.map((b) => (
-              <rect key={b.id} x={b.x} y={b.y} width={b.w} height={b.d} fill={b.wall} stroke="#1e1424" strokeWidth={6} />
-            ))}
+            {BUILDINGS.map((b) => {
+              const seen = visited.includes(b.id);
+              const isSel = selected?.id === b.id;
+              const isHere = insideBuilding?.id === b.id;
+              return (
+                <g key={b.id}>
+                  <rect x={b.x} y={b.y} width={b.w} height={b.d} fill={b.wall} fillOpacity={seen || isHere ? 1 : 0.55} stroke={isSel || isHere ? "#c62835" : "#1e1424"} strokeWidth={isSel || isHere ? 14 : 6} />
+                  {seen && (
+                    <text x={b.x + b.w - 26} y={b.y + 50} fontSize={56} fontWeight={900} fill="#1f8a4c" stroke="#fffaf0" strokeWidth={8} paintOrder="stroke">
+                      ✓
+                    </text>
+                  )}
+                </g>
+              );
+            })}
             {DISTRICTS.map((d) => (
               <text
                 key={d.id}
@@ -147,15 +178,27 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
               </circle>
               <circle r={52} fill="#c62835" stroke="#fffaf0" strokeWidth={14} />
               <text y={-80} textAnchor="middle" fontSize={70} fontWeight={900} fill="#fffaf0" stroke="#1e1424" strokeWidth={12} paintOrder="stroke">
-                {insideRoom ? `Você (no ${insideRoom.name})` : "Você"}
+                {insideRoom ? `Você · dentro de ${insideRoom.name}` : "Você"}
               </text>
             </g>
           </svg>
         </div>
         <aside className="max-h-[38vh] min-h-0 overflow-y-auto rounded-xl border-4 border-[#1e1424] bg-[#fffaf0] p-2 sm:max-h-none sm:w-60 lg:w-72">
+          {selected && (
+            <div className="mb-2 rounded-lg border-2 border-[#1e1424] bg-[#ffd23f]/30 p-2 text-xs">
+              <p className="font-black">{interiorOf(selected)?.name}</p>
+              <p className="font-semibold text-[#1e1424]/80">{districtById(selected.district).name}</p>
+              <p className="mt-1 font-semibold">
+                🚪 Interior acessível · {interiorOf(selected)?.rooms.length} cômodo(s) · {interiorOf(selected)?.spots.length} interações
+                {interiorOf(selected)?.cachaca ? " · 🍶 cachaça" : ""}
+              </p>
+              <p className="font-semibold">{visited.includes(selected.id) ? "✓ Você já entrou aqui" : "Ainda não visitado"}</p>
+              <p className="mt-1 text-[10px] font-semibold text-[#1e1424]/70">Destino marcado na porta.</p>
+            </div>
+          )}
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-xs font-black">
-              Lugares conhecidos: {visible.length}/{POIS.length}
+              Lugares conhecidos: {visible.length}/{POIS.length} · Prédios visitados: {visited.length}/{BUILDINGS.length}
             </p>
             {waypoint && (
               <button type="button" className="rounded-lg border-2 border-[#1e1424] px-2 py-0.5 text-xs font-bold" onClick={() => mark(null)}>
@@ -178,13 +221,20 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
                     >
                       <span aria-hidden>{ICON[p.kind]}</span>
                       <span>{p.name}</span>
+                      {visited.includes(p.id) && (
+                        <span className="ml-auto text-[#1f8a4c]" aria-label="visitado">
+                          ✓
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             </section>
           ))}
-          <p className="mt-2 text-[10px] leading-snug text-[#1e1424]/70">Lugares menores aparecem aqui depois que você passa por eles. As placas CACHAÇA · ENERGIA recarregam a corrida.</p>
+          <p className="mt-2 text-[10px] leading-snug text-[#1e1424]/70">
+            Todo prédio tem interior: toque nele no mapa para ver a ficha. ✓ = já visitado. Lugares menores aparecem na lista depois que você passa por eles. As placas CACHAÇA · ENERGIA recarregam a corrida.
+          </p>
         </aside>
       </div>
     </div>

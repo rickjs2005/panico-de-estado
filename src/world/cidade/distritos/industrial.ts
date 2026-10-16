@@ -40,6 +40,9 @@ export const INDUSTRIAL: DistrictContent = {
     { id: "ind-tambor-3", kind: "tambor", x: 700, y: 3050, react: "wobble" },
     { kind: "conteiner", x: 620, y: 3200, variant: "vermelho" },
     { kind: "bandeira", x: 300, y: 2250 },
+    { id: "ind-cachorro", kind: "cachorro", x: 1460, y: 2440, react: "wobble" },
+    { kind: "muroBaixo", x: 420, y: 2700, variant: "amarelo" },
+    { kind: "quiosque", x: 1440, y: 2330, variant: "fabrica" },
   ],
   pois: [
     { id: "ind-fabrica", name: "Fábrica Estatal Nº 1", district: D, x: 555, y: 2250, kind: "industria", landmark: true },
@@ -68,5 +71,5 @@ export const INDUSTRIAL: DistrictContent = {
     },
     { id: "encarregada", district: D, name: "Encarregada Rose", look: "func4", x: 1130, y: 2245, facing: "front", lines: ["Galpão 1 é do povo. O galpão 2 também, mas está trancado."] },
   ],
-  cachaca: [],
+  cachaca: [{ id: "cachaca-fabrica", name: "Cantina da Fábrica", district: D, x: 1440, y: 2356 }],
 };

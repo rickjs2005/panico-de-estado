@@ -72,6 +72,9 @@ export const EDUCACIONAL: DistrictContent = {
     { kind: "quiosque", x: 4400, y: 840, variant: "dce" },
     { id: "edu-lixeira-1", kind: "lixeira", x: 3890, y: 1300, react: "tip" },
     { kind: "pontoOnibus", x: 3700, y: 885 },
+    { kind: "bicicletario", x: 3600, y: 870 },
+    { id: "edu-bicicleta-1", kind: "bicicleta", x: 4220, y: 1330, variant: "azul", react: "tip" },
+    { kind: "canteiro", x: 3420, y: 1330 },
   ],
   pois: [
     { id: "edu-universidade", name: "Universidade do Pânico", district: D, x: 3800, y: 650, kind: "educacao", landmark: true, hooks: { missions: ["campus-liberado"] } },

@@ -345,6 +345,27 @@ body {
   font-size: 1.15rem;
   box-shadow: 0 3px 0 #1e1424;
 }
+/* botão de ação: cresce com o texto ("Entrar no mercadinho") e continua fácil de tocar */
+.hud-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: 1.25rem;
+  border: 4px solid #1e1424;
+  box-shadow: 0 4px 0 #1e1424;
+  color: #1e1424;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.hud-action:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1e1424;
+}
+
 .hud-round {
   display: flex;
   align-items: center;

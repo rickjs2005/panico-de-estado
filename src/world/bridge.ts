@@ -67,5 +67,7 @@ export const worldState = {
   y: 0,
   angle: 0,
   inside: null as string | null,
+  /** Prédio em que o jogador está (id), para o mapa marcar a porta. */
+  insideBuilding: null as string | null,
   waypoint: null as (Point & { label: string }) | null,
 };

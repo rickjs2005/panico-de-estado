@@ -83,8 +83,10 @@ export interface CityBuilding {
   awning?: [string, string];
   /** Posição da porta na fachada, em fração da largura (padrão 0,5). */
   door?: number;
-  /** Interior acessível por esta porta. */
+  /** Id do interior (padrão: o próprio id do prédio; o bar e a repartição mantêm ids antigos). */
   interior?: string;
+  /** Nome curto usado na ação de entrar ("Entrar no mercadinho") e no mapa. */
+  label?: { name: string; article: "o" | "a" | "os" | "as" };
   /** Estado persistente ligado a este prédio. */
   place?: string;
   hooks?: Hooks;
@@ -136,7 +138,81 @@ export type CityPropKind =
   | "guiche"
   | "cadeiraFila"
   | "painelSenha"
-  | "pilhaPapel";
+  | "pilhaPapel"
+  // interiores
+  | "sofa"
+  | "poltrona"
+  | "tv"
+  | "radio"
+  | "geladeira"
+  | "fogao"
+  | "pia"
+  | "mesa"
+  | "cadeira"
+  | "cama"
+  | "rede"
+  | "armario"
+  | "estante"
+  | "planta"
+  | "tapete"
+  | "quadro"
+  | "janela"
+  | "relogio"
+  | "mesaEscritorio"
+  | "arquivo"
+  | "mesaReuniao"
+  | "bebedouro"
+  | "bancoIgreja"
+  | "altar"
+  | "pulpito"
+  | "sino"
+  | "orgao"
+  | "carteira"
+  | "lousa"
+  | "gondola"
+  | "caixaRegistradora"
+  | "freezer"
+  | "vitrinePao"
+  | "forno"
+  | "maquina"
+  | "empilhadeira"
+  | "caixaPapelao"
+  | "painelFerramentas"
+  | "elevadorCarro"
+  | "caixaEletronico"
+  | "cofre"
+  | "painelLoteria"
+  | "rotativa"
+  | "mesaPingPong"
+  | "colchao"
+  | "beliche"
+  | "maquinaLavar"
+  | "elevador"
+  | "caixasCorreio"
+  | "filtro"
+  | "ventilador"
+  | "raioX"
+  | "painelControle"
+  | "portaPaletes"
+  | "mesaTelefones"
+  | "telao"
+  | "violao"
+  | "fritadeira"
+  | "compressor"
+  | "carroOficina"
+  | "lojinha"
+  | "escadaRolante"
+  | "vaso"
+  | "quadroAvisos"
+  // rua: personalidade dos bairros
+  | "canteiro"
+  | "horta"
+  | "cachorro"
+  | "bicicleta"
+  | "bandeirolas"
+  | "carrinhoPipoca"
+  | "bicicletario"
+  | "muroBaixo";
 
 /** Reação a batidas de carro. */
 export type Reaction = "spill" | "tip" | "wobble";
@@ -189,9 +265,15 @@ export interface CachacaStop extends Point {
   district: DistrictId;
 }
 
+/** Comportamento de morador genérico, reaproveitado em toda a cidade. */
+export type AmbientBehavior = "passeio" | "travessia" | "conversa" | "fila" | "parado";
+
 export interface CityNpc extends NpcDef {
   district: DistrictId;
   hooks?: Hooks;
+  behavior?: AmbientBehavior;
+  /** Moradores do mesmo grupo conversam entre si. */
+  group?: string;
 }
 
 export interface DistrictContent {
@@ -205,24 +287,137 @@ export interface DistrictContent {
   cachaca: CachacaStop[];
 }
 
-export interface InteriorDef {
+/** Piso de um cômodo. O desenho é neutro e ganha a cor (`tint`) de cada interior. */
+export type FloorKind = "taco" | "ceramica" | "ladrilho" | "piso-bar" | "piso-reparticao" | "concreto" | "carpete" | "marmore" | "azulejo";
+
+export interface InteriorRoom {
   id: string;
   name: string;
+  rect: Rect;
+  floor: FloorKind;
+  tint: string;
+}
+
+/** Parede interna (sólida). `face` é a altura visível da parede na vista 3/4. */
+export interface InteriorWall extends Rect {
+  id: string;
+  face: number;
+  color: string;
+}
+
+/** Interações ambientais: comportamentos reaproveitados entre interiores. */
+export type SpotKind =
+  | "sentar"
+  | "deitar"
+  | "tv"
+  | "radio"
+  | "geladeira"
+  | "armario"
+  | "caixa"
+  | "campainha"
+  | "maquina"
+  | "carimbo"
+  | "senha"
+  | "sino"
+  | "instrumento"
+  | "examinar"
+  | "beber"
+  | "luz"
+  | "telefone"
+  | "registradora"
+  | "torneira"
+  | "fogao"
+  | "livro"
+  | "computador"
+  | "ventilador"
+  | "jukebox";
+
+export interface InteractionSpot {
+  id: string;
+  kind: SpotKind;
+  /** Onde o jogador fica para usar. */
+  x: number;
+  y: number;
+  /** Texto do botão de ação, por exemplo "Sentar no sofá". */
+  label: string;
+  /** Objeto que reage (id de um objeto deste interior). */
+  prop?: string;
+  /** Frases curtas que podem aparecer. */
+  lines?: string[];
+  /** Posição do personagem sentado ou deitado. */
+  seat?: Point & { facing: "front" | "back" | "side"; flip?: boolean };
+}
+
+export interface InteriorPoster {
+  text: string;
+  x: number;
+  y: number;
+  color: string;
+  bg: string;
+}
+
+export type TemplateId =
+  | "casa"
+  | "republica"
+  | "conjunto"
+  | "associacao"
+  | "prefeitura"
+  | "ministerio"
+  | "reparticao"
+  | "secretaria"
+  | "imprensa"
+  | "banco"
+  | "igreja"
+  | "capela"
+  | "mercado"
+  | "padaria"
+  | "bar"
+  | "farmacia"
+  | "lanchonete"
+  | "cantina"
+  | "loterica"
+  | "shopping"
+  | "oficina"
+  | "borracharia"
+  | "escola"
+  | "universidade"
+  | "biblioteca"
+  | "fabrica"
+  | "galpao"
+  | "armazem"
+  | "almoxarifado"
+  | "deposito-kits"
+  | "alfandega"
+  | "despacho";
+
+/** Objeto de interior que só aparece num estado do lugar (por exemplo, depósito abastecido). */
+export interface InteriorProp extends CityProp {
+  id: string;
+  when?: { place: string; state: string };
+}
+
+export interface InteriorDef {
+  id: string;
+  /** Nome mostrado no HUD e no mapa. */
+  name: string;
   building: string;
-  /** Sala fora do mapa da rua, onde o interior é montado. */
+  template: TemplateId;
+  /** Área total do interior, montada na faixa abaixo da cidade quando o jogador entra. */
   room: Rect;
-  /** Altura da parede do fundo, que também é sólida. */
+  /** Altura da parede do fundo (sólida). */
   wallH: number;
   wall: string;
-  floor: "piso-bar" | "piso-reparticao";
+  rooms: InteriorRoom[];
+  walls: InteriorWall[];
   /** Onde o jogador aparece ao entrar e onde fica a porta de saída. */
   entry: Point;
   exit: Point;
-  props: CityProp[];
+  props: InteriorProp[];
   npcs: CityNpc[];
-  /** Cartazes na parede do fundo. */
-  posters: { text: string; x: number; y: number; color: string; bg: string }[];
+  posters: InteriorPoster[];
+  spots: InteractionSpot[];
   cachaca?: CachacaStop;
+  hooks?: Hooks;
 }
 
 export type { LookId };

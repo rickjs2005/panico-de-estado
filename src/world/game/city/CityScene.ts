@@ -3,10 +3,8 @@ import { sound } from "@/lib/sound";
 import { bus, touchInput, worldState } from "../../bridge";
 import {
   BUILDINGS,
-  CACHACA,
   CITY,
   GROUNDS,
-  INTERIOR_PROPS,
   INTERIORS,
   LIMITS,
   NPCS,
@@ -15,20 +13,25 @@ import {
   PROPS,
   ROADS,
   SPAWN,
+  STREET_CACHACA,
   VEHICLES,
+  buildingById,
   citySolids,
   districtAt,
   doorPoint,
+  entryLabel,
+  interiorById,
+  sideDoorFrac,
   stalls,
   type Solid,
 } from "../../cidade";
-import { interiorById } from "../../cidade/interiors";
 import { WORLD_H } from "../../cidade/layout";
 import { isPlace, PLACES, type PlaceId } from "../../cidade/places";
-import { discover, readCity, saveWaypoint, setPlaceState, type CityProgress } from "../../cidade/progress";
-import type { CityBuilding, CityProp, DistrictDef, InteriorDef } from "../../cidade/types";
+import { discover, readCity, saveWaypoint, setPlaceState, visit, type CityProgress } from "../../cidade/progress";
+import type { CachacaStop, CityBuilding, CityNpc, CityProp, DistrictDef, InteractionSpot, InteriorDef } from "../../cidade/types";
+import { AMBIENT, CHATTER, TRAFFIC } from "../../cidade/vida";
 import { drainStamina, MAX_STAMINA } from "../../stamina";
-import type { ActionLabel, HeroId, HudState, Point, Rect } from "../../types";
+import type { HeroId, HudState, Point, Rect } from "../../types";
 import { INK } from "../art";
 import { CITY_TEX, RES, tex } from "../bake";
 import { Bubble } from "../Bubble";
@@ -38,6 +41,9 @@ import { Npc } from "../Npc";
 import { Walker } from "../Walker";
 import { cityPropArt } from "./cityArt";
 import { Culler } from "./culler";
+import { InteriorView } from "./interior";
+import { restoreToggles, runSpot, type SpotContext } from "./interactions";
+import { Traffic, type Obstacle } from "./traffic";
 
 export interface CityData {
   hero: HeroId;
@@ -49,7 +55,8 @@ const RUN = 200;
 const PLAYER_R = 10;
 const TALK_DIST = 60;
 const CAR_DIST = 64;
-const DOOR_DIST = 48;
+const DOOR_DIST = 50;
+const SPOT_DIST = 40;
 const CHUNK = 800;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 
@@ -62,10 +69,12 @@ const SPILL_LINES: Record<string, string[]> = {
 const DRINK_LINES = ["Um gole de cachaça e mais cem decretos!", "Cachaça presidencial: energia do povo!", "Esse gole foi coletivizado."];
 
 interface Candidate {
-  label: ActionLabel;
+  label: string;
   priority: number;
   dist: number;
   run: () => void;
+  /** Onde fica o indicador do que vai receber a ação. */
+  focus: Point | null;
 }
 
 type Keys = Record<"W" | "A" | "S" | "D" | "UP" | "DOWN" | "LEFT" | "RIGHT" | "SHIFT" | "E" | "ENTER" | "SPACE" | "H", Phaser.Input.Keyboard.Key>;
@@ -90,6 +99,17 @@ export class CityScene extends Phaser.Scene {
   private mode: "pe" | "carro" = "pe";
   private npcs: Npc[] = [];
   private inside: InteriorDef | null = null;
+  private interior: InteriorView | null = null;
+  /** Porta usada para entrar (a lateral, nas igrejas interditadas). */
+  private enteredAt: Point | null = null;
+  private seated: { spot: InteractionSpot; pose: "sentado" | "deitado" } | null = null;
+  private toggles = new Map<string, boolean>();
+  private counters = new Map<string, number>();
+  private traffic!: Traffic;
+  private tallProps: { img: Phaser.GameObjects.Image; x: number; y: number; top: number; halfW: number }[] = [];
+  private focus!: Phaser.GameObjects.Container;
+  private focusText!: Phaser.GameObjects.Text;
+  private nextChat = 0;
   private keys!: Keys;
   private culler = new Culler();
   private buildings: { def: CityBuilding; img: Phaser.GameObjects.Image; top: number }[] = [];
@@ -144,8 +164,6 @@ export class CityScene extends Phaser.Scene {
     this.drawLimits();
     this.placeBuildings();
     this.placeProps(PROPS);
-    this.placeProps(INTERIOR_PROPS);
-    this.buildInteriors();
     this.placeCachacaSigns();
     this.placeDoorSigns();
 
@@ -153,7 +171,8 @@ export class CityScene extends Phaser.Scene {
     for (const id of Object.keys(PLACES) as PlaceId[]) this.applyPlace(id, this.progress.places[id], false);
     this.rebuildSolids();
 
-    for (const def of [...NPCS, ...INTERIORS.flatMap((i) => i.npcs)]) this.npcs.push(new Npc(this, def));
+    for (const def of [...NPCS, ...AMBIENT]) this.npcs.push(new Npc(this, def));
+    this.traffic = new Traffic(this, TRAFFIC);
     for (const v of VEHICLES) {
       const car = new Car(this, v.x, v.y, v.angle, v.color);
       this.cars.push(car);
@@ -165,6 +184,16 @@ export class CityScene extends Phaser.Scene {
     this.marker = this.add.image(0, 0, "marker").setScale(1 / RES.small).setDepth(90000).setVisible(false);
     this.ring = this.add.graphics().setDepth(5).setVisible(false);
     this.edgeArrow = this.add.image(0, 0, "marker").setScale(1 / RES.small).setDepth(95000).setVisible(false).setTint(0x9be7ff);
+    // indicador do objeto que vai receber a ação (porta, carro, móvel, morador)
+    const arrow = this.add.graphics();
+    arrow.fillStyle(0xffd23f, 1);
+    arrow.lineStyle(3, 0x1e1424, 1);
+    arrow.fillTriangle(-10, -14, 10, -14, 0, 0);
+    arrow.strokeTriangle(-10, -14, 10, -14, 0, 0);
+    this.focusText = this.add
+      .text(0, -20, "", { fontFamily: FONT, fontSize: "12px", fontStyle: "900", color: "#1e1424", backgroundColor: "#ffd23f", padding: { x: 6, y: 3 }, resolution: 3 })
+      .setOrigin(0.5, 1);
+    this.focus = this.add.container(0, 0, [arrow, this.focusText]).setDepth(96000).setVisible(false);
     worldState.waypoint = this.progress.waypoint;
 
     const kb = this.input.keyboard!;
@@ -224,7 +253,8 @@ export class CityScene extends Phaser.Scene {
     this.add.tileSprite(0, 0, CITY.w, CITY.h, "tile:calcada").setOrigin(0).setTileScale(ts).setDepth(-100);
     for (const g of GROUNDS) {
       if (g.kind === "calcada") continue;
-      const t = this.add.tileSprite(g.rect.x, g.rect.y, g.rect.w, g.rect.h, `tile:${g.kind}`).setOrigin(0).setTileScale(ts).setDepth(-90);
+      const key = g.kind === "ondas" ? "tile:ondas-cidade" : `tile:${g.kind}`;
+      const t = this.add.tileSprite(g.rect.x, g.rect.y, g.rect.w, g.rect.h, key).setOrigin(0).setTileScale(ts).setDepth(-90);
       this.culler.add(t, g.rect);
     }
     // ruas desenhadas em blocos: só os blocos perto da câmera custam desenho
@@ -446,10 +476,11 @@ export class CityScene extends Phaser.Scene {
         .image(p.x, p.y, tex.prop(p.kind, p.variant))
         .setOrigin(0.5, art.originY)
         .setScale(1 / RES.cityProp)
-        .setDepth(p.kind === "prateleira" || p.kind === "painelSenha" ? p.y - 200 : p.y);
+        .setDepth(p.y);
       const top = p.y - art.h * art.originY;
       const bounds = { x: p.x - art.w / 2, y: top, w: art.w, h: art.h };
       this.culler.add(img, bounds);
+      if (art.h > 70) this.tallProps.push({ img, x: p.x, y: p.y, top, halfW: art.w / 2 - 8 });
       if (p.react) this.props.set(p.id, { def: p, img, busyUntil: 0 });
       if (p.text) this.propText(p, top, bounds);
     }
@@ -487,7 +518,7 @@ export class CityScene extends Phaser.Scene {
 
   /** Placa "CACHAÇA · ENERGIA" com a garrafa balançando em cada parada. */
   private placeCachacaSigns() {
-    for (const c of CACHACA) {
+    for (const c of STREET_CACHACA) {
       const bottle = this.add.image(c.x, c.y - 70, "cachaca").setScale(0.8 / RES.small).setDepth(c.y + 300);
       this.tweens.add({ targets: bottle, angle: { from: -10, to: 10 }, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       this.culler.add(bottle, { x: c.x - 30, y: c.y - 110, w: 60, h: 80 });
@@ -495,76 +526,68 @@ export class CityScene extends Phaser.Scene {
     }
   }
 
-  /** Portas de interiores: tapete e placa "ENTRE". */
+  /** Toda edificação tem porta: tapete na calçada e, nas igrejas, a placa da entrada lateral. */
   private placeDoorSigns() {
-    for (const b of BUILDINGS.filter((x) => x.interior)) {
-      const d = doorPoint(b);
-      const mat = this.add.graphics().setDepth(-70);
-      mat.fillStyle(0xc62835, 1);
-      mat.fillRoundedRect(d.x - 22, d.y - 14, 44, 16, 4);
-      mat.fillStyle(0xffd23f, 1);
-      mat.fillRect(d.x - 16, d.y - 8, 32, 3);
-      this.culler.add(mat, { x: d.x - 30, y: d.y - 20, w: 60, h: 30 });
-      this.sign(d.x, b.y + b.d - b.h - 14, `ABERTO · ${interiorById(b.interior!)?.name.toUpperCase()}`, "#1f8a4c", "#fffaf0", 10, b.y + b.d + 1);
+    for (const b of BUILDINGS) {
+      const doors = [doorPoint(b)];
+      if (sideDoorFrac(b) !== null) doors.push(doorPoint(b, true));
+      doors.forEach((d, k) => {
+        const mat = this.add.graphics().setDepth(-70);
+        mat.fillStyle(k ? 0x3a86c8 : 0xc62835, 1);
+        mat.fillRoundedRect(d.x - 20, d.y - 14, 40, 14, 4);
+        mat.fillStyle(0xffd23f, 1);
+        mat.fillRect(d.x - 14, d.y - 8, 28, 3);
+        this.culler.add(mat, { x: d.x - 30, y: d.y - 20, w: 60, h: 30 });
+        if (k) {
+          const t = this.sign(d.x, b.y + b.d - 70, "ENTRADA LATERAL", "#3a86c8", "#fffaf0", 9, b.y + b.d + 2);
+          t.setData("place", b.place);
+          const door = this.add.graphics().setDepth(b.y + b.d + 1);
+          door.fillStyle(0x7a3e1d, 1);
+          door.fillRoundedRect(d.x - 11, b.y + b.d - 44, 22, 44, { tl: 10, tr: 10, bl: 0, br: 0 });
+          door.lineStyle(2, 0x1e1424, 1);
+          door.strokeRoundedRect(d.x - 11, b.y + b.d - 44, 22, 44, { tl: 10, tr: 10, bl: 0, br: 0 });
+          door.fillStyle(0xf2c230, 1);
+          door.fillCircle(d.x + 5, b.y + b.d - 22, 2);
+          this.culler.add(door, { x: d.x - 20, y: b.y + b.d - 60, w: 40, h: 60 });
+        }
+      });
     }
   }
 
   // ------------------------------------------------------------------ interiores
 
-  private buildInteriors() {
-    for (const i of INTERIORS) {
-      const r = i.room;
-      const floor = this.add.tileSprite(r.x, r.y, r.w, r.h, `tile:${i.floor}`).setOrigin(0).setTileScale(1 / RES.tile).setDepth(-90);
-      const wall = this.add.graphics().setDepth(r.y + i.wallH - 300);
-      const color = Phaser.Display.Color.HexStringToColor(i.wall).color;
-      wall.fillStyle(color, 1);
-      wall.fillRect(r.x, r.y, r.w, i.wallH);
-      wall.fillStyle(0xffffff, 0.25);
-      wall.fillRect(r.x, r.y, r.w, 10);
-      wall.fillStyle(0x000000, 0.2);
-      wall.fillRect(r.x, r.y + i.wallH - 12, r.w, 12);
-      const frame = this.add.graphics().setDepth(r.y + r.h + 500);
-      frame.fillStyle(0x1e1424, 1);
-      frame.fillRect(r.x - 30, r.y - 30, 30, r.h + 60);
-      frame.fillRect(r.x + r.w, r.y - 30, 30, r.h + 60);
-      frame.fillRect(r.x - 30, r.y + r.h, r.w + 60, 30);
-      frame.fillRect(r.x - 30, r.y - 30, r.w + 60, 30);
-      frame.fillStyle(0x6b4a2a, 1);
-      frame.fillRect(i.exit.x - 34, r.y + r.h - 6, 68, 12);
-      const exitTxt = this.add
-        .text(i.exit.x, r.y + r.h + 14, "SAÍDA", { fontFamily: FONT, fontSize: "12px", fontStyle: "900", color: "#ffd23f", resolution: 2.5 })
-        .setOrigin(0.5)
-        .setDepth(r.y + r.h + 501);
-      const all = { x: r.x - 40, y: r.y - 40, w: r.w + 80, h: r.h + 80 };
-      for (const o of [floor, wall, frame, exitTxt]) this.culler.add(o, all);
-      for (const p of i.posters) {
-        const t = this.add
-          .text(p.x, p.y, p.text, { fontFamily: FONT, fontSize: "14px", fontStyle: "900", color: p.color, backgroundColor: p.bg, padding: { x: 8, y: 5 }, resolution: 2.5 })
-          .setOrigin(0.5)
-          .setDepth(r.y + i.wallH - 299);
-        this.culler.add(t, all);
-      }
-    }
+  /** Porta pela qual o jogador entra agora: a lateral, se a igreja estiver interditada. */
+  private entranceOf(b: CityBuilding): { point: Point; side: boolean } {
+    const locked = b.place && isPlace(b.place) && this.progress.places[b.place] === "interditada";
+    if (locked && sideDoorFrac(b) !== null) return { point: doorPoint(b, true), side: true };
+    return { point: doorPoint(b), side: false };
   }
 
-  private enterInterior(b: CityBuilding) {
+  private enterInterior(b: CityBuilding, via?: Point) {
     const room = b.interior ? interiorById(b.interior) : undefined;
     if (!room || this.transition) return;
     this.transition = true;
+    this.enteredAt = via ?? this.entranceOf(b).point;
     sound.porta();
     this.cameras.main.fadeOut(160, 20, 16, 30);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.inside = room;
+      this.interior = new InteriorView(this, room, this.progress.places);
+      restoreToggles(this.spotContext());
+      this.rebuildSolids();
       this.player.setPosition(room.entry.x, room.entry.y);
       this.player.setFacing("back");
       this.camTarget = { x: room.entry.x, y: room.entry.y - 30 };
-      this.setRoomBounds(room);
       this.computeZoom();
       this.zoom = this.zoomTarget;
+      this.setRoomBounds(room);
       this.updateCulling(true);
       this.cameras.main.fadeIn(200, 20, 16, 30);
       this.transition = false;
       this.discoverPoi(b.id);
+      if (visit(b.id)) this.progress.visited.push(b.id);
+      worldState.insideBuilding = b.id;
+      this.toast(room.name);
       this.emitHud(true);
     });
   }
@@ -572,17 +595,25 @@ export class CityScene extends Phaser.Scene {
   private leaveInterior() {
     const room = this.inside;
     if (!room || this.transition) return;
-    const b = BUILDINGS.find((x) => x.id === room.building);
+    const b = buildingById(room.building);
     if (!b) return;
+    this.standUp();
     this.transition = true;
     sound.porta();
     this.cameras.main.fadeOut(160, 20, 16, 30);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.interior?.destroy();
+      this.interior = null;
       this.inside = null;
-      const d = doorPoint(b);
-      this.player.setPosition(d.x, d.y + 6);
+      worldState.insideBuilding = null;
+      this.bubbles.forEach((bb) => bb.destroy());
+      this.bubbles.clear();
+      this.rebuildSolids();
+      const d = this.enteredAt ?? doorPoint(b);
+      const spot = this.freeSpotNear(d.x, d.y + 8);
+      this.player.setPosition(spot.x, spot.y);
       this.player.setFacing("front");
-      this.camTarget = { x: d.x, y: d.y - 30 };
+      this.camTarget = { x: spot.x, y: spot.y - 30 };
       this.setCityBounds();
       this.computeZoom();
       this.zoom = this.zoomTarget;
@@ -594,15 +625,77 @@ export class CityScene extends Phaser.Scene {
     });
   }
 
+  /** Ponto livre perto da porta (um carro ou morador pode estar parado ali). */
+  private freeSpotNear(x: number, y: number): Point {
+    const blockers = [...this.cars, ...this.traffic.cars.map((t) => t.car)].flatMap((c) => c.circles().map((k) => ({ ...k, r: k.r + 2 })));
+    for (const [dx, dy] of [
+      [0, 0],
+      [0, 14],
+      [-26, 8],
+      [26, 8],
+      [0, 34],
+      [-46, 14],
+      [46, 14],
+      [-30, 40],
+      [30, 40],
+    ]) {
+      if (isFree(x + dx, y + dy, PLAYER_R + 1, this.solids, blockers)) return { x: x + dx, y: y + dy };
+    }
+    return { x, y };
+  }
+
+  private spotContext(): SpotContext {
+    return {
+      scene: this,
+      view: this.interior!,
+      player: this.player,
+      say: (text, ms = 2400) => this.say("hero", text, ms),
+      npcSay: (n, text) => this.sayNpc(n, text),
+      toggles: this.toggles,
+      counters: this.counters,
+      seat: (spot, pose) => this.sit(spot, pose),
+    };
+  }
+
+  private useSpot(spot: InteractionSpot) {
+    if (!this.interior) return;
+    const ms = runSpot(this.spotContext(), spot);
+    this.busyUntil = this.time.now + ms;
+  }
+
+  private sit(spot: InteractionSpot, pose: "sentado" | "deitado") {
+    if (!spot.seat) return;
+    this.seated = { spot, pose };
+    this.player.setPosition(spot.seat.x, spot.seat.y);
+    this.player.setFacing(spot.seat.facing, spot.seat.flip);
+    this.player.setPose(pose);
+    this.emitHud(true);
+  }
+
+  private standUp() {
+    if (!this.seated) return;
+    const spot = this.seated.spot;
+    this.seated = null;
+    this.player.setPose(null);
+    this.player.setPosition(spot.x, spot.y);
+    this.player.setFacing("front");
+    this.busyUntil = this.time.now + 150;
+  }
+
   private setCityBounds() {
     this.cameras.main.setBounds(0, 0, CITY.w, CITY.h);
     this.cameras.main.setBackgroundColor("#3f8fd2");
   }
 
+  /** Limites da câmera no interior; se a tela for maior que o cômodo, o interior fica centralizado. */
   private setRoomBounds(room: InteriorDef) {
     const r = room.room;
     const pad = 80;
-    this.cameras.main.setBounds(r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2);
+    const viewW = this.scale.width / this.zoomTarget;
+    const viewH = this.scale.height / this.zoomTarget;
+    const w = Math.max(r.w + pad * 2, viewW);
+    const h = Math.max(r.h + pad * 2, viewH);
+    this.cameras.main.setBounds(r.x + r.w / 2 - w / 2, r.y + r.h / 2 - h / 2 + 20, w, h);
     this.cameras.main.setBackgroundColor("#140f1c");
   }
 
@@ -729,7 +822,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   private rebuildSolids() {
-    this.solids = [...this.baseSolids, ...[...this.placeSolids.values()].flat()];
+    this.solids = this.interior ? this.interior.solids : [...this.baseSolids, ...[...this.placeSolids.values()].flat()];
   }
 
   /** Muda o estado de um lugar, salva e redesenha. */
@@ -738,7 +831,7 @@ export class CityScene extends Phaser.Scene {
     setPlaceState(id, state);
     this.progress.places[id] = state;
     for (const key of [...this.props.keys()]) if (key.startsWith("kits-")) this.props.delete(key);
-    this.applyPlace(id, state, true);
+    this.applyPlace(id, state, !this.inside);
     this.culler.prune();
     this.rebuildSolids();
     this.updateCulling(true);
@@ -751,8 +844,15 @@ export class CityScene extends Phaser.Scene {
     const cssW = this.scale.width / this.dpr;
     const cssH = this.scale.height / this.dpr;
     const base = Phaser.Math.Clamp(Math.min(cssW, cssH) / 470, 0.75, 1.6);
-    const factor = this.inside ? 1.12 : this.mode === "carro" ? 0.74 : 1;
+    let factor = this.mode === "carro" ? 0.74 : 1;
+    if (this.inside) {
+      // o interior cabe quase inteiro na tela, sem deixar o personagem pequeno demais
+      const r = this.inside.room;
+      const fit = Math.min(cssW / (r.w + 60), cssH / (r.h + 140)) / base;
+      factor = Phaser.Math.Clamp(fit, 0.78, 1.05);
+    }
     this.zoomTarget = base * this.dpr * factor;
+    if (this.inside && this.cameras?.main) this.setRoomBounds(this.inside);
   }
 
   private uiScale() {
@@ -819,7 +919,11 @@ export class CityScene extends Phaser.Scene {
 
     if (!this.transition) {
       for (let i = 0; i < steps; i++) {
-        if (this.mode === "pe" || !this.car) this.updateWalking(dt, kx, ky);
+        if (this.seated) {
+          // qualquer direção levanta
+          if (kx !== 0 || ky !== 0 || Math.hypot(touchInput.x, touchInput.y) > 0.4) this.standUp();
+          else this.player.animate(dt, 0, false);
+        } else if (this.mode === "pe" || !this.car) this.updateWalking(dt, kx, ky);
         else {
           const car = this.car;
           const before = car.speed;
@@ -843,11 +947,19 @@ export class CityScene extends Phaser.Scene {
 
     const cam = this.cameras.main.worldView;
     const near = this.mode === "pe" ? pos : null;
+    // moradores da rua continuam vivos enquanto o jogador está num interior, mas só os próximos da câmera gastam processamento
+    const streetView = this.inside ? null : cam;
     for (const n of this.npcs) {
-      if (n.x < cam.x - 500 || n.x > cam.right + 500 || n.y < cam.y - 500 || n.y > cam.bottom + 500) continue;
+      if (!streetView || n.x < cam.x - 500 || n.x > cam.right + 500 || n.y < cam.y - 500 || n.y > cam.bottom + 500) continue;
       n.update(frame, now, near);
     }
+    if (this.interior) {
+      for (const n of this.interior.npcs) n.update(frame, now, near);
+      this.interior.update(this.player.x, this.player.y, frame);
+    }
+    this.traffic.update(frame, now, this.trafficObstacles(), cam, this.inside ? null : pos);
     this.checkDodges();
+    if (!this.inside && now > this.nextChat) this.ambientChat(now);
     for (const w of this.water) w.tilePositionX += frame * 6;
 
     this.updateCandidate();
@@ -864,6 +976,8 @@ export class CityScene extends Phaser.Scene {
     this.updateCamera(frame);
     this.updateCulling();
     this.updateBuildingsAlpha(frame);
+    this.updateTallProps(frame);
+    this.updateFocus(now);
     this.updateMarker(now);
     this.updateBubbles(now);
     this.emitHud();
@@ -902,7 +1016,11 @@ export class CityScene extends Phaser.Scene {
   private walkObstacles(): Circle[] {
     const list: Circle[] = [];
     const p = this.player;
-    for (const c of this.cars) {
+    if (this.interior) {
+      for (const n of this.interior.npcs) if (Math.abs(n.x - p.x) < 60 && Math.abs(n.y - p.y) < 60) list.push({ x: n.x, y: n.y, r: 9 });
+      return list;
+    }
+    for (const c of [...this.cars, ...this.traffic.cars.map((t) => t.car)]) {
       if (Math.abs(c.x - p.x) > 120 || Math.abs(c.y - p.y) > 120) continue;
       for (const cc of c.circles()) list.push({ ...cc, r: cc.r + 2 });
     }
@@ -928,7 +1046,7 @@ export class CityScene extends Phaser.Scene {
 
   private otherCarCircles(car: Car): Circle[] {
     const list: Circle[] = [];
-    for (const c of this.cars) {
+    for (const c of [...this.cars, ...this.traffic.cars.map((t) => t.car)]) {
       if (c === car || Math.abs(c.x - car.x) > 140 || Math.abs(c.y - car.y) > 140) continue;
       list.push(...c.circles());
     }
@@ -1080,40 +1198,75 @@ export class CityScene extends Phaser.Scene {
       return;
     }
     if (this.mode === "carro") {
-      this.candidate = { label: "Sair", priority: 0, dist: 0, run: () => this.requestExit() };
+      this.candidate = { label: "Sair do carro", priority: 0, dist: 0, run: () => this.requestExit(), focus: null };
+      return;
+    }
+    if (this.seated) {
+      this.candidate = { label: this.seated.pose === "deitado" ? "Levantar" : "Levantar", priority: 0, dist: 0, run: () => this.standUp(), focus: null };
       return;
     }
     const px = this.player.x;
     const py = this.player.y;
     const cands: Candidate[] = [];
-    if (this.inside) {
+    if (this.inside && this.interior) {
       const room = this.inside;
       const d = Math.hypot(room.exit.x - px, room.exit.y - py);
-      if (d < 56) cands.push({ label: "Sair", priority: 1, dist: d, run: () => this.leaveInterior() });
+      if (d < 60) cands.push({ label: "Sair para a rua", priority: 1, dist: d - 12, run: () => this.leaveInterior(), focus: null });
+      for (const spot of room.spots) {
+        const ds = Math.hypot(spot.x - px, spot.y - py);
+        if (ds >= SPOT_DIST) continue;
+        const prop = spot.prop ? this.interior.props.get(spot.prop) : undefined;
+        const fy = prop ? prop.top - 4 : spot.y - 70;
+        const on = this.toggles.get(spot.prop ?? spot.id);
+        const label = on && (spot.kind === "tv" || spot.kind === "radio" || spot.kind === "jukebox") ? spot.label.replace(/^(Ligar|Escolher|Mudar)/, "Desligar").replace(/^Desligar uma música/, "Desligar a música") : spot.label;
+        cands.push({ label, priority: 1, dist: ds, run: () => this.useSpot(spot), focus: { x: prop?.def.x ?? spot.x, y: fy } });
+      }
+      for (const n of this.interior.npcs) {
+        const dn = Math.hypot(n.x - px, n.y - py);
+        if (dn < TALK_DIST) cands.push({ label: `Falar com ${n.def.name}`, priority: 1, dist: dn + 6, run: () => this.talk(n), focus: { x: n.x, y: n.y - 86 } });
+      }
     } else {
       for (const c of this.cars) {
         const d = Math.hypot(c.x - px, c.y - py);
-        if (d < CAR_DIST) cands.push({ label: "Entrar", priority: 2, dist: d, run: () => this.enterCar(c) });
+        if (d < CAR_DIST) cands.push({ label: "Entrar no carro", priority: 1, dist: d + 8, run: () => this.enterCar(c), focus: { x: c.x, y: c.y - 30 } });
       }
       for (const b of BUILDINGS) {
-        if (!b.interior) continue;
-        const dp = doorPoint(b);
-        const d = Math.hypot(dp.x - px, dp.y - py);
-        if (d < DOOR_DIST) cands.push({ label: "Entrar", priority: 1, dist: d, run: () => this.enterInterior(b) });
+        const main = doorPoint(b);
+        const dm = Math.hypot(main.x - px, main.y - py);
+        const locked = !!b.place && isPlace(b.place) && this.progress.places[b.place] === "interditada";
+        if (dm < DOOR_DIST) {
+          if (locked) cands.push({ label: "Ler o decreto na porta", priority: 1, dist: dm, run: () => this.readDecree(b), focus: { x: main.x, y: b.y + b.d - 60 } });
+          else cands.push({ label: entryLabel(b), priority: 1, dist: dm, run: () => this.enterInterior(b, main), focus: { x: main.x, y: b.y + b.d - 60 } });
+        }
+        if (sideDoorFrac(b) !== null) {
+          const side = doorPoint(b, true);
+          const ds = Math.hypot(side.x - px, side.y - py);
+          if (ds < DOOR_DIST) cands.push({ label: "Entrar pela porta lateral", priority: 1, dist: ds, run: () => this.enterInterior(b, side), focus: { x: side.x, y: b.y + b.d - 60 } });
+        }
+      }
+      for (const n of this.npcs) {
+        const d = Math.hypot(n.x - px, n.y - py);
+        if (d < TALK_DIST) cands.push({ label: `Falar com ${n.def.name}`, priority: 2, dist: d, run: () => this.talk(n), focus: { x: n.x, y: n.y - 86 } });
       }
     }
     if (this.stamina < MAX_STAMINA - 1 && this.time.now - this.lastDrinkAt > 1500) {
-      for (const c of CACHACA) {
+      const stops: CachacaStop[] = this.inside ? (this.inside.cachaca ? [this.inside.cachaca] : []) : STREET_CACHACA;
+      for (const c of stops) {
         const d = Math.hypot(c.x - px, c.y - py);
-        if (d < 56) cands.push({ label: "Beber", priority: 0, dist: d, run: () => this.drink() });
+        if (d < 56) cands.push({ label: "Beber cachaça", priority: 0, dist: d, run: () => this.drink(), focus: { x: c.x, y: c.y - 110 } });
       }
-    }
-    for (const n of this.npcs) {
-      const d = Math.hypot(n.x - px, n.y - py);
-      if (d < TALK_DIST) cands.push({ label: "Falar", priority: 2, dist: d, run: () => this.talk(n) });
     }
     cands.sort((a, b) => a.priority - b.priority || a.dist - b.dist);
     this.candidate = cands[0] ?? null;
+  }
+
+  /** A porta da frente da igreja continua lacrada: só a piada, e a dica da lateral. */
+  private readDecree(b: CityBuilding) {
+    sound.carimbo();
+    this.cameras.main.shake(80, 0.002);
+    const side = sideDoorFrac(b) !== null;
+    this.say("hero", side ? "\u201cINTERDITADA POR DECRETO.\u201d O decreto não fala nada da porta lateral…" : "\u201cINTERDITADA POR DECRETO.\u201d", 2800);
+    this.toast(side ? "Dica: a porta lateral (tapete azul) continua aberta." : "Interditada.");
   }
 
   private enterCar(car: Car) {
@@ -1280,9 +1433,78 @@ export class CityScene extends Phaser.Scene {
   }
 
   private speakerPos(id: string): Point {
-    if (id === "hero") return this.mode === "carro" && this.car ? { x: this.car.x, y: this.car.y - 30 } : { x: this.player.x, y: this.player.y - 78 };
-    const n = this.npcs.find((m) => m.id === id);
+    if (id === "hero") return this.mode === "carro" && this.car ? { x: this.car.x, y: this.car.y - 30 } : { x: this.player.x, y: this.player.y - (this.seated ? 64 : 78) };
+    const n = this.npcs.find((m) => m.id === id) ?? this.interior?.npcs.find((m) => m.id === id);
     return n ? { x: n.x, y: n.y - 78 } : { x: 0, y: 0 };
+  }
+
+  private sayNpc(n: Npc, text: string) {
+    this.say(n.id, text, 2600);
+  }
+
+  /** Pedestres, jogador e carros parados que o trânsito precisa respeitar. */
+  private trafficObstacles(): Obstacle[] {
+    const list: Obstacle[] = [];
+    if (!this.inside) {
+      if (this.mode === "carro" && this.car) list.push({ x: this.car.x, y: this.car.y, r: 20, still: Math.abs(this.car.speed) < 5 });
+      else list.push({ x: this.player.x, y: this.player.y, r: 12, still: false });
+    }
+    for (const n of this.npcs) list.push({ x: n.x, y: n.y, r: 10, still: !n.def.route });
+    for (const c of this.cars) if (c !== this.car || this.inside) list.push({ x: c.x, y: c.y, r: 20, still: true });
+    return list;
+  }
+
+  /** Duplas conversando e filas reclamando, só perto do jogador. */
+  private ambientChat(now: number) {
+    this.nextChat = now + 2600 + Math.random() * 2600;
+    const p = this.activePos();
+    const groups = new Map<string, Npc[]>();
+    for (const n of this.npcs) {
+      const g = (n.def as CityNpc).group;
+      if (!g || Math.abs(n.x - p.x) > 360 || Math.abs(n.y - p.y) > 260) continue;
+      groups.set(g, [...(groups.get(g) ?? []), n]);
+    }
+    const list = [...groups.values()];
+    if (!list.length) return;
+    const g = list[Math.floor(Math.random() * list.length)];
+    const speaker = g[Math.floor(Math.random() * g.length)];
+    if (this.bubbles.has(speaker.id)) return;
+    const pool = CHATTER[(speaker.def as CityNpc).district];
+    const other = g.find((m) => m !== speaker);
+    if (other) {
+      speaker.attend(other.x, other.y, 2400);
+      other.attend(speaker.x, speaker.y, 2400);
+    }
+    this.say(speaker.id, pool[Math.floor(Math.random() * pool.length)], 2300);
+  }
+
+  /** Árvores, postes e placas altas ficam transparentes quando o jogador passa atrás. */
+  private updateTallProps(dt: number) {
+    if (this.inside) return;
+    const p = this.activePos();
+    const k = Math.min(1, dt * 8);
+    for (const t of this.tallProps) {
+      if (Math.abs(t.x - p.x) > 160 || Math.abs(t.y - p.y) > 220) {
+        if (t.img.alpha !== 1) t.img.alpha = Math.min(1, t.img.alpha + dt * 4);
+        continue;
+      }
+      const behind = Math.abs(p.x - t.x) < t.halfW && p.y < t.y - 2 && p.y > t.top + 24;
+      const a = behind ? 0.4 : 1;
+      t.img.alpha += (a - t.img.alpha) * k;
+    }
+  }
+
+  /** Seta amarela sobre o que vai receber a ação, com o texto curto da ação. */
+  private updateFocus(now: number) {
+    const f = this.candidate?.focus;
+    if (!f || this.transition) {
+      this.focus.setVisible(false);
+      return;
+    }
+    const s = this.uiScale();
+    this.focus.setVisible(true).setPosition(f.x, f.y - Math.abs(Math.sin(now / 200)) * 5 * s).setScale(s);
+    const text = this.candidate!.label;
+    if (this.focusText.text !== text) this.focusText.setText(text);
   }
 
   private say(id: string, text: string, ms: number, tone: "fala" | "grito" = "fala") {
@@ -1349,8 +1571,9 @@ export class CityScene extends Phaser.Scene {
 
   private emitHud(force = false) {
     const w = worldState.waypoint;
-    let objective = "Explore a cidade. M (ou o botão Mapa) mostra onde você está.";
-    if (this.inside) objective = `Dentro: ${this.inside.name}. Vá até a SAÍDA para voltar à rua.`;
+    let objective = "Explore a cidade e entre em qualquer prédio. M (ou o botão Mapa) mostra onde você está.";
+    const room = this.inside ? this.currentRoom() : null;
+    if (this.inside) objective = this.seated ? "Mexa-se para levantar." : "Explore os cômodos e mexa nas coisas. Saída: tapete vermelho embaixo.";
     else if (w) {
       const p = this.activePos();
       const meters = Math.round(Math.hypot(w.x - p.x, w.y - p.y) / 4 / 10) * 10;
@@ -1365,13 +1588,25 @@ export class CityScene extends Phaser.Scene {
       stamina: Math.ceil(this.stamina),
       completed: 0,
       total: 0,
-      place: this.inside ? this.inside.name : (this.district?.name ?? null),
+      place: this.inside ? `${this.inside.name}${room ? ` · ${room}` : ""}` : (this.district?.name ?? null),
       map: true,
+      inside: this.inside ? { building: this.inside.building, name: this.inside.name, room } : null,
     };
     const key = JSON.stringify(state);
     if (!force && key === this.hudKey) return;
     this.hudKey = key;
     bus.emit("hud", state);
+  }
+
+  /** Cômodo em que o jogador está. */
+  private currentRoom(): string | null {
+    if (!this.inside) return null;
+    const { x, y } = this.player;
+    // o cômodo menor que contém o ponto (cômodos pequenos ficam por cima do principal)
+    const hit = this.inside.rooms
+      .filter((r) => x >= r.rect.x && x <= r.rect.x + r.rect.w && y >= r.rect.y - 20 && y <= r.rect.y + r.rect.h)
+      .sort((a, b) => a.rect.w * a.rect.h - b.rect.w * b.rect.h)[0];
+    return (hit ?? [...this.inside.rooms].sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)[0])?.name ?? null;
   }
 
   private exposeDebug() {
@@ -1385,6 +1620,12 @@ export class CityScene extends Phaser.Scene {
         car: this.car ? { id: this.carIds.get(this.car), x: Math.round(this.car.x), y: Math.round(this.car.y), angle: +this.car.angle.toFixed(2), speed: Math.round(this.car.speed) } : null,
         district: this.district?.id ?? null,
         inside: this.inside?.id ?? null,
+        room: this.currentRoom(),
+        exit: this.inside ? this.inside.exit : null,
+        cars: [...this.carIds.entries()].map(([c, id]) => ({ id, x: Math.round(c.x), y: Math.round(c.y) })),
+        seated: this.seated?.pose ?? null,
+        interiorObjects: this.interior?.objs.length ?? 0,
+        traffic: this.traffic.cars.map((t) => ({ id: t.id, x: Math.round(t.car.x), y: Math.round(t.car.y), speed: Math.round(t.speedNow) })),
         action: this.candidate?.label ?? null,
         stamina: Math.round(this.stamina),
         places: { ...this.progress.places },
@@ -1418,6 +1659,32 @@ export class CityScene extends Phaser.Scene {
       setStamina: (v: number) => (this.stamina = v),
       act: () => this.queueAction(),
       worldH: WORLD_H,
+      /** Entra direto num prédio (testes). */
+      enter: (id: string) => {
+        const b = buildingById(id);
+        if (!b) return false;
+        if (this.inside) {
+          this.interior?.destroy();
+          this.interior = null;
+          this.inside = null;
+        }
+        this.enterInterior(b);
+        return true;
+      },
+      leave: () => this.leaveInterior(),
+      /** Teleporta para uma interação do interior atual e devolve o rótulo. */
+      gotoSpot: (index: number) => {
+        const spot = this.inside?.spots[index];
+        if (!spot) return null;
+        this.standUp();
+        this.player.setPosition(spot.x, spot.y);
+        this.camTarget = { x: spot.x, y: spot.y };
+        return spot.label;
+      },
+      spots: () => this.inside?.spots.map((sp) => ({ id: sp.id, kind: sp.kind, label: sp.label, x: sp.x, y: sp.y })) ?? [],
+      interiors: () => INTERIORS.map((i) => ({ id: i.id, building: i.building, template: i.template, name: i.name, spots: i.spots.length, rooms: i.rooms.length })),
+      candidate: () => this.candidate?.label ?? null,
+      toggles: () => Object.fromEntries(this.toggles),
     };
   }
 }

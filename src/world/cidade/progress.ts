@@ -11,11 +11,13 @@ const KEY = "panico-de-estado:cidade-lula:v1";
 export interface CityProgress {
   places: Record<PlaceId, string>;
   discovered: string[];
+  /** Prédios em que o jogador já entrou. */
+  visited: string[];
   waypoint: (Point & { label: string }) | null;
 }
 
 function empty(): CityProgress {
-  return { places: initialPlaces(), discovered: [], waypoint: null };
+  return { places: initialPlaces(), discovered: [], visited: [], waypoint: null };
 }
 
 export function readCity(): CityProgress {
@@ -29,6 +31,7 @@ export function readCity(): CityProgress {
         if (isPlace(id) && typeof state === "string" && state in PLACES[id].states) out.places[id] = state;
       }
       if (Array.isArray(data.discovered)) out.discovered = data.discovered.filter((d): d is string => typeof d === "string");
+      if (Array.isArray(data.visited)) out.visited = data.visited.filter((d): d is string => typeof d === "string");
       const w = data.waypoint;
       if (w && typeof w.x === "number" && typeof w.y === "number" && typeof w.label === "string") out.waypoint = { x: w.x, y: w.y, label: w.label };
     }
@@ -57,6 +60,14 @@ export function discover(id: string): boolean {
   const p = readCity();
   if (p.discovered.includes(id)) return false;
   p.discovered.push(id);
+  write(p);
+  return true;
+}
+
+export function visit(buildingId: string): boolean {
+  const p = readCity();
+  if (p.visited.includes(buildingId)) return false;
+  p.visited.push(buildingId);
   write(p);
   return true;
 }

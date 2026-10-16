@@ -54,6 +54,10 @@ export const COMERCIAL: DistrictContent = {
     { kind: "arvore", x: 3060, y: 3220 },
     { kind: "bandeira", x: 1760, y: 2200 },
     { kind: "pontoOnibus", x: 2900, y: 1905 },
+    { kind: "bandeirolas", x: 2000, y: 2468 },
+    { kind: "bandeirolas", x: 2470, y: 2468 },
+    { id: "com-pipoca", kind: "carrinhoPipoca", x: 2560, y: 2320, react: "wobble" },
+    { id: "com-cachorro", kind: "cachorro", x: 2100, y: 2440, react: "wobble" },
   ],
   pois: [
     { id: "com-feira", name: "Feira do Largo", district: D, x: 2350, y: 2525, kind: "comercio", landmark: true },
