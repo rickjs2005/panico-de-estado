@@ -114,7 +114,7 @@ export const INTERIOR_PROPS: InteriorProp[] = INTERIORS.flatMap((i) => i.props);
 export const POIS: Poi[] = [
   ...all("pois"),
   ...all("cachaca").map((c) => ({ id: c.id, name: `${c.name} · cachaça`, district: c.district, x: c.x, y: c.y, kind: "cachaca" as const, landmark: true })),
-  { id: "morro", name: "Morro do Boato (letreiro)", district: "residencial", x: 2400, y: 200, kind: "marco", landmark: true },
+  { id: "morro", name: "Morro do Letreiro", district: "residencial", x: 2400, y: 200, kind: "marco", landmark: true },
 ];
 
 /** Onde o Lula começa: na calçada da praça, ao lado do carro oficial. */

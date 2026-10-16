@@ -96,7 +96,7 @@ export const RESIDENCIAL: DistrictContent = {
       ],
       lines: ["Meu portão virou patrimônio da revolução!", "O coreto era comunista desde o começo!"],
     },
-    { id: "didi", district: D, name: "Vô Didi", look: "didi", x: 1150, y: 650, facing: "front", lines: ["Hein? Estatizaram meu rádio também?", "No meu tempo, boato vinha por carta!"] },
+    { id: "didi", district: D, name: "Vô Didi", look: "didi", x: 1150, y: 650, facing: "front", lines: ["Hein? Estatizaram meu rádio também?", "No meu tempo, fofoca vinha por carta!"] },
   ],
   cachaca: [{ id: "cachaca-birosca", name: "Birosca do Mutirão", district: D, x: 760, y: 1690 }],
 };

@@ -5,7 +5,7 @@ import type { DistrictDef, RoadDef } from "./types";
  * Geometria da cidade: tamanho, limites naturais, avenidas, ruas e distritos.
  *
  * Desenho: um anel de ruas na borda, três avenidas formando uma cruz dupla
- * (Avenida do Povo na horizontal; Avenidas do Boato e da Exportação na vertical)
+ * (Avenida do Povo na horizontal; Avenidas do Áudio e da Exportação na vertical)
  * e ruas locais com o traçado próprio de cada distrito.
  */
 
@@ -31,7 +31,7 @@ export const ROADS: RoadDef[] = [
   { id: "rua-da-orla", name: "Rua da Orla", kind: "rua", rect: { x: 140, y: 3270, w: 3150, h: 120 } },
   // avenidas
   { id: "av-do-povo", name: "Avenida do Povo", kind: "avenida", rect: { x: 140, y: 1710, w: 4520, h: 180 } },
-  { id: "av-do-boato", name: "Avenida do Boato", kind: "avenida", rect: { x: 1510, y: 160, w: 180, h: 3230 } },
+  { id: "av-do-boato", name: "Avenida do Áudio", kind: "avenida", rect: { x: 1510, y: 160, w: 180, h: 3230 } },
   { id: "av-da-exportacao", name: "Avenida da Exportação", kind: "avenida", rect: { x: 3110, y: 160, w: 180, h: 3260 } },
   // residencial
   { id: "rua-do-mutirao", name: "Rua do Mutirão", kind: "rua", rect: { x: 250, y: 760, w: 1260, h: 110 } },

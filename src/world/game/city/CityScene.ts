@@ -54,6 +54,11 @@ import type { SeloDef, Valor } from "../../cidade/missoes/motor";
 import { CAMPANHA, SELO_FINAL } from "../../cidade/missoes/campanha";
 import { roteiro } from "../../cidade/missoes/final";
 import { movimentoReduzido } from "../../reduzido";
+import { BOLAS, CAES } from "../../cidade/caes";
+import { livre, pontoLivre } from "../../cidade/navegacao";
+import { Bolas } from "./Bolas";
+import { Matilha, type Cao } from "./Caes";
+import { Garrafas } from "./Garrafas";
 import { Traffic, type Obstacle } from "./traffic";
 
 export interface CityData {
@@ -130,6 +135,14 @@ export class CityScene extends Phaser.Scene {
   private cerimoniaAtiva = false;
   /** Menos movimento: sem tremor de câmera, clarões, confete denso nem balanço dos marcadores. */
   private calmo = false;
+  private caes!: Matilha;
+  private bolas!: Bolas;
+  private garrafas!: Garrafas;
+  /** O protagonista está com uma garrafa de cachaça na mão (pegou num caixote ou balcão e ainda não bebeu). */
+  private garrafaNaMao = false;
+  /** Para onde o protagonista andou por último e a velocidade dele agora (bolas, garrafa jogada). */
+  private dirJogador = { x: 0, y: 1 };
+  private velJogador = { x: 0, y: 0 };
   private msMarkers: Phaser.GameObjects.Text[] = [];
   private msRing!: Phaser.GameObjects.Graphics;
   /** Destinos da missão (o primeiro é o principal; vários quando há mais de um pendente). */
@@ -212,6 +225,14 @@ export class CityScene extends Phaser.Scene {
     this.missoes = new Missoes(this.anfitriao(), this.progress.campanha);
     this.adornos = new Adornos(this, (o, b) => this.culler.add(o, b), this.calmo);
     this.adornos.atualiza(this.contextoJogo());
+    // objetos que se mexem e bichos: garrafas de cachaça nos caixotes, bolas soltas e os cães da cidade
+    this.garrafas = new Garrafas(this, STREET_CACHACA, (o, b) => this.culler.add(o, b), this.calmo);
+    this.bolas = new Bolas(this, BOLAS.map((b) => ({ ...b, ...(livre(b.x, b.y) ? {} : (pontoLivre(b.x, b.y) ?? {})) })));
+    this.caes = new Matilha(
+      this,
+      CAES.map((c) => ({ ...c, ...(livre(c.x, c.y) ? {} : (pontoLivre(c.x, c.y) ?? {})) })),
+      this.calmo,
+    );
     for (let i = 0; i < 3; i++) this.msMarkers.push(this.add.text(0, 0, "★", { fontFamily: FONT, fontSize: "46px", color: "#ffd23f", stroke: "#1e1424", strokeThickness: 7, resolution: 2 }).setOrigin(0.5, 1).setDepth(90001).setVisible(false));
     this.msRing = this.add.graphics().setVisible(false);
     this.msAlvos = this.missoes.alvosMapa();
@@ -510,7 +531,7 @@ export class CityScene extends Phaser.Scene {
       .setDepth(-50);
     this.culler.add(letreiro, { x: 2000, y: 20, w: 800, h: 110 });
     const fic = this.add
-      .text(2400, 122, "ficção satírica · aqui os boatos viraram verdade", { fontFamily: FONT, fontSize: "18px", fontStyle: "700", color: "#fffaf0", stroke: INK, strokeThickness: 5, resolution: 1.5 })
+      .text(2400, 122, "ficção satírica", { fontFamily: FONT, fontSize: "18px", fontStyle: "700", color: "#fffaf0", stroke: INK, strokeThickness: 5, resolution: 1.5 })
       .setOrigin(0.5)
       .setDepth(-50);
     this.culler.add(fic, { x: 2100, y: 100, w: 600, h: 40 });
@@ -526,7 +547,7 @@ export class CityScene extends Phaser.Scene {
     this.culler.add(muro, { x: LIMITS.muro.x, y: 0, w: LIMITS.muro.w, h: LIMITS.baia.y });
     for (const [y, t] of [
       [700, "FIM DO MAPA"],
-      [1800, "O RESTO É BOATO"],
+      [1800, "O RESTO É FOFOCA"],
       [2900, "FRONTEIRA IMAGINÁRIA"],
     ] as const) {
       const txt = this.add
@@ -1141,6 +1162,7 @@ export class CityScene extends Phaser.Scene {
     }
     this.traffic.update(frame, now, this.trafficObstacles(), cam, this.inside ? null : pos, this.rotinas.minuto);
     this.checkDodges();
+    if (!this.inside) this.atualizaBichos(frame, now, cam);
     if (!this.inside && now > this.nextChat) this.ambientChat(now);
     for (const w of this.water) w.tilePositionX += frame * 6;
 
@@ -1190,7 +1212,9 @@ export class CityScene extends Phaser.Scene {
       const res = pushOut(this.player.x + dirX * speed * dt, this.player.y + dirY * speed * dt, PLAYER_R, this.solids, this.walkObstacles());
       this.player.setPosition(res.x, res.y);
       this.player.faceToward(dirX, dirY);
+      this.dirJogador = { x: dirX, y: dirY };
     }
+    this.velJogador = { x: (mag > 0 ? this.dirJogador.x : 0) * speed, y: (mag > 0 ? this.dirJogador.y : 0) * speed };
     this.stamina = drainStamina(this.stamina, dt, running && speed > WALK);
     this.player.animate(dt, speed, running);
   }
@@ -1357,7 +1381,7 @@ export class CityScene extends Phaser.Scene {
       .filter((n) => Math.hypot(n.x - p.x, n.y - p.y) < 260)
       .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
     if (witness) {
-      const lines = kind === "kits" ? ["Os kits! Eram do almoxarifado!", "Agora o boato espalhou de verdade!"] : SPILL_LINES[kind] ?? SPILL_LINES.laranja;
+      const lines = kind === "kits" ? ["Os kits! Eram do almoxarifado!", "Agora o zap espalhou de verdade!"] : SPILL_LINES[kind] ?? SPILL_LINES.laranja;
       this.time.delayedCall(250, () => this.say(witness.id, Phaser.Utils.Array.GetRandom(lines), 1800, "grito"));
       witness.walker.hop(14);
       witness.walker.setFace("susto", 1500);
@@ -1697,12 +1721,21 @@ export class CityScene extends Phaser.Scene {
         if (d < TALK_DIST) cands.push({ label: `Falar com ${n.def.name}`, priority: this.missoes.relevante(n.def.id) ? 1 : 2, dist: d, run: () => this.talk(n), focus: { x: n.x, y: n.y - 86 } });
       }
     }
-    if (this.stamina < MAX_STAMINA - 1 && this.time.now - this.lastDrinkAt > 1500) {
+    // cachaça: pega-se a garrafa (no caixote da rua ou no balcão), bebe-se quando quiser e a vazia é jogada fora
+    if (!this.garrafaNaMao && this.time.now - this.lastDrinkAt > 1500) {
       const stops: CachacaStop[] = this.inside ? (this.inside.cachaca ? [this.inside.cachaca] : []) : STREET_CACHACA;
       for (const c of stops) {
         const d = Math.hypot(c.x - px, c.y - py);
-        if (d < 56) cands.push({ label: "Beber cachaça", priority: 0, dist: d, run: () => this.drink(), focus: { x: c.x, y: c.y - 110 } });
+        if (d >= 60) continue;
+        if (this.inside || this.garrafas.tem(c.id)) cands.push({ label: "Pegar uma garrafa de cachaça", priority: 0, dist: d, run: () => this.pegaGarrafa(c), focus: { x: c.x + (this.inside ? 0 : 34), y: c.y - (this.inside ? 110 : 40) } });
       }
+    }
+    if (this.garrafaNaMao) cands.push({ label: "Beber a cachaça", priority: 2, dist: 9999, run: () => this.bebeGarrafa(), focus: null });
+    if (!this.inside) {
+      const cao = this.caes.proximo({ x: px, y: py }, 52);
+      if (cao) cands.push({ label: `Fazer carinho no ${cao.nome}`, priority: 2, dist: Math.hypot(cao.x - px, cao.y - py) + 4, run: () => this.fazCarinho(cao), focus: { x: cao.x, y: cao.y - 46 } });
+      const bola = this.bolas.proxima({ x: px, y: py }, 40);
+      if (bola) cands.push({ label: "Chutar a bola", priority: 1, dist: Math.hypot(bola.x - px, bola.y - py) + 2, run: () => this.chuta(bola.def.id), focus: { x: bola.x, y: bola.y - 26 } });
     }
     cands.sort((a, b) => a.priority - b.priority || a.dist - b.dist);
     this.candidate = cands[0] ?? null;
@@ -1793,6 +1826,83 @@ export class CityScene extends Phaser.Scene {
       }
     }
     this.emitHud(true);
+  }
+
+  /** Pega uma garrafa do caixote (rua) ou do balcão (interior): ela vai para a mão do protagonista. */
+  private pegaGarrafa(c: CachacaStop) {
+    if (!this.inside && !this.garrafas.pega(c.id, this.time.now)) return;
+    this.garrafaNaMao = true;
+    this.player.setCarry("cachaca", "mao");
+    this.player.hop(4);
+    sound.vidro();
+    this.busyUntil = this.time.now + 300;
+    this.say("hero", "Uma garrafa de cachaça presidencial. Bebo quando der vontade.", 2000);
+    this.emitHud(true);
+  }
+
+  /** Bebe a garrafa que está na mão e joga a vazia fora (na lixeira, se houver uma por perto). */
+  private bebeGarrafa() {
+    if (!this.garrafaNaMao) return;
+    this.garrafaNaMao = false;
+    this.player.setCarry(null);
+    sound.gole();
+    this.drink();
+    this.time.delayedCall(950, () => {
+      if (this.inside) return;
+      const lixeiras = PROPS.filter((p) => p.kind === "lixeira").map((p) => ({ x: p.x, y: p.y }));
+      const pos = { x: this.player.x, y: this.player.y };
+      const cesta = this.garrafas.joga(pos, this.dirJogador, lixeiras, livre, () => sound.vidro());
+      if (cesta) this.time.delayedCall(650, () => this.say("hero", "Na lixeira! Reciclagem coletiva.", 1800));
+    });
+  }
+
+  /** Carinho num cão: ele abana o rabo e resolve seguir o protagonista por um tempo. */
+  private fazCarinho(cao: Cao) {
+    cao.carinho(this.time.now);
+    this.player.faceToward(cao.x - this.player.x, cao.y - this.player.y);
+    sound.latido();
+    this.busyUntil = this.time.now + 500;
+    this.say("hero", Phaser.Utils.Array.GetRandom([`Bom garoto, ${cao.nome}! Agora você é assessor especial.`, `${cao.nome} abanou o rabo: vai me acompanhar um pouco.`, `Quem é o cachorro mais coletivo da cidade? É o ${cao.nome}!`]), 2200);
+  }
+
+  /** Chuta a bola na direção em que o protagonista está andando (ou para longe dele, se parado). */
+  private chuta(id: string) {
+    const b = this.bolas.porId(id);
+    if (!b) return;
+    const parado = Math.hypot(this.velJogador.x, this.velJogador.y) < 5;
+    const dx = parado ? b.x - this.player.x : this.dirJogador.x;
+    const dy = parado ? b.y - this.player.y : this.dirJogador.y;
+    b.empurra(dx, dy, 330);
+    sound.chute();
+    this.player.hop(3);
+    this.busyUntil = this.time.now + 250;
+  }
+
+  /** Cães e bolas: só na rua, perto da câmera é que desenham. */
+  private atualizaBichos(dt: number, now: number, cam: Phaser.Geom.Rectangle) {
+    const visivel = (x: number, y: number) => x > cam.x - 80 && x < cam.right + 80 && y > cam.y - 80 && y < cam.bottom + 120;
+    const carros = [...this.cars.filter((c) => Math.abs(c.speed) > 1), ...this.traffic.cars.filter((t) => t.ativo).map((t) => t.car)].map((c) => ({ x: c.x, y: c.y, v: Math.abs(c.speed), vx: Math.cos(c.angle) * c.speed, vy: Math.sin(c.angle) * c.speed }));
+    const pos = this.activePos();
+    this.garrafas.update(now);
+    this.bolas.update(
+      dt,
+      livre,
+      [...(this.mode === "pe" ? [{ x: this.player.x, y: this.player.y, vx: this.velJogador.x, vy: this.velJogador.y, r: PLAYER_R }] : []), ...carros.filter((c) => c.v > 20).map((c) => ({ x: c.x, y: c.y, vx: c.vx, vy: c.vy, r: 22 }))],
+      visivel,
+    );
+    this.caes.update(dt, {
+      livre,
+      jogador: { x: pos.x, y: pos.y, correndo: Math.hypot(this.velJogador.x, this.velJogador.y) > WALK + 5 || this.mode === "carro", dentro: !!this.inside || this.mode === "carro" },
+      carros,
+      bolas: this.bolas.lista.map((b) => ({ id: b.def.id, x: b.x, y: b.y, v: b.v })),
+      noite: escuridao(this.rotinas.minuto),
+      agora: now,
+      visivel,
+      empurraBola: (id, dx, dy, forca) => this.bolas.porId(id)?.empurra(dx, dy, forca),
+      latido: (x, y) => {
+        if (Math.hypot(x - pos.x, y - pos.y) < 420) sound.latido();
+      },
+    });
   }
 
   private drink() {
@@ -2177,6 +2287,10 @@ export class CityScene extends Phaser.Scene {
       escolhas: () => this.dialogo?.escolha?.opcoes ?? null,
       /** Quem tem balão de fala na tela agora (o protagonista é "hero"). */
       baloes: () => [...this.bubbles.keys()],
+      /** Cães, bolas e a garrafa na mão (apoio de teste). */
+      caes: () => this.caes.caes.map((c) => ({ id: c.def.id, nome: c.nome, x: Math.round(c.x), y: Math.round(c.y) })),
+      bolas: () => this.bolas.lista.map((b) => ({ id: b.def.id, x: Math.round(b.x), y: Math.round(b.y), v: Math.round(b.v) })),
+      garrafa: () => this.garrafaNaMao,
       /** Moradores do interior atual (apoio de teste). */
       npcsDentro: () => (this.interior?.npcs ?? []).map((n) => ({ id: n.id, nome: n.def.name, x: Math.round(n.x), y: Math.round(n.y) })),
       escolhe: (id: string | null) => this.escolheOpcao(id),

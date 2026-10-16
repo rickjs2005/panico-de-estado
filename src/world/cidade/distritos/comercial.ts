@@ -99,9 +99,9 @@ export const COMERCIAL: DistrictContent = {
         { x: 1700, y: 2597 },
         { x: 3095, y: 2597 },
       ],
-      lines: ["Fecharam a minha igreja e abriram mais um bar. Só neste Brasil impossível!", "Os boatos acordaram cedo hoje."],
+      lines: ["Fecharam a minha igreja e abriram mais um bar. Só neste Brasil impossível!", "Os áudios do grupo acordaram cedo hoje."],
     },
-    { id: "camelo", district: D, name: "Camelô Dinho", look: "func2", x: 2440, y: 2885, facing: "front", lines: ["Kit de sobrevivência ao boato: três por dez!", "Aceito pix coletivo."] },
+    { id: "camelo", district: D, name: "Camelô Dinho", look: "func2", x: 2440, y: 2885, facing: "front", lines: ["Kit de sobrevivência ao grupo da família: três por dez!", "Aceito pix coletivo."] },
   ],
   cachaca: [{ id: "cachaca-boteco", name: "Boteco da Feira", district: D, x: 2510, y: 3115 }],
 };

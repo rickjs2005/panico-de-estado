@@ -18,9 +18,9 @@ const NAMES = ["Morador", "Moradora", "Vizinho", "Vizinha", "Passante", "Cidadã
 
 export const CHATTER: Record<DistrictId, string[]> = {
   residencial: ["Coletivizaram meu portão, mas o cadeado ficou comigo.", "O varal do vizinho agora é meu também.", "Mutirão no sábado! Ninguém sabe do quê.", "O cachorro da rua virou patrimônio."],
-  civico: ["Protocolei um boato e ele saiu carimbado.", "Dizem que o ministério tem um ministério só pra ele.", "A fila da repartição já tem CEP.", "O decreto de hoje proíbe decreto amanhã."],
-  comercial: ["Laranja por comitê, banana por assembleia!", "Fiado agora é política pública.", "O pastel inflou de tanto boato.", "Pix coletivo: mandei pra todo mundo sem querer."],
-  educacional: ["Assembleia às 10, festa às 11, assembleia da festa ao meio-dia.", "A prova foi coletivizada: todo mundo tirou 7.", "O bandejão serve boato à milanesa.", "Minha tese é sobre o grupo da família."],
+  civico: ["Protocolei um áudio e ele saiu carimbado.", "Dizem que o ministério tem um ministério só pra ele.", "A fila da repartição já tem CEP.", "O decreto de hoje proíbe decreto amanhã."],
+  comercial: ["Laranja por comitê, banana por assembleia!", "Fiado agora é política pública.", "O pastel inflou de tanta fofoca.", "Pix coletivo: mandei pra todo mundo sem querer."],
+  educacional: ["Assembleia às 10, festa às 11, assembleia da festa ao meio-dia.", "A prova foi coletivizada: todo mundo tirou 7.", "O bandejão serve fofoca à milanesa.", "Minha tese é sobre o grupo da família."],
   industrial: ["Hoje a meta é produzir orgulho.", "O crachá agora tem estrela.", "Bati o ponto e o ponto bateu de volta.", "O galpão 2 é do povo, mas a chave sumiu."],
   terminal: ["Já embarquei a Amazônia, falta o Nordeste.", "O navio voltou pedindo mais Brasil.", "Frete grátis, mas a saudade paga imposto.", "Carimbaram o passaporte do país inteiro."],
 };

@@ -36,9 +36,9 @@ export const CATALOG: Record<string, Entry> = {
   // Centro Cívico
   "civ-secretaria": { template: "secretaria", name: "Secretaria da Coletivização", label: { name: "Secretaria", article: "a" }, wall: "#efe1c4" },
   "civ-prefeitura": { template: "prefeitura", name: "Prefeitura Popular", label: { name: "Prefeitura", article: "a" }, wall: "#f6ead2" },
-  "civ-imprensa": { template: "imprensa", name: "Imprensa Oficial do Boato", label: { name: "Imprensa Oficial", article: "a" }, wall: "#f6dca6" },
+  "civ-imprensa": { template: "imprensa", name: "Imprensa Oficial do Zap", label: { name: "Imprensa Oficial", article: "a" }, wall: "#f6dca6" },
   "civ-igreja-matriz": { template: "igreja", name: "Igreja Matriz", label: { name: "Igreja Matriz", article: "a" }, wall: "#f7efe0" },
-  "civ-ministerio": { template: "ministerio", name: "Ministério do Boato", label: { name: "Ministério do Boato", article: "o" }, wall: "#ece6da" },
+  "civ-ministerio": { template: "ministerio", name: "Ministério do Áudio", label: { name: "Ministério do Áudio", article: "o" }, wall: "#ece6da" },
   "civ-reparticao": { template: "reparticao", id: "reparticao", name: "Repartição de Carimbos", label: { name: "Repartição", article: "a" }, wall: "#cfd8c8" },
   "civ-banco": { template: "banco", name: "Banco Estatal do Povo", label: { name: "banco", article: "o" }, wall: "#d8efe6" },
   "civ-assembleia": { template: "capela", name: "Assembleia da Fé", label: { name: "Assembleia da Fé", article: "a" }, wall: "#e8e4f2" },
@@ -58,7 +58,7 @@ export const CATALOG: Record<string, Entry> = {
   // Cidade Universitária
   "edu-universidade": { template: "universidade", name: "Universidade do Pânico", label: { name: "universidade", article: "a" }, wall: "#eef4f2" },
   "edu-biblioteca": { template: "biblioteca", name: "Biblioteca Livre", label: { name: "biblioteca", article: "a" }, wall: "#d7e7e3" },
-  "edu-escola": { template: "escola", name: "Escola Estadual do Boato", label: { name: "escola", article: "a" }, wall: "#e9f1f8" },
+  "edu-escola": { template: "escola", name: "Escola Estadual Pode Repassar", label: { name: "escola", article: "a" }, wall: "#e9f1f8" },
   "edu-deposito": { template: "deposito-kits", name: "Depósito de Kits", label: { name: "Depósito de Kits", article: "o" }, wall: "#e2d9f6" },
   "edu-republica": { template: "republica", name: "República Liberou Geral", label: { name: "república", article: "a" }, wall: "#ffd9e6" },
   "edu-cantina": { template: "cantina", name: "Cantina do DCE", label: { name: "cantina", article: "a" }, wall: "#fff0a8" },
@@ -67,7 +67,7 @@ export const CATALOG: Record<string, Entry> = {
   "ind-galpao-1": { template: "galpao", name: "Galpão Coletivo 1", label: { name: "Galpão 1", article: "o" }, wall: "#c9cdd2" },
   "ind-galpao-2": { template: "galpao", name: "Galpão Coletivo 2", label: { name: "Galpão 2", article: "o" }, wall: "#d8ccb4" },
   "ind-deposito": { template: "galpao", name: "Depósito Central do Povo", label: { name: "Depósito Central", article: "o" }, wall: "#cde3ee" },
-  "ind-almoxarifado": { template: "almoxarifado", name: "Almoxarifado do Boato", label: { name: "almoxarifado", article: "o" }, wall: "#ecd5a8" },
+  "ind-almoxarifado": { template: "almoxarifado", name: "Almoxarifado do Carimbo", label: { name: "almoxarifado", article: "o" }, wall: "#ecd5a8" },
   // Terminal Brasil–China
   "ter-alfandega": { template: "alfandega", name: "Alfândega do Impossível", label: { name: "Alfândega", article: "a" }, wall: "#f6e3a0" },
   "ter-armazem-1": { template: "armazem", name: "Armazém Brasil→China 1", label: { name: "Armazém 1", article: "o" }, wall: "#e6b3ad" },

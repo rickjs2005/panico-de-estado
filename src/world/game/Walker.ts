@@ -28,6 +28,8 @@ export class Walker {
   facing: Facing = "front";
   flip = false;
   carrying: string | null = null;
+  /** Como leva o objeto: acima da cabeça (caixa, chicote) ou na mão (garrafa). */
+  private carryEstilo: "cabeca" | "mao" = "cabeca";
   private phase = 0;
   private t = Math.random() * 10;
   private face: Face = "neutro";
@@ -92,9 +94,10 @@ export class Walker {
     this.refreshHead();
   }
 
-  setCarry(key: string | null) {
+  setCarry(key: string | null, estilo: "cabeca" | "mao" = "cabeca") {
     this.carrying = key;
-    if (key) this.held.setTexture(key);
+    this.carryEstilo = estilo;
+    if (key) this.held.setTexture(key).setScale((estilo === "mao" ? 0.5 : 1) / RES.small);
     this.held.setVisible(!!key);
   }
 
@@ -153,7 +156,8 @@ export class Walker {
     const a = Math.abs(s);
     const bob = moving ? -a * (running ? 2.4 : 1.7) : Math.sin(this.t * 2.4) * 0.5;
     const side = this.facing === "side";
-    const carry = !!this.carrying;
+    const carry = !!this.carrying && this.carryEstilo === "cabeca";
+    const naMao = !!this.carrying && this.carryEstilo === "mao";
 
     if (side) {
       this.legA.setRotation(s * 0.6).setY(-14);
@@ -173,6 +177,8 @@ export class Walker {
     this.armA.setY(-35 + bob);
     this.armB.setY(-35 + bob);
     if (carry) this.held.setPosition(side ? 6 : 0, -84 + bob).setRotation(Math.sin(this.t * 3) * 0.12);
+    // na mão: a garrafa balança junto com o braço da frente
+    else if (naMao) this.held.setPosition(side ? 9 : -15, -17 + bob).setRotation(side ? -0.25 + s * 0.2 : 0.18);
   }
 
   /** Sentado (pernas escondidas atrás do móvel) ou deitado (boneco tombado). `null` levanta. */

@@ -189,7 +189,7 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
     case "cofre":
       return { w: 78, h: 92, originY: 0.96, outline: 1.3, body: box(3, 6, 72, 10, 72, "#55555c") + `<circle cx="39" cy="48" r="16" fill="#8a8494"/><circle cx="39" cy="48" r="10" fill="#3a3640"/><path d="M39 38 V58 M29 48 H49" stroke="#ffd23f" stroke-width="2"/>` + txt(39, 80, 7, "DO POVO", "#ffd23f") };
     case "painelLoteria":
-      return { w: 164, h: 76, originY: 1, outline: 1.2, body: `<rect x="2" y="2" width="160" height="66" rx="4" fill="#2a6fdb"/>` + txt(82, 18, 10, "MEGA-BOATO", "#ffd23f") + [0, 1, 2, 3, 4, 5].map((i) => `<circle cx="${22 + i * 24}" cy="44" r="10" fill="#fffaf0"/>` + txt(22 + i * 24, 48, 9, "13")).join("") };
+      return { w: 164, h: 76, originY: 1, outline: 1.2, body: `<rect x="2" y="2" width="160" height="66" rx="4" fill="#2a6fdb"/>` + txt(82, 18, 10, "MEGA-PALPITE", "#ffd23f") + [0, 1, 2, 3, 4, 5].map((i) => `<circle cx="${22 + i * 24}" cy="44" r="10" fill="#fffaf0"/>` + txt(22 + i * 24, 48, 9, "13")).join("") };
     case "rotativa":
       return { w: 212, h: 112, originY: 0.96, outline: 1.3, body: box(4, 40, 204, 20, 46, "#55606b") + [40, 90, 140].map((x) => `<circle cx="${x}" cy="44" r="18" fill="#8a929c"/><circle cx="${x}" cy="44" r="7" fill="#3a3640"/>`).join("") + `<path d="M20 40 Q100 -10 190 40" stroke="#fffaf0" stroke-width="8" fill="none"/>` + txt(106, 80, 9, "IMPRENSA OFICIAL", "#ffd23f") };
     case "mesaPingPong":

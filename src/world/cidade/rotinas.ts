@@ -83,12 +83,12 @@ export function falaDe(atividade: Atividade, min: number, n: number): string {
   const m = normaliza(min);
   const manha = m < hm(12);
   const falas: Record<Atividade, string[]> = {
-    "indo-ponto": manha ? ["Acordei com o boato do dia e já estou atrasado.", "Café coletivo só até as 8. Corre!"] : ["Voltando pro meu cantinho. O almoço acabou rápido.", "Cheguei a tempo da tarde do boato."],
+    "indo-ponto": manha ? ["Acordei com o áudio do dia e já estou atrasado.", "Café coletivo só até as 8. Corre!"] : ["Voltando pro meu cantinho. O almoço acabou rápido.", "Cheguei a tempo da fofoca da tarde."],
     "indo-casa": ["Vou pra casa. Hoje o povo já trabalhou por todo mundo.", "A rua de noite é de todos, mas a cama é minha."],
-    "indo-almoco": ["Hora do almoço! O prato é coletivo, mas a fome é minha.", "Vou ali comer. Volto antes do próximo boato."],
+    "indo-almoco": ["Hora do almoço! O prato é coletivo, mas a fome é minha.", "Vou ali comer. Volto antes do próximo áudio."],
     "indo-bar": ["Hoje é dia de bar do Tião. Fiado é política pública.", "Só um gole. Ou três decretos."],
     dentro: ["Estou em casa, mas a casa é de todos."],
-    ponto: m >= hm(18) ? ["Já está escurecendo. Daqui a pouco eu vou pra casa.", "A noite chegou e o boato também."] : [],
+    ponto: m >= hm(18) ? ["Já está escurecendo. Daqui a pouco eu vou pra casa.", "A noite chegou e a fofoca também."] : [],
   };
   const lista = falas[atividade];
   return lista.length ? lista[n % lista.length] : "";

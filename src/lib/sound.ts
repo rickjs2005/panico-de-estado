@@ -111,6 +111,27 @@ export const sound = {
     const vol = (canal === "agudo" ? 0.012 : 0.04) * (1 + n * 0.9);
     for (let i = 0; i <= n; i++) tone(base * (1 + i * 0.5), i * 0.09, 0.28, type, vol);
   },
+  /** Latido curto de vira-lata. */
+  latido() {
+    tone(520, 0, 0.06, "square", 0.03);
+    tone(380, 0.05, 0.1, "sawtooth", 0.035);
+    tone(560, 0.2, 0.06, "square", 0.025);
+    tone(400, 0.25, 0.09, "sawtooth", 0.03);
+  },
+  /** Chute numa bola. */
+  chute() {
+    tone(140, 0, 0.08, "square", 0.05);
+    tone(90, 0.02, 0.12, "sine", 0.06);
+  },
+  /** Garrafa de vidro: tirar do caixote ou cair na lixeira. */
+  vidro() {
+    tone(1760, 0, 0.08, "sine", 0.04);
+    tone(2350, 0.05, 0.12, "sine", 0.03);
+  },
+  /** Gole de cachaça. */
+  gole() {
+    for (let i = 0; i < 3; i++) tone(260 - i * 30, i * 0.12, 0.09, "sine", 0.05);
+  },
   /** Conserto de um posto (batida, atarraxar, rangido que volta a funcionar). */
   conserto() {
     tone(180, 0, 0.1, "square", 0.05);

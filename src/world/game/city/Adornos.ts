@@ -160,7 +160,7 @@ export class Adornos {
       boato: ["KIT DO ZAP · FILA AQUI (NINGUÉM SABE O QUÊ)", "#1e1424", "#ffd23f"],
     }[decisao];
     if (texto) this.placa(d.x, d.y + 34, texto[0], texto[1], texto[2], d.y + 36, 10);
-    // o boato do kit atraiu fila na porta do depósito
+    // o nome inventado pelo zap atraiu fila na porta do depósito
     if (decisao === "boato") this.fila(d.x, d.y + 70, 4, 0);
   }
 

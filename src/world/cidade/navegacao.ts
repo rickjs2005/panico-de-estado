@@ -81,6 +81,12 @@ function celulaLivre(x: number, y: number): number | null {
 
 const centro = (i: number): Point => ({ x: (i % COLS) * CELULA + CELULA / 2, y: Math.floor(i / COLS) * CELULA + CELULA / 2 });
 
+/** Ponto caminhável mais próximo (centro da célula livre), ou null se não houver nada perto. */
+export function pontoLivre(x: number, y: number): Point | null {
+  const c = celulaLivre(x, y);
+  return c === null ? null : centro(c);
+}
+
 /** Heap binário mínimo, para a fila de prioridade do A*. */
 class Heap {
   private ids: number[] = [];

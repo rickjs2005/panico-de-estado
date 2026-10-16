@@ -34,9 +34,9 @@ export interface SpotContext {
 
 const DEFAULT_LINES: Partial<Record<InteractionSpot["kind"], string[]>> = {
   examinar: ["Interessante. E um pouco coletivo demais."],
-  livro: ["Página 1: “Era uma vez um boato…”"],
+  livro: ["Página 1: “Era uma vez um áudio de 3 minutos…”"],
   computador: ["O sistema caiu. Foi coletivizado."],
-  telefone: ["Trim-trim! Ninguém do outro lado. Só um boato."],
+  telefone: ["Trim-trim! Ninguém do outro lado. Só um áudio."],
 };
 
 function line(ctx: SpotContext, spot: InteractionSpot): string | null {

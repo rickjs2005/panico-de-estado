@@ -60,7 +60,7 @@ function oficinaExtra(p: Plan) {
   const { h } = p;
   const vx = p.w - 170;
   const bike = p.prop("bicicleta", vx / 2 + 170, h - 90);
-  p.spot("examinar", vx / 2 + 170, h - 62, "Remendar a bicicleta", { prop: bike, lines: ["Pneu furado por um boato pontiagudo.", "A bicicleta é do povo. O furo, também."] });
+  p.spot("examinar", vx / 2 + 170, h - 62, "Remendar a bicicleta", { prop: bike, lines: ["Pneu furado por um decreto pontiagudo.", "A bicicleta é do povo. O furo, também."] });
   p.prop("tambor", vx - 50, h - 80);
   p.prop("cone", vx - 100, h - 60);
   p.prop("quadroAvisos", 300, h - 60, { text: "FIADO SÓ PARA QUEM JÁ DEVE" });
@@ -128,7 +128,7 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
     const vt = p.prop("ventilador", w - 30, hy + 50);
     p.spot("ventilador", w - 30, hy + 78, "Ligar o ventilador da redação", { prop: vt, lines: ["Zzzum! As manchetes voam da mesa.", "O vento é a única fonte confiável."] });
     const cf = p.prop("cafezinho", w - 210, h - 60);
-    p.spot("fogao", w - 210, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de redação: forte o bastante para desmentir um boato.", "O copo vem com o último boletim impresso."] });
+    p.spot("fogao", w - 210, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de redação: forte o bastante para desmentir um áudio.", "O copo vem com o último boletim impresso."] });
     p.prop("pilhaPapel", 250, hy + 130);
   },
 
@@ -137,7 +137,7 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
     const hy = 330;
     p.prop("tapeteCorredor", w / 2, hy + 210, { variant: "azul-curto" });
     const tt = p.prop("totemSenha", w / 2 - 230, hy + 90);
-    p.spot("senha", w / 2 - 230, hy + 116, "Tirar uma senha", { prop: tt, lines: ["Senha 4.513. Chamada prevista para o próximo boato.", "A senha saiu com um áudio de 3 minutos."] });
+    p.spot("senha", w / 2 - 230, hy + 116, "Tirar uma senha", { prop: tt, lines: ["Senha 4.513. Chamada prevista para o próximo decreto.", "A senha saiu com um áudio de 3 minutos."] });
     const cf = p.prop("cafezinho", w - 170, h - 60);
     p.spot("fogao", w - 170, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café ministerial: é decidido em portaria.", "A garrafa térmica tem protocolo próprio."] });
     p.prop("bandeira", w / 2 - 200, hy + 118);
@@ -235,7 +235,7 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
       y: h - 44,
       label: { [ab]: "Puxar a alavanca: distribuir os kits", [vz]: "Puxar a alavanca: repor o estoque" },
       lines: {
-        [ab]: ["Os kits desceram pela esteira e foram direto para as escolas.", "Estoque zerado: cada criança levou um boato desmentido."],
+        [ab]: ["Os kits desceram pela esteira e foram direto para as escolas.", "Estoque zerado: cada criança levou um áudio desmentido."],
         [vz]: ["Estoque reposto: caixas coloridas até o teto.", "A alavanca reabasteceu o depósito. Ninguém sabe de onde veio."],
       },
       stamp: {
@@ -298,7 +298,7 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
     p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL EM OPERAÇÃO: BRASIL EMBARCANDO", when: lugar("terminal-china", op) });
     p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL PARADO: GREVE DO GUINDASTE", when: lugar("terminal-china", pr) });
     const cf = p.prop("cafezinho", 90, h - 60);
-    p.spot("fogao", 90, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de cais: forte como maré de boato.", "A garrafa térmica viaja na carga do navio."] });
+    p.spot("fogao", 90, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de cais: forte como maré de fofoca.", "A garrafa térmica viaja na carga do navio."] });
     p.prop("planta", 40, back(p) + 80);
   },
 };

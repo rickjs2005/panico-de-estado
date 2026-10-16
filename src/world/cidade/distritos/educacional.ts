@@ -43,7 +43,7 @@ export const EDUCACIONAL: DistrictContent = {
       hooks: { missions: ["campus-liberado"], characters: ["reitora"] },
     },
     { id: "edu-biblioteca", district: D, kind: "escola", x: 4170, y: 470, w: 320, d: 110, h: 120, wall: "#a2c7c0", roof: "laje", sign: "BIBLIOTECA LIVRE" },
-    { id: "edu-escola", district: D, kind: "escola", x: 3340, y: 1160, w: 330, d: 120, h: 120, wall: "#f1faee", roof: "telha", sign: "ESCOLA ESTADUAL DO BOATO", hooks: { characters: ["diretora"] } },
+    { id: "edu-escola", district: D, kind: "escola", x: 3340, y: 1160, w: 330, d: 120, h: 120, wall: "#f1faee", roof: "telha", sign: "ESCOLA ESTADUAL PODE REPASSAR", hooks: { characters: ["diretora"] } },
     {
       id: "edu-deposito",
       district: D,
@@ -86,7 +86,7 @@ export const EDUCACIONAL: DistrictContent = {
   ],
   pois: [
     { id: "edu-universidade", name: "Universidade do Pânico", district: D, x: 3800, y: 650, kind: "educacao", landmark: true, hooks: { missions: ["campus-liberado"] } },
-    { id: "edu-escola", name: "Escola Estadual do Boato", district: D, x: 3505, y: 1310, kind: "educacao", landmark: true },
+    { id: "edu-escola", name: "Escola Estadual Pode Repassar", district: D, x: 3505, y: 1310, kind: "educacao", landmark: true },
     { id: "edu-deposito", name: "Depósito de Kits", district: D, x: 3775, y: 1300, kind: "educacao" },
     { id: "edu-biblioteca", name: "Biblioteca Livre", district: D, x: 4330, y: 600, kind: "educacao" },
     { id: "edu-quadra", name: "Quadra da Escola", district: D, x: 3515, y: 1520, kind: "praca" },
@@ -98,7 +98,7 @@ export const EDUCACIONAL: DistrictContent = {
   vehicles: [parked("car-campus", CAMPUS, 2, "#7b4bd1"), parked("car-convivencia", CONVIVENCIA, 1, "#f2c230")],
   npcs: [
     { id: "reitora", district: D, name: "Reitora Vera", look: "reitora", x: 3740, y: 655, facing: "front", lines: ["Aqui até o absurdo precisa de assinatura.", "Universidade do Pânico: formada nos grupos de família."] },
-    { id: "diretora", district: D, name: "Diretora Clarice", look: "diretora", x: 3460, y: 1315, facing: "front", lines: ["O almoxarifado não estava preparado para esse boato.", "Tem caixa colorida até no corredor!"] },
+    { id: "diretora", district: D, name: "Diretora Clarice", look: "diretora", x: 3460, y: 1315, facing: "front", lines: ["O almoxarifado não estava preparado para esse áudio.", "Tem caixa colorida até no corredor!"] },
     {
       id: "estudante",
       district: D,

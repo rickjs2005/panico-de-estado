@@ -34,7 +34,10 @@ import { CAMPANHA, ITENS } from "../src/world/cidade/missoes/campanha";
 import { todasMissoes, type Efeito } from "../src/world/cidade/missoes/motor";
 import { AMBIENT, CORES_TRANSITO } from "../src/world/cidade/vida";
 import { ARESTAS, NOS, conectada, curva, semSaida } from "../src/world/cidade/ruas";
-import { caminho, comprimento } from "../src/world/cidade/navegacao";
+import { caminho, comprimento, livre, pontoLivre } from "../src/world/cidade/navegacao";
+import { BOLAS, CAES } from "../src/world/cidade/caes";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { MIN_POR_DIA } from "../src/world/cidade/relogio";
 import { agendaDe, alvoEm, BAR } from "../src/world/cidade/rotinas";
 import { cityPropArt } from "../src/world/game/city/cityArt";
@@ -494,6 +497,44 @@ for (const n of AMBIENT) {
   if (trocas > 10) warn(`rotina ${n.id}`, `${trocas} trocas de lugar num dia (esperado até 10)`);
 }
 void dentroAs;
+
+// ---------- cães e bolas: começam num lugar caminhável e alcançável a pé ----------
+for (const b of [...CAES, ...BOLAS]) {
+  const p = livre(b.x, b.y) ? b : pontoLivre(b.x, b.y);
+  if (!p || Math.hypot(p.x - b.x, p.y - b.y) > 30) warn(b.id, "começa longe de qualquer lugar caminhável");
+  else if (!reached(walk, p, 30)) warn(b.id, "começa num lugar que o protagonista não alcança a pé");
+}
+if (new Set(CAES.map((c) => c.nome)).size !== CAES.length) warn("cães", "nomes repetidos");
+if (CAES.length < 12) warn("cães", "poucos cães para a cidade");
+for (const d of DISTRICTS) {
+  const n = CAES.filter((c) => c.x >= d.area.x && c.x <= d.area.x + d.area.w && c.y >= d.area.y && c.y <= d.area.y + d.area.h).length;
+  if (n < 2) warn(`distrito ${d.id}`, `só ${n} cão(ães)`);
+}
+
+// ---------- textos da cidade do Lula sem a palavra "boato" (ids internos como "falou:boato" podem ficar) ----------
+{
+  const pastas = ["src/world/cidade", "src/world/game/city"];
+  const arquivos: string[] = [];
+  const varre = (p: string) => {
+    for (const nome of readdirSync(p)) {
+      const q = join(p, nome);
+      if (statSync(q).isDirectory()) varre(q);
+      else if (/\.tsx?$/.test(nome)) arquivos.push(q);
+    }
+  };
+  for (const p of pastas) varre(p);
+  arquivos.push("src/components/world/Passaporte.tsx", "src/components/world/CityMap.tsx");
+  for (const a of arquivos) {
+    const linhas = readFileSync(a, "utf8").split(/\r?\n/);
+    linhas.forEach((l, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(l)) return;
+      for (const m of l.matchAll(/(["'`])((?:\\.|(?!\1).)*)\1/g)) {
+        const txt = m[2];
+        if (/boat/i.test(txt) && !/^(boato|falou:boato|av-do-boato)$/.test(txt)) warn(`${a}:${i + 1}`, `texto com "boato": ${txt.slice(0, 60)}`);
+      }
+    });
+  }
+}
 console.log(`rotinas: ${AMBIENT.length} moradores com agenda; maior caminho a pé ≈ ${Math.round(maiorCaminho)} px`);
 
 const reachableArea = walk.g.reduce((a, v) => a + v, 0) * CELL * CELL;
@@ -502,7 +543,7 @@ console.log(
   `cidade: ${CITY.w}×${CITY.h}, ${DISTRICTS.length} distritos, ${ROADS.length} ruas, ${BUILDINGS.length} edificações (${accessible} com interior), ${PROPS.length} objetos, ` +
     `${POIS.length} lugares, ${VEHICLES.length} carros estacionados, ${ARESTAS.length} trechos de rua com trânsito, ${PARKING.length} estacionamentos, ` +
     `${NPCS.length + AMBIENT.length} moradores na rua, ${INTERIORS.reduce((a, i) => a + i.npcs.length, 0)} nos interiores, ${INTERIORS.length} interiores com ${INTERIORS.reduce((a, i) => a + i.rooms.length, 0)} cômodos e ${spotCount} interações, ` +
-    `${CACHACA.length} pontos de cachaça; área caminhável ≈ ${(reachableArea / 1e6).toFixed(1)} Mpx²`,
+    `${CACHACA.length} pontos de cachaça, ${CAES.length} cães, ${BOLAS.length} bolas; área caminhável ≈ ${(reachableArea / 1e6).toFixed(1)} Mpx²`,
 );
 
 if (problems.length) {

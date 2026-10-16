@@ -28,7 +28,7 @@ export const INDUSTRIAL: DistrictContent = {
     { id: "ind-galpao-1", district: D, kind: "galpao", x: 1015, y: 2070, w: 220, d: 140, h: 120, wall: "#9aa0a8", roof: "laje", sign: "GALPÃO COLETIVO 1" },
     { id: "ind-galpao-2", district: D, kind: "galpao", x: 1250, y: 2070, w: 215, d: 140, h: 120, wall: "#b8a07a", roof: "laje", sign: "GALPÃO COLETIVO 2" },
     { id: "ind-deposito", district: D, kind: "galpao", x: 300, y: 2790, w: 240, d: 120, h: 110, wall: "#8ecae6", roof: "laje", sign: "DEPÓSITO CENTRAL DO POVO" },
-    { id: "ind-almoxarifado", district: D, kind: "galpao", x: 570, y: 2790, w: 245, d: 120, h: 110, wall: "#e0b15a", roof: "laje", sign: "ALMOXARIFADO DO BOATO" },
+    { id: "ind-almoxarifado", district: D, kind: "galpao", x: 570, y: 2790, w: 245, d: 120, h: 110, wall: "#e0b15a", roof: "laje", sign: "ALMOXARIFADO DO CARIMBO" },
   ],
   props: [
     { id: "ind-tambor-1", kind: "tambor", x: 690, y: 2310, react: "wobble" },
@@ -56,7 +56,7 @@ export const INDUSTRIAL: DistrictContent = {
     { id: "ind-fabrica", name: "Fábrica Estatal Nº 1", district: D, x: 555, y: 2250, kind: "industria", landmark: true },
     { id: "ind-galpoes", name: "Galpões Coletivos", district: D, x: 1240, y: 2240, kind: "industria" },
     { id: "ind-deposito", name: "Depósito Central do Povo", district: D, x: 420, y: 2940, kind: "industria" },
-    { id: "ind-almoxarifado", name: "Almoxarifado do Boato", district: D, x: 690, y: 2940, kind: "industria" },
+    { id: "ind-almoxarifado", name: "Almoxarifado do Carimbo", district: D, x: 690, y: 2940, kind: "industria" },
     { id: "ind-patio", name: "Pátio de Carga", district: D, x: 1240, y: 2950, kind: "industria" },
     { id: "ind-estacionamento", name: "Estacionamento da Fábrica", district: D, x: 450, y: 2380, kind: "estacionamento" },
   ],

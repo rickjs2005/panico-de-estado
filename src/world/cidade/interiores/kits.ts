@@ -25,7 +25,7 @@ export function cozinha(p: Plan, x0: number, x1: number, wallY: number, bottomY:
   p.spot("geladeira", x0 + 34, y + 30, "Abrir a geladeira", {
     prop: geladeira,
     lines: p.r.pick([
-      ["Só tem picanha coletiva e um pote de margarina com feijão.", "Geladeira cheia: o boato da picanha virou verdade."],
+      ["Só tem picanha coletiva e um pote de margarina com feijão.", "Geladeira cheia: o áudio da picanha virou verdade."],
       ["Uma garrafa d'água, três limões e um decreto congelado.", "Gelo do povo, para o povo."],
     ]),
   });
@@ -53,7 +53,7 @@ export function sala(p: Plan, x0: number, x1: number, wallY: number, bottomY: nu
     const tv = p.prop("tv", sx, tvY);
     p.spot("tv", sx + 60, tvY + 26, "Ligar a TV", {
       prop: tv,
-      lines: ["Jornal do Boato: hoje choveu decreto.", "Novela das nove: “O Ministério do Áudio”.", "Futebol: Comunistas 3 × 3 Capitalistas. Empate coletivo."],
+      lines: ["Jornal do Áudio: hoje choveu decreto.", "Novela das nove: “O Ministério do Áudio”.", "Futebol: Comunistas 3 × 3 Capitalistas. Empate coletivo."],
     });
   }
   const sofaY = Math.min(bottomY - 40, tvY + 120);
@@ -73,7 +73,7 @@ export function sala(p: Plan, x0: number, x1: number, wallY: number, bottomY: nu
 export function descanso(p: Plan, x0: number, x1: number, wallY: number, bottomY: number) {
   const y = back(p, wallY);
   const arm = p.prop("armario", x1 - 46, y - 2, { variant: p.r.pick(["madeira", "branco"]) });
-  p.spot("armario", x1 - 46, y + 28, "Abrir o armário", { prop: arm, lines: ["Roupas, um terno de casamento e 14 sacolas de sacolas.", "Achei um boato antigo dobrado no fundo da gaveta."] });
+  p.spot("armario", x1 - 46, y + 28, "Abrir o armário", { prop: arm, lines: ["Roupas, um terno de casamento e 14 sacolas de sacolas.", "Achei um decreto antigo dobrado no fundo da gaveta."] });
   const cx = x0 + (x1 - x0) * 0.42;
   if (p.r.chance(0.45)) {
     const ry = Math.min(bottomY - 30, y + 80);

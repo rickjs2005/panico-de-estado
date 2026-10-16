@@ -137,7 +137,7 @@ export function roteiro(flags: Record<string, Valor>): { tom: Tom; apuracao: Apu
   const consequencias = apuracao.itens.map((i) => CONSEQUENCIA[i.id]?.[i.valor]).filter((x): x is string => !!x);
   const passos: Passo[] = [
     { tipo: "montar" },
-    { tipo: "fala", quem: "Seu Boato", linhas: ["Senhoras e senhores, a praça da Revolução Boateira recebe o seu presidente. Hoje, o presidente tem algo a dizer.", "Que fale. E que alguém anote, para depois dizer que não foi bem assim."] },
+    { tipo: "fala", quem: "Seu Repassa", linhas: ["Senhoras e senhores, a praça da Revolução dos Áudios recebe o seu presidente. Hoje, o presidente tem algo a dizer.", "Que fale. E que alguém anote, para depois dizer que não foi bem assim."] },
     { tipo: "fala", quem: "Presidente", linhas: ["Cidadãos, o Passaporte do Absurdo está completo. Os seis selos autorizam o que eu já tinha decidido.", `A partir de hoje, declaro-me ${PROCLAMACAO}`] },
     { tipo: "escolha", escolha: ESCOLHA_PROCLAMACAO },
     { tipo: "carimbos" },
@@ -147,7 +147,7 @@ export function roteiro(flags: Record<string, Valor>): { tom: Tom; apuracao: Apu
     { tipo: "fala", quem: "Cartório do Ministério", linhas: f.firma },
   ];
   if (consequencias.length) passos.push({ tipo: "fala", quem: "Relatório da cidade", linhas: consequencias.slice(0, 6) });
-  passos.push({ tipo: "fala", quem: "Seu Boato", linhas: f.fechamento });
+  passos.push({ tipo: "fala", quem: "Seu Repassa", linhas: f.fechamento });
   return { tom, apuracao, passos };
 }
 

@@ -209,7 +209,7 @@ export class Rotinas {
         route: undefined,
         behavior: undefined,
         group: undefined,
-        lines: [...(ag.dentro === ag.agenda.casa ? ["Estou em casa. A casa é de todos, mas o sofá é meu.", "Hoje não saio. O boato que venha até aqui."] : [`Tô aqui um instante. Já já eu volto pra rua.`]), ...def.lines.slice(0, 1)],
+        lines: [...(ag.dentro === ag.agenda.casa ? ["Estou em casa. A casa é de todos, mas o sofá é meu.", "Hoje não saio. A fofoca que venha até aqui."] : [`Tô aqui um instante. Já já eu volto pra rua.`]), ...def.lines.slice(0, 1)],
       });
     }
     return out;

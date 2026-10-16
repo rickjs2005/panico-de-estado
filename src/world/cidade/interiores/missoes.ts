@@ -21,12 +21,12 @@ const flag = (chave: string): PlaceCondition => ({ place: `flag:${chave}`, state
 const d = (missao: string, valor: string): PlaceCondition => ({ place: `flag:d.${missao}`, state: valor });
 
 export const MISSOES_PREDIO: Record<string, (p: Plan) => void> = {
-  // 1 · Protocolo do Boato: o guichê onde se entrega o formulário e o cartaz da credencial
+  // 1 · Protocolo do Áudio: o guichê onde se entrega o formulário e o cartaz da credencial
   "civ-reparticao"(p) {
     const vx = p.w - 170;
     for (const [i, cor] of (["amarelo", "azul", "verde"] as const).entries()) p.prop("pilhaPapel", 530 + i * 44, 300, { variant: cor });
     p.spot("missao", vx / 2 + 60, back(p) + 82, "Entregar o formulário no guichê", { evento: "guiche", when: ponto("guiche") });
-    p.poster("CREDENCIAL PRESIDENCIAL RECONHECIDA · CARIMBO AMARELO · ASS.: SEU BOATO", 520, "#fffaf0", "#c62835", 84, d("protocolo", "carimbo"));
+    p.poster("CREDENCIAL PRESIDENCIAL RECONHECIDA · CARIMBO AMARELO · ASS.: SEU REPASSA", 520, "#fffaf0", "#c62835", 84, d("protocolo", "carimbo"));
     p.poster("CREDENCIAL POR RECURSO · AVISOS EM CONTRADIÇÃO · DEFERIDO", 520, "#fffaf0", "#3a6b5a", 84, d("protocolo", "recurso"));
   },
 

@@ -21,7 +21,7 @@ const no = (lugar: string, estado: string): Cond => ({ lugar, estado });
 const nota = (id: string, texto: string): Efeito => ({ nota: id, texto });
 const decide = (missao: string, valor: string): Efeito => ({ flag: `d.${missao}`, valor });
 
-// ------------------------------------------------------------------ 1 · Protocolo do Boato
+// ------------------------------------------------------------------ 1 · Protocolo do Áudio
 
 const aviso = (n: number, texto: string, anota: string, avanca: boolean): Regra => ({
   evento: `usou:aviso-${n}`,
@@ -53,14 +53,14 @@ const negado = (cor: string, motivo: string): Opcao => ({
 const PROTOCOLO: MissaoDef = {
   id: "protocolo",
   numero: 1,
-  titulo: "Protocolo do Boato",
+  titulo: "Protocolo do Áudio",
   local: "Centro Cívico",
   inicio: {
     npc: "boato",
-    quem: "Seu Boato, na praça",
-    alvo: { x: 2330, y: 1060, label: "Seu Boato" },
+    quem: "Seu Repassa, na praça",
+    alvo: { x: 2330, y: 1060, label: "Seu Repassa" },
     dialogo: [
-      "Seu Boato: Montaram um governo inteiro com áudios do grupo da família.",
+      "Seu Repassa: Montaram um governo inteiro com áudios do grupo da família.",
       "Falta a credencial presidencial. Ela só sai na Repartição de Carimbos, com o formulário que estiver valendo hoje.",
       "Qual está valendo? Os avisos da praça dizem. Os avisos e as comadres. Os dois não costumam combinar.",
     ],
@@ -68,8 +68,8 @@ const PROTOCOLO: MissaoDef = {
   etapas: [
     {
       id: "falar",
-      objetivo: "Fale com Seu Boato, na praça.",
-      alvo: { x: 2330, y: 1060, label: "Seu Boato" },
+      objetivo: "Fale com Seu Repassa, na praça.",
+      alvo: { x: 2330, y: 1060, label: "Seu Repassa" },
       regras: [{ evento: "falou:boato", faz: [{ avancar: true }] }],
     },
     {
@@ -156,7 +156,7 @@ const PROTOCOLO: MissaoDef = {
     { id: "aviso-3", etapas: ["avisos", "carimbar"], fora: { x: 2400, y: 1100, label: "Ler o aviso 3" } },
     { id: "guiche", etapas: ["carimbar"] },
   ],
-  conclusao: ["Credencial presidencial na mão! O governo dos áudios agora tem papel passado.", "Seu Boato vai reconhecer o documento. Passe lá quando quiser."],
+  conclusao: ["Credencial presidencial na mão! O governo dos áudios agora tem papel passado.", "Seu Repassa vai reconhecer o documento. Passe lá quando quiser."],
   selo: { id: "credencial", nome: "Credencial Presidencial", cor: "#c62835", icone: "🪪" },
 };
 
@@ -169,10 +169,10 @@ const CADEADO: MissaoDef = {
   local: "Igreja Matriz e Largo da Feira",
   inicio: {
     npc: "boato",
-    quem: "Seu Boato, na praça",
-    alvo: { x: 2330, y: 1060, label: "Seu Boato" },
+    quem: "Seu Repassa, na praça",
+    alvo: { x: 2330, y: 1060, label: "Seu Repassa" },
     dialogo: [
-      "Seu Boato: Chegou um áudio de 3 minutos mandando interditar a Igreja Matriz.",
+      "Seu Repassa: Chegou um áudio de 3 minutos mandando interditar a Igreja Matriz.",
       "O cadeado é maior que a porta. Confere a porta e fala com o pastor.",
       "Quem guarda o cadeado grande é o Tião, no bar do Largo da Feira. O que fazer com ele, aí é com você.",
     ],
@@ -299,7 +299,7 @@ const CADEADO: MissaoDef = {
     { id: "cadeado-tiao", etapas: ["retirar"], se: [nenhum] },
     { id: "instalar-cadeado", etapas: ["instalar"], se: [com("cadeado")], fora: { x: 1840, y: 1150, label: "Decidir o que fazer com o cadeado" } },
   ],
-  conclusao: ["Operação encerrada: a porta da igreja já mostra o que foi decidido.", "Seu Boato: “Em burocracia, quem assina por último manda.”"],
+  conclusao: ["Operação encerrada: a porta da igreja já mostra o que foi decidido.", "Seu Repassa: “Em burocracia, quem assina por último manda.”"],
   selo: { id: "cadeado-presidencial", nome: "Cadeado Presidencial", cor: "#d9a520", icone: "🔒" },
 };
 
@@ -308,7 +308,7 @@ const CADEADO: MissaoDef = {
 const CAIXAS = {
   a: { etiqueta: "PARA: BORRACHARIA 24H", romaneio: "40 câmaras de ar para bicicleta coletiva", erro: "Quarenta câmaras de ar enchem sozinhas e a loja vira piscina de bolinhas. Seu Kiko fecha a tampa com o joelho." },
   b: { etiqueta: "PARA: ACADEMIA DO POVO (HALTERES FRÁGEIS)", romaneio: "300 lápis de cor, 120 colas, 1 cartilha", erro: "" },
-  c: { etiqueta: "PARA: ESCOLA ESTADUAL DO BOATO", romaneio: "12 sacos de cimento (para o muro do vizinho)", erro: "O saco rasga e o mercadinho vira obra. Seu Kiko pede para eu não contar ao vizinho." },
+  c: { etiqueta: "PARA: ESCOLA ESTADUAL PODE REPASSAR", romaneio: "12 sacos de cimento (para o muro do vizinho)", erro: "O saco rasga e o mercadinho vira obra. Seu Kiko pede para eu não contar ao vizinho." },
 } as const;
 
 const caixa = (l: "a" | "b" | "c"): Regra => ({
@@ -373,7 +373,7 @@ const ZAP: MissaoDef = {
               ],
               quem: "Diretora Clarice",
             },
-            nota("zap-romaneio", "A caixa B tinha lápis de cor, cola e cartilha. O boato do zap inventou o resto."),
+            nota("zap-romaneio", "A caixa B tinha lápis de cor, cola e cartilha. O zap inventou o resto."),
             { avancar: true },
           ],
         },
@@ -389,7 +389,7 @@ const ZAP: MissaoDef = {
           faz: [
             {
               escolha: {
-                titulo: "O boato diz uma coisa e o romaneio diz outra. O que fazer com os kits?",
+                titulo: "O zap diz uma coisa e o romaneio diz outra. O que fazer com os kits?",
                 quem: "Diretora Clarice",
                 opcoes: [
                   {
@@ -400,12 +400,12 @@ const ZAP: MissaoDef = {
                   {
                     id: "desmentiu",
                     rotulo: "Abrir a caixa e afixar o romaneio na parede",
-                    faz: [decide("zap", "desmentiu"), { se: [no("deposito-kits", "abastecido")], entao: [{ lugar: ["deposito-kits", "vazio"] }] }, { ler: "O romaneio está na parede, em letras grandes: lápis, cola e cartilha. O boato perdeu a graça." }, nota("zap-fim", "Afixei o romaneio na parede e desmenti o boato."), { concluir: true }],
+                    faz: [decide("zap", "desmentiu"), { se: [no("deposito-kits", "abastecido")], entao: [{ lugar: ["deposito-kits", "vazio"] }] }, { ler: "O romaneio está na parede, em letras grandes: lápis, cola e cartilha. O zap perdeu a graça." }, nota("zap-fim", "Afixei o romaneio na parede e desmenti o zap."), { concluir: true }],
                   },
                   {
                     id: "boato",
-                    rotulo: "Deixar o boato correr: rotular a caixa com o nome do zap",
-                    faz: [decide("zap", "boato"), { ler: "A caixa agora tem uma etiqueta enorme com o nome que o zap inventou. A fila dobrou o quarteirão." }, nota("zap-fim", "Rotulei a caixa com o nome do boato para ver o que acontecia."), { concluir: true }],
+                    rotulo: "Deixar o zap correr: rotular a caixa com o nome que inventaram",
+                    faz: [decide("zap", "boato"), { ler: "A caixa agora tem uma etiqueta enorme com o nome que o zap inventou. A fila dobrou o quarteirão." }, nota("zap-fim", "Rotulei a caixa com o nome que o zap inventou, para ver o que acontecia."), { concluir: true }],
                   },
                 ],
               },
@@ -850,8 +850,8 @@ const BRASIL: MissaoDef = {
     },
     {
       id: "etiquetas",
-      objetivo: "Prepare as 3 etiquetas conforme o regulamento, no Almoxarifado do Boato ({brasil.certas}/3 batem).",
-      alvo: { predio: "ind-almoxarifado", label: "Almoxarifado do Boato" },
+      objetivo: "Prepare as 3 etiquetas conforme o regulamento, no Almoxarifado do Carimbo ({brasil.certas}/3 batem).",
+      alvo: { predio: "ind-almoxarifado", label: "Almoxarifado do Carimbo" },
       painel: [{ rotulo: "Etiquetas que batem", flag: "brasil.certas", max: 3 }],
       exige: [com("caixa-brasil")],
       volta: "retirar",
@@ -925,7 +925,7 @@ const BRASIL: MissaoDef = {
     { id: "conferir-despacho", etapas: ["esteira"] },
     { id: "acionar-esteira", etapas: ["esteira"] },
   ],
-  conclusao: ["Brasil resolvido: o rastreio vai contar o que aconteceu, de um jeito ou de outro.", "Passaporte do Absurdo completo: os seis selos são seus. Seu Boato quer falar com você na praça."],
+  conclusao: ["Brasil resolvido: o rastreio vai contar o que aconteceu, de um jeito ou de outro.", "Passaporte do Absurdo completo: os seis selos são seus. Seu Repassa quer falar com você na praça."],
   selo: { id: "brasil-china", nome: "Brasil, Destino China", cor: "#c62835", icone: "🚢" },
 };
 
@@ -938,10 +938,10 @@ const DITADURA: MissaoDef = {
   local: "Centro Cívico",
   inicio: {
     npc: "boato",
-    quem: "Seu Boato, na praça",
-    alvo: { x: 2330, y: 1060, label: "Seu Boato" },
+    quem: "Seu Repassa, na praça",
+    alvo: { x: 2330, y: 1060, label: "Seu Repassa" },
     dialogo: [
-      "Seu Boato: Presidente, o Passaporte do Absurdo está completo. Os seis selos estão no papel.",
+      "Seu Repassa: Presidente, o Passaporte do Absurdo está completo. Os seis selos estão no papel.",
       "O Ministério leu os selos como autorização para uma coisa maior. Uma coisa que eu prefiro não dizer em voz alta.",
       "Suba ao palanque, no Monumento ao Áudio. A praça já está se reunindo.",
     ],
@@ -949,8 +949,8 @@ const DITADURA: MissaoDef = {
   etapas: [
     {
       id: "convite",
-      objetivo: "Fale com Seu Boato, na praça.",
-      alvo: { x: 2330, y: 1060, label: "Seu Boato" },
+      objetivo: "Fale com Seu Repassa, na praça.",
+      alvo: { x: 2330, y: 1060, label: "Seu Repassa" },
       regras: [{ evento: "falou:boato", faz: [{ avancar: true }] }],
     },
     {
@@ -990,11 +990,11 @@ const FALAS: FalaPorEstado[] = [
   f("despachante", [tom("ignorado")], ["Despachei o decreto também. Está em alto-mar junto com o resto."]),
   // decisões da campanha
   f("boato", [fez("brasil"), d("brasil", "despachou")], ["O Brasil embarcou! Frete pago, saudade cobrada à parte.", "Agora só falta alguém assumir que isso não era trocadilho."]),
-  f("boato", [fez("brasil"), d("brasil", "trocou")], ["Embarcou cachaça no lugar do Brasil e ninguém reclamou. Na China, vai ser uma bela degustação.", "Eu disse que o boato dava certo, só não disse com qual conteúdo."]),
+  f("boato", [fez("brasil"), d("brasil", "trocou")], ["Embarcou cachaça no lugar do Brasil e ninguém reclamou. Na China, vai ser uma bela degustação.", "Eu disse que o áudio dava certo, só não disse com qual conteúdo."]),
   f("boato", [fez("brasil"), d("brasil", "sabotou")], ["A esteira parou no meio e o Brasil ficou no cais, com etiqueta de retido.", "Dizem que foi o primeiro frete cancelado por falta de coragem do frete."]),
   f("boato", [fez("cadeado"), d("cadeado", "sabotou")], ["O cadeado de papelão pintado de dourado é a melhor coisa que a Igreja já ganhou desde o decreto.", "Mas fica entre nós: se o Ministério perguntar, foi tudo obra do vento."]),
   f("boato", [fez("cadeado"), d("cadeado", "brecha")], ["Cadeado na frente e lateral regulamentada: respeitamos o decreto e a porta ao mesmo tempo.", "Isso é política de alto nível: a gente se obedece desobedecendo."]),
-  f("boato", [fez("cadeado"), d("cadeado", "cumpriu")], ["Cadeado presidencial instalado. A igreja agora tem comprovante, e eu tenho orgulho.", "Quando tudo é carimbado, até o boato fica oficial."]),
+  f("boato", [fez("cadeado"), d("cadeado", "cumpriu")], ["Cadeado presidencial instalado. A igreja agora tem comprovante, e eu tenho orgulho.", "Quando tudo é carimbado, até o áudio fica oficial."]),
   f("boato", [fez("protocolo"), d("protocolo", "recurso")], ["Credencial por recurso! Você ganhou um papel sem precisar do carimbo.", "A Repartição ficou tão sem graça que pendurou um aviso pedindo desculpas."]),
   f("boato", [fez("protocolo")], ["Credencial reconhecida! Já sou presidente dos meus próprios áudios.", "A Repartição até pendurou um aviso com o meu nome."]),
   f("atendente", [d("protocolo", "recurso")], ["Recurso deferido! Foi o primeiro em vinte anos e ninguém sabia o que fazer com ele.", "Guardei o recurso na pasta de “casos que a lei não previu”. A pasta está cheia."]),
@@ -1006,12 +1006,12 @@ const FALAS: FalaPorEstado[] = [
   f("tiao", [fez("cadeado"), d("cadeado", "sabotou")], ["Fica entre nós: o cadeado que saiu daqui voltou diferente. Pintado de ouro, ou de papelão?", "Aqui, só fiado e cachaça presidencial."]),
   f("tiao", [fez("cadeado")], ["Aquele cadeado voltou pra igreja. Aqui, só fiado e cachaça presidencial.", "Se precisar de outro cadeado, o balcão tem."]),
   f("fregues", [d("cadeado", "brecha")], ["Eu disse que a lateral nunca foi numerada. Agora ela tem placa e tudo.", "Entrei hoje pela lateral e saí abençoado, com número de protocolo."]),
-  f("kiko", [fez("zap"), d("zap", "boato")], ["Rotulou a caixa com o nome do boato? A fila deu duas voltas na praça e todo mundo saiu com lápis de cor.", "Agora o boato é marca registrada. Tem até ambulante vendendo o tal kit, de lápis."]),
-  f("kiko", [fez("zap"), d("zap", "desmentiu")], ["O romaneio na parede acabou com o boato em duas horas. Ele ainda circula, mas já ninguém acredita.", "Agora o estoque é da escola, e a etiqueta é do povo."]),
+  f("kiko", [fez("zap"), d("zap", "boato")], ["Rotulou a caixa com o nome que o zap inventou? A fila deu duas voltas na praça e todo mundo saiu com lápis de cor.", "Agora o nome do zap é marca registrada. Tem até ambulante vendendo o tal kit, de lápis."]),
+  f("kiko", [fez("zap"), d("zap", "desmentiu")], ["O romaneio na parede acabou com o áudio em duas horas. Ele ainda circula, mas já ninguém acredita.", "Agora o estoque é da escola, e a etiqueta é do povo."]),
   f("kiko", [fez("zap")], ["As caixas foram para o lugar certo. O zap ficou desmentido por 5 minutos.", "Agora o estoque é da escola, e a etiqueta é do povo."]),
   f("diretora", [fez("zap"), d("zap", "lacrado")], ["Os kits foram lacrados e ninguém sabe o que tem dentro. Os alunos estão aprendendo a ter curiosidade.", "O lacre diz “não abra”. A aula de hoje é sobre isso."]),
-  f("diretora", [fez("zap"), d("zap", "desmentiu")], ["O romaneio está na parede e os alunos já sabem de cor. Lápis, cola e cartilha: a melhor aula da semana.", "O boato virou exercício de português."]),
-  f("diretora", [fez("zap"), d("zap", "boato")], ["Deixou o boato correr! Agora o kit mais popular da escola é o que ninguém sabe o que é.", "Os pais querem ver, os alunos querem desenhar. Todo mundo feliz e todo mundo errado."]),
+  f("diretora", [fez("zap"), d("zap", "desmentiu")], ["O romaneio está na parede e os alunos já sabem de cor. Lápis, cola e cartilha: a melhor aula da semana.", "O áudio do zap virou exercício de português."]),
+  f("diretora", [fez("zap"), d("zap", "boato")], ["Deixou o zap correr! Agora o kit mais popular da escola é o que ninguém sabe o que é.", "Os pais querem ver, os alunos querem desenhar. Todo mundo feliz e todo mundo errado."]),
   f("diretora", [fez("zap")], ["Recebi a caixa e carimbei o recibo. É lápis de cor, e só.", "A placa de recebimento já está na parede do depósito."]),
   f("estudante", [fez("campus"), d("campus", "ignorou")], ["Sem festa? A assembleia ficou longa, mas ninguém foi embora. Dizem que é um bom sinal.", "Pelo menos o alvará sonoro não ficou com a vizinha."]),
   f("estudante", [fez("campus"), d("campus", "negociou")], ["Assembleia às 18h e festa até as 22h: a vizinha do 4º andar aplaudiu de pé, pela primeira vez.", "Foi o primeiro acordo que todo mundo cumpriu."]),
@@ -1081,8 +1081,8 @@ export const DECISOES: Record<string, Record<string, { lado: "obediente" | "rebe
   },
   zap: {
     lacrado: { lado: "obediente", texto: "distribuiu os kits lacrados" },
-    desmentiu: { lado: "rebelde", texto: "afixou o romaneio e desmentiu o boato" },
-    boato: { lado: "meio", texto: "deixou o boato correr na etiqueta" },
+    desmentiu: { lado: "rebelde", texto: "afixou o romaneio e desmentiu o zap" },
+    boato: { lado: "meio", texto: "deixou o nome do zap na etiqueta" },
   },
   campus: {
     autorizou: { lado: "obediente", texto: "autorizou a festa" },
