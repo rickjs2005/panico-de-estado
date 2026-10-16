@@ -2,11 +2,13 @@ import * as Phaser from "phaser";
 import { sound } from "@/lib/sound";
 import { bus, touchInput } from "../bridge";
 import {
-  BUILDINGS,
+  buildingsFor,
+  CACHACA_STOPS,
   FACTORY,
   ITEMS,
   LOTS,
-  NPCS,
+  npcsFor,
+  PLACES,
   PROPS,
   ROADS,
   SPAWN,
@@ -15,8 +17,9 @@ import {
   solidRects,
   type BuildingDef,
 } from "../map";
-import { advance, CHICOTE_EXPRESSO, LULA_OBJECTIVE, stepOf, type Line, type Mission, type MissionEvent } from "../mission";
-import { isDone, markDone } from "../save";
+import { advance, CHICOTE_EXPRESSO, missionsFor, stepOf, type Line, type Mission, type MissionEvent } from "../mission";
+import { isDone, markDone, readSave, saveProgress } from "../save";
+import { drainStamina, MAX_STAMINA } from "../stamina";
 import type { ActionLabel, HeroId, HudState } from "../types";
 import { INK, propArt } from "./art";
 import { RES, tex } from "./bake";
@@ -24,6 +27,7 @@ import { Bubble } from "./Bubble";
 import { Car, CAR, type CarControls } from "./Car";
 import { isFree, pushOut, wrapAngle, type Circle, type Solid } from "./collide";
 import { Npc } from "./Npc";
+import { LulaWorld } from "./LulaWorld";
 import { Walker } from "./Walker";
 
 export interface WorldData {
@@ -64,6 +68,12 @@ export class WorldScene extends Phaser.Scene {
   private npcs: Npc[] = [];
   private keys!: Keys;
   private mission: Mission | null = null;
+  private campaign: Mission[] = [];
+  private completed = new Set<string>();
+  private lulaWorld: LulaWorld | null = null;
+  private stamina = MAX_STAMINA;
+  private lastDrinkAt = -Infinity;
+  private paused = false;
   private step = "";
   private holding: string | null = null;
   private buildings: { def: BuildingDef; img: Phaser.GameObjects.Image }[] = [];
@@ -71,7 +81,7 @@ export class WorldScene extends Phaser.Scene {
   private marker!: Phaser.GameObjects.Image;
   private ring!: Phaser.GameObjects.Graphics;
   private edgeArrow!: Phaser.GameObjects.Image;
-  private chicoteItem!: Phaser.GameObjects.Image;
+  private itemImages = new Map<string, Phaser.GameObjects.Image>();
   private faixaText!: Phaser.GameObjects.Text;
   private factoryImg: Phaser.GameObjects.Image | null = null;
   private gears: Phaser.GameObjects.Image[] = [];
@@ -116,14 +126,17 @@ export class WorldScene extends Phaser.Scene {
     this.buildings = [];
     this.fruits = [];
     this.gears = [];
+    this.itemImages.clear();
+    this.stamina = MAX_STAMINA;
+    this.paused = false;
 
     this.drawGround();
     this.placeBuildings();
     this.placeProps();
     this.drawWires();
-    this.solids = solidRects();
+    this.solids = solidRects(this.hero);
 
-    for (const def of NPCS) this.npcs.push(new Npc(this, def));
+    for (const def of npcsFor(this.hero)) this.npcs.push(new Npc(this, def));
     this.car = new Car(this, SPAWN.car.x, SPAWN.car.y, SPAWN.car.angle);
     this.player = new Walker(this, this.hero, SPAWN.hero.x, SPAWN.hero.y);
     this.player.setFacing("front");
@@ -132,20 +145,25 @@ export class WorldScene extends Phaser.Scene {
     this.ring = this.add.graphics().setDepth(5).setVisible(false);
     this.edgeArrow = this.add.image(0, 0, "marker").setScale(1 / RES.small).setDepth(95000).setVisible(false);
 
-    // missão
-    if (this.hero === CHICOTE_EXPRESSO.hero) {
-      this.mission = CHICOTE_EXPRESSO;
-      if (isDone(this.hero, this.mission.id)) {
-        this.step = this.mission.finalStep;
-        this.chicoteItem.setVisible(false);
-        this.applyConsequence(false);
-      } else {
-        this.step = this.mission.steps[0].id;
+    this.campaign = missionsFor(this.hero);
+    this.completed = new Set(this.campaign.filter((m) => isDone(this.hero, m.id)).map((m) => m.id));
+    this.lulaWorld = this.hero === "lula" ? new LulaWorld(this) : null;
+    for (const id of this.completed) this.lulaWorld?.apply(id, false);
+    this.mission = this.campaign.find((m) => !this.completed.has(m.id)) ?? this.campaign[this.campaign.length - 1];
+    this.step = this.completed.has(this.mission.id) ? this.mission.finalStep : this.mission.steps[0].id;
+    const progress = readSave().progress[this.hero];
+    if (!this.completed.has(this.mission.id) && progress?.mission === this.mission.id && progress.step !== this.mission.finalStep && stepOf(this.mission, progress.step)) {
+      this.step = progress.step;
+      const pickup = this.mission.transitions.find((t) => t.to === this.step && t.on.type === "pickup");
+      if (pickup?.on.type === "pickup") {
+        if (progress.holding === pickup.on.item) {
+          this.holding = pickup.on.item;
+          this.player.setCarry(ITEMS[this.holding].texture);
+        } else this.step = pickup.from;
       }
-    } else {
-      this.mission = null;
-      this.step = "";
     }
+    if (this.hero === "flavio" && this.completed.has(CHICOTE_EXPRESSO.id)) this.applyConsequence(false);
+    this.syncItems();
 
     // controles
     const kb = this.input.keyboard!;
@@ -155,6 +173,13 @@ export class WorldScene extends Phaser.Scene {
     this.keys.H.on("down", () => this.horn());
     this.unsubs.push(bus.on("action", () => this.queueAction()));
     this.unsubs.push(bus.on("horn", () => this.horn()));
+    this.unsubs.push(bus.on("pause", (paused) => {
+      this.paused = paused;
+      this.actionQueued = false;
+      this.time.paused = paused;
+      if (paused) this.tweens.pauseAll();
+      else this.tweens.resumeAll();
+    }));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanup());
 
@@ -240,7 +265,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private placeBuildings() {
-    for (const def of BUILDINGS) {
+    for (const def of buildingsFor(this.hero)) {
       const top = def.top ?? 0;
       const img = this.add
         .image(def.x, def.y - def.h - top, tex.building(def.id))
@@ -263,7 +288,7 @@ export class WorldScene extends Phaser.Scene {
       if (p.kind === "faixa") {
         const top = p.y - art.h * art.originY;
         this.faixaText = this.add
-          .text(p.x, top + 22, CHICOTE_EXPRESSO.banner.before, {
+          .text(p.x, top + 22, this.hero === "lula" ? "CHURRASCO COLETIVO" : CHICOTE_EXPRESSO.banner.before, {
             fontFamily: FONT,
             fontSize: "17px",
             fontStyle: "900",
@@ -274,11 +299,12 @@ export class WorldScene extends Phaser.Scene {
           .setDepth(p.y + 0.5);
       }
     }
-    this.chicoteItem = this.add
-      .image(ITEMS.chicote.x, ITEMS.chicote.y, "chicote")
-      .setScale(1 / RES.small)
-      .setDepth(ITEMS.chicote.y + 30);
-    this.tweens.add({ targets: this.chicoteItem, angle: { from: -8, to: 8 }, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    for (const [id, item] of Object.entries(ITEMS)) {
+      if (item.hero !== this.hero) continue;
+      const img = this.add.image(item.x, item.y, item.texture).setScale(1 / RES.small).setDepth(item.y + 30).setVisible(false);
+      this.itemImages.set(id, img);
+      this.tweens.add({ targets: img, angle: { from: -8, to: 8 }, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
   }
 
   private drawWires() {
@@ -335,6 +361,7 @@ export class WorldScene extends Phaser.Scene {
   // ---------------------------------------------------------------- laço principal
 
   update(_time: number, deltaMs: number) {
+    if (this.paused) return;
     // Com o FPS baixo, a física roda em subpassos para não perder velocidade nem atravessar obstáculos.
     const frame = Math.min(deltaMs / 1000, 0.1);
     const steps = Math.max(1, Math.ceil(frame / (1 / 60)));
@@ -393,6 +420,7 @@ export class WorldScene extends Phaser.Scene {
         running = tm > 0.85;
       }
     }
+    if (this.hero === "lula" && this.stamina <= 0) running = false;
     if (this.time.now < this.busyUntil) mag = 0;
     let speed = 0;
     if (mag > 0) {
@@ -405,6 +433,7 @@ export class WorldScene extends Phaser.Scene {
       this.player.setPosition(res.x, res.y);
       this.player.faceToward(dirX, dirY);
     }
+    if (this.hero === "lula") this.stamina = drainStamina(this.stamina, dt, running && speed > WALK);
     this.player.animate(dt, speed, running);
   }
 
@@ -488,6 +517,7 @@ export class WorldScene extends Phaser.Scene {
   // ---------------------------------------------------------------- interação
 
   private queueAction() {
+    if (this.paused) return;
     const now = this.time.now;
     if (now - this.lastActionAt < 280) return;
     this.lastActionAt = now;
@@ -504,14 +534,27 @@ export class WorldScene extends Phaser.Scene {
     const cands: Candidate[] = [];
     const dCar = Math.hypot(this.car.x - px, this.car.y - py);
     if (dCar < CAR_DIST) cands.push({ label: "Entrar", priority: 2, dist: dCar, run: () => this.enterCar() });
-    if (this.mission && this.step === "buscar" && !this.holding) {
-      const d = Math.hypot(ITEMS.chicote.x - px, ITEMS.chicote.y + 20 - py);
-      if (d < TALK_DIST) cands.push({ label: "Pegar", priority: 1, dist: d, run: () => this.pickChicote() });
+    const target = this.mission ? stepOf(this.mission, this.step)?.target : null;
+    if (target?.kind === "item" && !this.holding) {
+      const item = ITEMS[target.id];
+      const d = Math.hypot(item.x - px, item.y + 20 - py);
+      if (d < TALK_DIST) cands.push({ label: "Pegar", priority: 1, dist: d, run: () => this.pickItem(target.id) });
+    }
+    if (target?.kind === "place") {
+      const place = PLACES[target.id];
+      const d = Math.hypot(place.x - px, place.y - py);
+      if (d < TALK_DIST) cands.push({ label: place.label, priority: 0, dist: d, run: () => this.missionEvent({ type: "interact", place: target.id }) });
+    }
+    if (this.hero === "lula" && this.stamina < MAX_STAMINA - 1 && this.time.now - this.lastDrinkAt > 1500) {
+      for (const stop of CACHACA_STOPS) {
+        const d = Math.hypot(stop.x - px, stop.y - py);
+        if (d < 52) cands.push({ label: "Beber", priority: 1, dist: d, run: () => this.drink() });
+      }
     }
     for (const n of this.npcs) {
       const d = Math.hypot(n.x - px, n.y - py);
       if (d > TALK_DIST) continue;
-      if (n.id === "patrao" && this.holding === "chicote" && this.step === "entregar") {
+      if (this.holding && this.mission && advance(this.mission, this.step, { type: "deliver", npc: n.id, item: this.holding })) {
         cands.push({ label: "Entregar", priority: 0, dist: d, run: () => this.deliver(n) });
       } else {
         cands.push({ label: "Falar", priority: 2, dist: d, run: () => this.talk(n) });
@@ -531,7 +574,7 @@ export class WorldScene extends Phaser.Scene {
     this.pendingExit = false;
     this.player.setVisible(false);
     this.car.setDriver(this.hero);
-    this.car.setCargo(this.holding === "chicote");
+    this.car.setCargo(this.holding ? ITEMS[this.holding].texture : null);
     this.computeZoom();
     this.busyUntil = this.time.now + 250;
     sound.porta();
@@ -585,22 +628,39 @@ export class WorldScene extends Phaser.Scene {
     this.player.setVisible(true);
     this.player.faceToward(spot.x - this.car.x, spot.y - this.car.y);
     this.car.setDriver(null);
-    this.car.setCargo(false);
-    this.player.setCarry(this.holding);
+    this.car.setCargo(null);
+    this.player.setCarry(this.holding ? ITEMS[this.holding].texture : null);
     this.computeZoom();
     this.busyUntil = this.time.now + 200;
     sound.porta();
     this.emitHud(true);
   }
 
-  private pickChicote() {
-    if (this.holding || this.step !== "buscar") return;
-    this.holding = "chicote";
-    this.chicoteItem.setVisible(false);
-    this.player.setCarry("chicote");
+  private syncItems() {
+    const target = this.mission ? stepOf(this.mission, this.step)?.target : null;
+    for (const [id, img] of this.itemImages) img.setVisible(target?.kind === "item" && target.id === id && !this.holding);
+  }
+
+  private pickItem(id: string) {
+    if (this.holding || !this.mission || !advance(this.mission, this.step, { type: "pickup", item: id })) return;
+    this.holding = id;
+    this.player.setCarry(ITEMS[id].texture);
     this.player.setFace("comemora", 1200);
     sound.ping();
-    this.missionEvent({ type: "pickup", item: "chicote" });
+    this.missionEvent({ type: "pickup", item: id });
+  }
+
+  private drink() {
+    this.stamina = MAX_STAMINA;
+    this.lastDrinkAt = this.time.now;
+    this.busyUntil = this.time.now + 950;
+    this.player.setFace("comemora", 1000);
+    this.player.drink();
+    this.player.hop(5);
+    sound.ping();
+    this.say("hero", "Um gole de cachaça e mais cem decretos!", 1800);
+    bus.emit("toast", "Cachaça presidencial · energia de corrida +100");
+    this.emitHud(true);
   }
 
   private talk(n: Npc) {
@@ -617,17 +677,18 @@ export class WorldScene extends Phaser.Scene {
   private linesFor(n: Npc): string[] {
     const byStep = this.mission?.talk[this.step]?.[n.id];
     if (byStep) return byStep;
+    const lulaLines = this.lulaWorld?.linesFor(n.id);
+    if (lulaLines) return lulaLines;
     if (this.hero === "lula" && n.def.linesLula) return n.def.linesLula;
     return n.def.lines;
   }
 
   private deliver(n: Npc) {
-    if (this.holding !== "chicote" || this.step !== "entregar") return;
+    if (!this.holding) return;
+    const item = this.holding;
     n.attend(this.player.x, this.player.y, 6000);
-    if (!this.missionEvent({ type: "deliver", npc: n.id, item: "chicote" })) return;
-    this.holding = null;
-    this.player.setCarry(null);
-    n.walker.setCarry("chicote");
+    if (!this.missionEvent({ type: "deliver", npc: n.id, item })) return;
+    n.walker.setCarry(ITEMS[item].texture);
     this.busyUntil = this.time.now + 600;
   }
 
@@ -648,8 +709,29 @@ export class WorldScene extends Phaser.Scene {
     if (!this.mission) return false;
     const t = advance(this.mission, this.step, e);
     if (!t) return false;
+    if (e.type === "deliver" || e.type === "interact") {
+      this.holding = null;
+      this.player.setCarry(null);
+      this.car.setCargo(null);
+    }
     this.step = t.to;
-    if (this.step === this.mission.finalStep) markDone(this.hero, this.mission.id);
+    if (this.step === this.mission.finalStep) {
+      const completed = this.mission;
+      this.completed.add(completed.id);
+      markDone(this.hero, completed.id);
+      this.lulaWorld?.apply(completed.id, true);
+      if (this.hero === "lula") {
+        sound.success();
+        bus.emit("toast", `Concluída: ${completed.title}`);
+        const next = this.campaign.find((m) => !this.completed.has(m.id));
+        if (next) {
+          this.mission = next;
+          this.step = next.steps[0].id;
+        }
+      }
+    }
+    saveProgress(this.hero, this.mission.id, this.step, this.holding);
+    this.syncItems();
     this.playLines(t.lines);
     this.emitHud(true);
     return true;
@@ -660,11 +742,12 @@ export class WorldScene extends Phaser.Scene {
     this.convo = [];
     let delay = 0;
     for (const line of lines) {
-      const ms = line.who === "hero" ? 900 : Phaser.Math.Clamp(1100 + line.text.length * 42, 1500, 3200);
+      const emote = line.who === "hero" && line.text.length < 3;
+      const ms = emote ? 900 : Phaser.Math.Clamp(1100 + line.text.length * 42, 1500, 3200);
       this.convo.push(
         this.time.delayedCall(delay, () => {
           if (line.cue === "consequencia") this.applyConsequence(true);
-          if (line.who === "hero") this.showEmote();
+          if (emote) this.showEmote();
           else {
             this.say(line.who, line.text, ms + 300, line.cue ? "grito" : "fala");
             sound.pop();
@@ -718,7 +801,8 @@ export class WorldScene extends Phaser.Scene {
     const step = stepOf(this.mission, this.step);
     const target = step?.target;
     if (!target) return null;
-    if (target.kind === "item") return this.holding ? null : { x: ITEMS.chicote.x, y: ITEMS.chicote.y + 20 };
+    if (target.kind === "item") return this.holding ? null : { x: ITEMS[target.id].x, y: ITEMS[target.id].y + 20 };
+    if (target.kind === "place") return PLACES[target.id];
     const n = this.npcs.find((m) => m.id === target.id);
     return n ? { x: n.x, y: n.y } : null;
   }
@@ -944,8 +1028,11 @@ export class WorldScene extends Phaser.Scene {
       mode: this.mode,
       action: this.candidate?.label ?? null,
       missionTitle: mission ? mission.title : null,
-      objective: mission ? (step?.objective ?? "") : LULA_OBJECTIVE,
-      done: mission ? this.step === mission.finalStep : false,
+      objective: step?.objective ?? "Explore o bairro",
+      done: this.completed.size === this.campaign.length,
+      stamina: this.hero === "lula" ? Math.ceil(this.stamina) : null,
+      completed: this.completed.size,
+      total: this.campaign.length,
     };
     const key = JSON.stringify(state);
     if (!force && key === this.hudKey) return;
@@ -962,6 +1049,11 @@ export class WorldScene extends Phaser.Scene {
         y: Math.round(this.player.y),
         car: { x: Math.round(this.car.x), y: Math.round(this.car.y), angle: +this.car.angle.toFixed(2), speed: Math.round(this.car.speed) },
         step: this.step,
+        hero: this.hero,
+        mission: this.mission?.id,
+        completed: [...this.completed],
+        stamina: Math.round(this.stamina),
+        flags: [...(this.lulaWorld?.flags ?? [])],
         holding: this.holding,
         action: this.candidate?.label ?? null,
         consequence: this.consequence,

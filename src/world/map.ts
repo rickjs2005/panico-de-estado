@@ -1,5 +1,5 @@
 import type { LookId } from "./looks";
-import type { Facing, Point, Rect } from "./types";
+import type { ActionLabel, Facing, HeroId, Point, Rect } from "./types";
 
 /**
  * O bairro: ruas, quarteirões, prédios, objetos e moradores.
@@ -45,6 +45,17 @@ export const LOTS: Lot[] = [
   { x: 931, y: 1720, w: 360, h: 60, surface: "calcada" },
   { x: 1871, y: 1411, w: 689, h: 509, surface: "grama" },
 ];
+
+/** Os quarteirões têm a mesma geometria, mas cada Brasil tem seus próprios usos. */
+const LULA_REPLACEMENTS: Record<string, Partial<BuildingDef>> = {
+  "casa-azul": { id: "ministerio", kind: "loja", sign: "MINISTÉRIO DO BOATO", wall: "#d95859" },
+  "casa-lilas": { id: "universidade", kind: "escola", sign: "UNIVERSIDADE DO PÂNICO", wall: "#a2c7c0" },
+  "casa-areia": { id: "terminal-china", kind: "loja", sign: "BRASIL: FRETE PARA CHINA", wall: "#df8b62" },
+};
+
+export function buildingsFor(hero: HeroId): BuildingDef[] {
+  return hero === "lula" ? LULA_BUILDINGS : BUILDINGS;
+}
 
 export type BuildingKind = "casa" | "loja" | "igreja" | "fabrica" | "escola";
 
@@ -98,6 +109,8 @@ export const BUILDINGS: BuildingDef[] = [
   { id: "casa-coral", kind: "casa", x: 2340, y: 1590, w: 190, d: 110, h: 100, wall: "#ff8fa3", roof: "telha" },
 ];
 
+
+export const LULA_BUILDINGS = BUILDINGS.map((b) => ({ ...b, ...LULA_REPLACEMENTS[b.id] }));
 
 export type PropKind =
   | "arvore"
@@ -250,7 +263,7 @@ export const NPCS: NpcDef[] = [
     y: 1145,
     facing: "front",
     lines: ["Neste bairro, boato vira verdade em cinco minutos."],
-    linesLula: ["Presidente? Ih, o seu boato ainda está sendo inventado.", "Volta na próxima atualização que eu te conto tudo!"],
+    linesLula: ["Os áudios do zap viraram um plano de governo!", "Aqui o comunismo veio até com manual de instruções."],
   },
   {
     id: "patrao",
@@ -334,10 +347,39 @@ export const SPAWN = {
   car: { x: 985, y: 655, angle: 0 },
 };
 
+export const LULA_NPCS: NpcDef[] = [
+  ...NPCS.map((n) => n.id === "boato" ? { ...n, x: 1115, y: 385 } : n),
+  { id: "tiao", name: "Tião do bar", look: "tiao", x: 680, y: 475, facing: "front", lines: ["Cachaça presidencial: combustível exclusivo deste desenho!", "Abasteceu a caneta? Então vai trabalhar, presidente!"] },
+  { id: "pastor", name: "Pastor Josué Aleluia", look: "pastor", x: 1350, y: 375, facing: "front", lines: ["Esse cadeado é maior que a porta da igreja!", "Hoje o sermão é sobre burocracia."] },
+  { id: "diretora", name: "Diretora Clarice", look: "diretora", x: 1195, y: 1760, facing: "front", lines: ["Tem entrega presidencial até na escola!", "O almoxarifado não estava preparado para esse boato."] },
+  { id: "reitora", name: "Reitora Vera", look: "reitora", x: 2250, y: 1060, facing: "front", lines: ["Aqui até o absurdo precisa de assinatura.", "Universidade do Pânico: formada nos grupos de família."] },
+  { id: "despachante", name: "Despachante do Impossível", look: "despachante", x: 2310, y: 1760, facing: "front", lines: ["Pra China? Trouxe o Brasil bem embalado?", "Frete internacional. País inteiro paga excesso de bagagem."] },
+];
+
+export function npcsFor(hero: HeroId): NpcDef[] {
+  return hero === "lula" ? LULA_NPCS : NPCS;
+}
+
 /** Objetos que podem ser pegos. */
-export const ITEMS = {
-  chicote: { x: 2060, y: 452 },
+export const ITEMS: Record<string, Point & { hero: HeroId; texture: string }> = {
+  chicote: { x: 2060, y: 452, hero: "flavio", texture: "chicote" },
+  cadeado: { x: 585, y: 515, hero: "lula", texture: "cadeado" },
+  kits: { x: 1500, y: 1030, hero: "lula", texture: "kits" },
+  "brasil-caixa": { x: 1510, y: 470, hero: "lula", texture: "brasil-caixa" },
 };
+
+export const PLACES: Record<string, Point & { label: ActionLabel }> = {
+  igreja: { x: 1280, y: 367, label: "Fechar" },
+  campus: { x: 2210, y: 1055, label: "Assinar" },
+  terminal: { x: 2210, y: 1760, label: "Despachar" },
+};
+
+/** Paradas acessíveis mesmo com a energia zerada: andar e dirigir continuam livres. */
+export const CACHACA_STOPS = [
+  { x: 460, y: 515, name: "Bar do Tião" },
+  { x: 1010, y: 1040, name: "Padaria" },
+  { x: 2400, y: 1755, name: "Terminal" },
+];
 
 /** Pontos de referência da fábrica, usados pela consequência da missão. */
 export const FACTORY = {
@@ -368,9 +410,9 @@ export function buildingRect(b: BuildingDef): Rect {
 }
 
 /** Todos os retângulos sólidos do bairro. */
-export function solidRects(): (Rect & { tag?: string })[] {
+export function solidRects(hero: HeroId = "flavio"): (Rect & { tag?: string })[] {
   const rects: (Rect & { tag?: string })[] = [...WORLD_WALLS];
-  for (const b of BUILDINGS) rects.push({ ...buildingRect(b), tag: b.id });
+  for (const b of buildingsFor(hero)) rects.push({ ...buildingRect(b), tag: b.id });
   for (const p of PROPS) {
     const r = propCollider(p);
     if (r) rects.push({ ...r, tag: p.id });

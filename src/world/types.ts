@@ -6,7 +6,7 @@ export type HeroId = "lula" | "flavio";
 export type Facing = "front" | "back" | "side";
 
 /** Ação contextual mostrada no botão e no atalho E. */
-export type ActionLabel = "Falar" | "Pegar" | "Entrar" | "Sair" | "Entregar";
+export type ActionLabel = "Falar" | "Pegar" | "Entrar" | "Sair" | "Entregar" | "Fechar" | "Assinar" | "Despachar" | "Beber";
 
 export interface Rect {
   x: number;
@@ -27,4 +27,11 @@ export interface HudState {
   missionTitle: string | null;
   objective: string;
   done: boolean;
+  stamina: number | null;
+  completed: number;
+  total: number;
+  /** Onde o protagonista está: distrito ou interior (só na cidade). */
+  place?: string | null;
+  /** A cidade tem mapa. */
+  map?: boolean;
 }

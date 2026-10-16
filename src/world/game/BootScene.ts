@@ -16,8 +16,10 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     const onProgress = this.registry.get("onProgress") as ((p: number) => void) | undefined;
-    bakeTextures(this, (done, total) => onProgress?.(done / total))
-      .then(() => this.scene.start("world", this.data_))
+    // O Brasil do Lula é a cidade grande; o do Flávio continua no bairro da missão.
+    const target = this.data_.hero === "lula" ? "city" : "world";
+    bakeTextures(this, this.data_.hero, (done, total) => onProgress?.(done / total))
+      .then(() => this.scene.start(target, this.data_))
       .catch((err: unknown) => {
         console.error(err);
         const onError = this.registry.get("onError") as ((msg: string) => void) | undefined;

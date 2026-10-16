@@ -10,10 +10,11 @@ const KEY = "panico-de-estado:mundo:v1";
 export interface WorldSave {
   /** Missões concluídas, como "flavio:chicote-expresso". */
   done: string[];
+  progress: Partial<Record<HeroId, { mission: string; step: string; holding: string | null }>>;
 }
 
 function empty(): WorldSave {
-  return { done: [] };
+  return { done: [], progress: {} };
 }
 
 export function readSave(): WorldSave {
@@ -21,7 +22,12 @@ export function readSave(): WorldSave {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return empty();
     const data = JSON.parse(raw) as Partial<WorldSave>;
-    return { done: Array.isArray(data.done) ? data.done.filter((d) => typeof d === "string") : [] };
+    const progress: WorldSave["progress"] = {};
+    for (const hero of ["lula", "flavio"] as const) {
+      const p = data?.progress?.[hero];
+      if (p && typeof p.mission === "string" && typeof p.step === "string" && (p.holding === null || typeof p.holding === "string")) progress[hero] = p;
+    }
+    return { done: Array.isArray(data?.done) ? data.done.filter((d) => typeof d === "string") : [], progress };
   } catch {
     return empty();
   }
@@ -43,9 +49,25 @@ export function markDone(hero: HeroId, missionId: string) {
   }
 }
 
-export function clearSave() {
+export function saveProgress(hero: HeroId, mission: string, step: string, holding: string | null) {
+  const save = readSave();
+  save.progress[hero] = { mission, step, holding };
   try {
-    window.localStorage.removeItem(KEY);
+    window.localStorage.setItem(KEY, JSON.stringify(save));
+  } catch {
+    // Sem armazenamento, a partida continua nesta visita.
+  }
+}
+
+export function clearSave(hero?: HeroId) {
+  try {
+    if (!hero) window.localStorage.removeItem(KEY);
+    else {
+      const save = readSave();
+      save.done = save.done.filter((id) => !id.startsWith(`${hero}:`));
+      delete save.progress[hero];
+      window.localStorage.setItem(KEY, JSON.stringify(save));
+    }
   } catch {
     // nada a limpar
   }

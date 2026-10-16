@@ -39,6 +39,12 @@ export const LOOKS = {
   osvaldo: { ...CHARACTERS.osvaldo.look, pants: "#4a4a58" },
   didi: { ...CHARACTERS.didi.look, pants: "#5b4636" },
   cida: { ...CHARACTERS.fiel.look, pants: "#2a4a5a" },
+  pastor: { ...CHARACTERS.pastor.look, pants: "#27233d" },
+  tiao: { skin: PELE.c, hair: "careca", hairColor: "#5a4030", beard: "bigode", beardColor: "#5a4030", shirt: "#e8b04a", apron: "#7b3036", pants: "#453545" },
+  diretora: { skin: PELE.d, hair: "coque", hairColor: "#35283a", glasses: "grau", shirt: "#6f51b8", pants: "#30364c" },
+  reitora: { skin: PELE.b, hair: "rabo", hairColor: "#65514a", glasses: "grau", shirt: "#36978b", pants: "#273b4d" },
+  atendente: { skin: PELE.a, hair: "coque", hairColor: "#7a5a40", glasses: "grau", shirt: "#3a6b5a", badge: true, pants: "#2a3a38" },
+  despachante: { skin: PELE.d, hair: "bone", hairColor: "#38211b", capColor: "#d84236", shirt: "#e9bc48", pants: "#34425b" },
 } satisfies Record<string, WorldLook>;
 
 export type LookId = keyof typeof LOOKS;

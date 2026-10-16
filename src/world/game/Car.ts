@@ -55,6 +55,7 @@ export class Car {
   private faceUntil = 0;
   speed = 0;
   cargo = false;
+  private cargoItem: string | null = null;
   private t = 0;
 
   constructor(
@@ -62,12 +63,13 @@ export class Car {
     public x: number,
     public y: number,
     public angle: number,
+    readonly color?: string,
   ) {
     const s = 1 / RES.car;
     this.shadow = scene.add.image(3, 4, tex.car("sombra")).setScale(s);
     const parts: Phaser.GameObjects.GameObject[] = [this.shadow];
     for (const sl of SLICES) {
-      const img = scene.add.image(0, -sl.h, tex.car(sl.layer)).setScale(s);
+      const img = scene.add.image(0, -sl.h, tex.car(sl.layer, color)).setScale(s);
       this.slices.push({ img, h: sl.h });
       parts.push(img);
     }
@@ -97,9 +99,11 @@ export class Car {
     this.faceUntil = this.scene.time.now + ms;
   }
 
-  setCargo(on: boolean) {
-    this.cargo = on;
-    this.whip.setVisible(on);
+  setCargo(item: string | null) {
+    this.cargo = !!item;
+    this.cargoItem = item;
+    if (item) this.whip.setTexture(item).setOrigin(item === "chicote" ? 0.13 : 0.5, item === "chicote" ? 0.87 : 0.8);
+    this.whip.setVisible(!!item);
   }
 
   /** Atualiza velocidade e direção. A colisão é resolvida pela cena. */
@@ -149,7 +153,7 @@ export class Car {
     if (this.cargo) {
       const p = local(-12, 5);
       const wobble = Math.sin(this.t * 13) * 0.35 * Math.min(1, Math.abs(this.speed) / 120) + Math.sin(this.t * 2.5) * 0.12;
-      this.whip.setPosition(p.x, p.y - 12).setRotation(this.angle + Math.PI + Math.PI / 4 + wobble);
+      this.whip.setPosition(p.x, p.y - 12).setRotation(this.cargoItem === "chicote" ? this.angle + Math.PI + Math.PI / 4 + wobble : wobble * 0.3);
       // o chicote fica atrás do motorista quando o carro sobe na tela
       this.root.moveTo(this.whip, s < 0 ? this.root.length - 1 : this.root.length - 2);
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sound } from "@/lib/sound";
+import { clearCity } from "@/world/cidade/progress";
 import { clearSave } from "@/world/save";
 import type { HeroId } from "@/world/types";
 import CharacterSelect from "./CharacterSelect";
@@ -28,7 +29,8 @@ export default function WorldApp() {
       hero={hero}
       onSwitch={() => setHero(null)}
       onReset={() => {
-        clearSave();
+        clearSave(hero);
+        if (hero === "lula") clearCity();
         setRun((r) => r + 1);
       }}
     />
