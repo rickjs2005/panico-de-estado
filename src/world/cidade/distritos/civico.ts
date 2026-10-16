@@ -90,6 +90,10 @@ export const CIVICO: DistrictContent = {
     { id: "civ-cone-2", kind: "cone", x: 2140, y: 1390, react: "tip" },
     { kind: "quiosque", x: 2620, y: 1170, variant: "praca" },
     { kind: "canteiro", x: 1900, y: 600 },
+    // avisos da praça (missão Protocolo do Boato): cada um diz um pedaço do protocolo vigente
+    { id: "msn-aviso-1", kind: "placaColetiva", x: 2250, y: 1040, text: "AVISO 1 · O VIGENTE" },
+    { id: "msn-aviso-2", kind: "placaColetiva", x: 2560, y: 1040, text: "AVISO 2 · REVOGADOS" },
+    { id: "msn-aviso-3", kind: "placaColetiva", x: 2400, y: 1100, text: "AVISO 3 · ANO BISSEXTO" },
     // praça: ipês, canteiros em volta do monumento, pipoqueiro e postes de luz nos cantos
     { kind: "ipe", x: 2214, y: 862 },
     { kind: "ipe", x: 2584, y: 862, variant: "rosa" },

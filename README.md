@@ -58,6 +58,19 @@ Um Brasil fictício onde os boatos absurdos viraram realidade e o Lula caricato 
 - Paredes internas, fachadas, árvores e placas altas ficam transparentes quando o personagem passa atrás.
 - Energia: a barra cheia dura cerca de 15 s de corrida; 11 pontos de cachaça (6 na rua, 5 dentro de bar, padaria, cantina, república e DCE). Andar e dirigir não gastam energia.
 
+**Campanha: seis missões e o Passaporte do Absurdo.** Uma missão ativa por vez, começando por Seu Boato na praça. O HUD mostra o nome, o objetivo da etapa e o progresso; o destino da missão aparece no mapa e na cidade com uma estrela dourada, separado da bandeira do destino que você marca à mão. Cada missão tem uma conversa curta que dá para avançar (E ou **Continuar**) ou **pular**, e cada uma, ao terminar, carimba um selo no **Passaporte do Absurdo** (botão 🛂, 0/6 a 6/6) com uma pequena celebração no mundo. Não há moedas, loja, XP, cronômetro nem punição: errar a ação só gera uma fala.
+
+| # | Missão | O que se faz | Consequência no mundo |
+| --- | --- | --- | --- |
+| 1 | **Protocolo do Boato** | Falar com Seu Boato, examinar os 3 avisos da praça, pegar o formulário de cor certa e carimbar na Repartição | Credencial Presidencial exposta na Repartição |
+| 2 | **Operação Cadeado: Segunda Via** | Pastor, cadeado grande do Tião no bar e instalação na Igreja Matriz (interdita se estava aberta; se já estava interditada vira "segunda via") | Plaquinha e cadeado extra na fachada |
+| 3 | **Kit Gay do Zap: Carga Extraviada** | Ler etiqueta e romaneio das 3 caixas do mercadinho, levar a certa ao Depósito de Kits e puxar a alavanca | Caixa e recibo no depósito, placa na rua |
+| 4 | **Campus Sem Freio** | Reitora, mesa de som do DCE (grave, médio, agudo conforme o alvará) e homologação na Reitoria | Faixa e portaria "liberou geral" |
+| 5 | **Coletivizou Até a Chave** | Vô Didi, pistas de Osvaldo e Rose, armário da Associação e três ferramentas aos três postos (elevador, muro, prensa) | Ferramentas nos postos |
+| 6 | **Brasil, Destino China** | Despachante, caixa no Depósito Central, três etiquetas no Almoxarifado e esteira do Controle de Despacho (terminal precisa estar em operação) | Caixa do Brasil no embarque e painel de rastreio |
+
+As missões são **dados** (`missoes/campanha.ts`); o motor (`missoes/motor.ts`) é puro e só recebe eventos (`falou:<morador>`, `usou:<ponto>`, `lugar:<lugar>:<estado>`) e devolve efeitos; a cena (`game/city/Missoes.ts`) apenas emite eventos e mostra consequências. O progresso fica em `campanha` no save da cidade do Lula: recarregar retoma a etapa, o item carregado não duplica nem é entregue duas vezes, eventos fora de ordem são ignorados, lugares já alterados antes da missão não dão recompensa automática, missão concluída não volta a pendente e saves antigos (sem `campanha`) continuam válidos. **Reiniciar este Brasil** limpa só a cidade do Lula; o Brasil do Flávio usa outra chave e não tem Passaporte. Com `?debug=1`: `window.__pde.campanha()`, `iniciar("<missão>")`, `emite("usou:<ponto>")`, `ctx()` e `npc("<id>")`.
+
 ### Como a cidade está organizada
 
 | Arquivo | O que tem |
@@ -85,6 +98,10 @@ Um Brasil fictício onde os boatos absurdos viraram realidade e o Lula caricato 
 | `src/world/game/city/cityArt.ts`, `interiorArt.ts` | Arte dos prédios, objetos de rua e móveis (SVG desenhado em código) |
 | `src/world/game/city/culler.ts` | Só deixa visível o que está perto da câmera |
 | `src/components/world/CityMap.tsx` | Mapa da cidade |
+| `src/world/cidade/missoes/motor.ts`, `campanha.ts` | Motor puro da campanha (etapas, eventos, itens, condições) e os dados das seis missões, falas por estado, selos e quadros |
+| `src/world/cidade/interiores/missoes.ts` | Interações, objetos e cartazes das missões dentro dos prédios |
+| `src/world/game/city/Missoes.ts`, `Adornos.ts` | Gerente da campanha na cena (diálogos, HUD, destino, celebração) e as consequências desenhadas na rua |
+| `src/components/world/Passaporte.tsx` | Selos, Passaporte do Absurdo, cartão de selo e caixa de diálogo com **Pular** |
 
 Cada prédio, interior, cômodo, parede, objeto, interação, lugar, morador, carro e estacionamento tem um id estável. Os campos `hooks` (missões e personagens futuros), `place` (estado persistente) e `interior` (porta) são onde as próximas histórias se conectam, sem redesenhar o mapa. Objetos, interações, cartazes e moradores de interior podem depender de um estado (`when`): o depósito de kits fica vazio quando o lugar muda para "vazio", o corredor da universidade perde as barracas no "expediente normal" e a igreja troca castiçais, cartazes e pastor entre "interditada" e "aberta". Uma interação com `setPlace` (tipo `decreto`) muda o estado de um lugar: salva o progresso, redesenha a rua e refaz o interior onde o jogador está. `check:city` confere que todo estado citado existe e que quem muda um lugar tem a interação de volta em cada estado. Com `?debug=1`, `window.__pde.setPlace("igreja-matriz", "aberta")` muda um estado na hora e `window.__pde.enter("com-padaria")` entra direto num prédio.
 

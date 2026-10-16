@@ -13,6 +13,12 @@ interface Events {
   pause: boolean;
   /** Entrou num distrito (só na cidade). */
   district: { name: string; tagline: string; color: string };
+  /** Diálogo da campanha (mundo → React); null fecha. */
+  dialogo: { quem: string | null; texto: string; i: number; total: number } | null;
+  /** O jogador avançou ou pulou o diálogo (React → mundo). */
+  "dialogo-acao": "avancar" | "pular";
+  /** Selo do Passaporte do Absurdo conquistado. */
+  selo: { id: string; nome: string; cor: string; icone: string; n: number; completa: boolean };
   /** Destino marcado no mapa (React → mundo); null limpa. */
   waypoint: (Point & { label: string }) | null;
   ready: undefined;
@@ -70,4 +76,6 @@ export const worldState = {
   /** Prédio em que o jogador está (id), para o mapa marcar a porta. */
   insideBuilding: null as string | null,
   waypoint: null as (Point & { label: string }) | null,
+  /** Destino da missão ativa (diferente do que o jogador marcou no mapa). */
+  missaoAlvo: null as (Point & { label: string }) | null,
 };

@@ -135,7 +135,7 @@ function conjunto(p: Plan) {
   p.prop("caixasCorreio", 260, corY + 46);
   p.spot("armario", 260, corY + 76, "Olhar as caixas de correio", { lines: ["Correspondência: 47 boletos coletivos e um boato registrado.", "Todo mundo recebeu a carta de todo mundo."] });
   p.prop("mesa", w / 2 + 120, h - 70, { variant: "madeira" });
-  p.npc("m4", "Porteiro Seu Juca", w / 2 + 120, h - 102, ["Assina o livro de visitas? É coletivo, pode assinar por todo mundo.", "O síndico é o povo. E o povo nunca está."], { facing: "front" });
+  p.npc("m4", "Porteiro Seu Juca", w / 2 + 120, h - 102, ["Assina o livro de visitas? É coletivo, pode assinar por todo mundo.", "O síndico é o povo. E o povo nunca está."], { facing: "front", ...(p.b.id === "res-conjunto-13" ? { id: "juca" } : {}) });
   morador(p, 180, aptY + 100, ["Moro no 13-B, no 13-C e no 13-D. Tudo é de todos.", "O varal do prédio virou bandeira do conjunto."]);
 }
 
@@ -275,7 +275,7 @@ function reparticao(p: Plan) {
   const g1 = p.prop("guiche", vx / 2 - 190, back(p) + 50, { variant: "1" });
   p.prop("guiche", vx / 2, back(p) + 50, { variant: "2" });
   p.prop("guiche", vx / 2 + 190, back(p) + 50, { variant: "3" });
-  p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
+  p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { evento: "carimbo-1", prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
   p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu boato foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front" });
   // fila: cadeiras de espera e correntes de baliza dos dois lados, deixando o corredor do meio livre até a porta
   cadeiras(p, vx / 2 - 170, 3, back(p) + 190, 60);
@@ -485,7 +485,7 @@ function mercado(p: Plan) {
     [60, back(p) + 70],
   ]) p.prop("caixaPapelao", x, y);
   p.spot("caixa", 60, back(p) + 100, "Abrir uma caixa do estoque", { lines: ["Uma caixa de caixas. Burocracia do estoque.", "Achei 200 pacotes de biscoito, ou bolacha. A polêmica continua."] });
-  p.npc("m2", "Seu Kiko do caixa", 90, h - 96, ["Leva a sacola? É coletiva, depois devolve.", "Aqui o fiado é política pública."], { facing: "front" });
+  p.npc("m2", "Seu Kiko do caixa", 90, h - 96, ["Leva a sacola? É coletiva, depois devolve.", "Aqui o fiado é política pública."], { facing: "front", id: "kiko" });
   morador(p, cols[1], back(p) + 160, ["Cadê o feijão? Ah, foi redistribuído pro corredor 3."]);
   // hortifruti no canto da frente e quadro de ofertas
   const fruta = p.prop("gondola", w - 100, h - 80, { variant: "frutas" });
@@ -537,7 +537,7 @@ function bar(p: Plan) {
   p.hwall(h - 160, vx, w);
   p.wallProp("prateleira", vx / 2 - 30);
   p.prop("balcao", vx / 2 - 30, back(p) + 60);
-  p.npc("tiao", "Tião do bar", vx / 2 - 10, back(p) + 22, ["Cachaça presidencial: combustível exclusivo deste desenho!", "Fiado? Neste Brasil, fiado é política pública."], { facing: "front" });
+  p.npc("tiao", "Tião do bar", vx / 2 - 10, back(p) + 22, ["Cachaça presidencial: combustível exclusivo deste desenho!", "Fiado? Neste Brasil, fiado é política pública."], { facing: "front", id: "tiao" });
   p.cachaca("Balcão do Tião", vx / 2 + 40, back(p) + 90);
   for (const x of [vx / 2 - 160, vx / 2 - 100, vx / 2 - 40]) p.prop("banqueta", x, back(p) + 90);
   p.spot("sentar", vx / 2 - 100, back(p) + 116, "Sentar no balcão", { seat: { x: vx / 2 - 100, y: back(p) + 84, facing: "back" } });

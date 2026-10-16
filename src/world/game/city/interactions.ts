@@ -232,6 +232,11 @@ export function runSpot(ctx: SpotContext, spot: InteractionSpot): number {
       ctx.scene.cameras.main.shake(260, 0.0025);
       if (text) ctx.say(text, 2600);
       return 900;
+    case "missao":
+      sound.pop();
+      squash(ctx, p);
+      float(ctx, px, py, ["✦"], "#ffd23f", 2, 16);
+      return 450;
     case "decreto": {
       const target = spot.setPlace;
       sound.carimbo();

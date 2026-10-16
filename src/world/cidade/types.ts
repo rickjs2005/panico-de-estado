@@ -212,6 +212,10 @@ export type CityPropKind =
   | "totemSenha"
   | "cafezinho"
   | "alavanca"
+  | "cadeadao"
+  | "ferramenta"
+  | "caixaBrasil"
+  | "etiquetadora"
   // rua: personalidade dos bairros
   | "canteiro"
   | "horta"
@@ -353,7 +357,9 @@ export type SpotKind =
   | "computador"
   | "ventilador"
   | "jukebox"
-  | "decreto";
+  | "decreto"
+  /** Interação de missão: só faz o barulhinho; o resto vem das regras da campanha. */
+  | "missao";
 
 /** Estado de um lugar (`places.ts`) exigido para um item de interior aparecer. */
 export interface PlaceCondition {
@@ -381,6 +387,8 @@ export interface InteractionSpot {
   setPlace?: PlaceCondition;
   /** Selo que aparece com impacto ao usar uma interação que muda um lugar. */
   stamp?: { text: string; color: string; bg: string };
+  /** Usar esta interação emite o evento "usou:<evento>" para a campanha de missões. */
+  evento?: string;
 }
 
 export interface InteriorPoster {

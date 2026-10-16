@@ -249,6 +249,10 @@ export const PROP_SOLID: Record<CityPropKind, { w: number; h: number } | null> =
   totemSenha: { w: 30, h: 14 },
   cafezinho: { w: 50, h: 22 },
   alavanca: { w: 26, h: 12 },
+  cadeadao: { w: 40, h: 14 },
+  ferramenta: null,
+  caixaBrasil: { w: 52, h: 24 },
+  etiquetadora: { w: 34, h: 16 },
 };
 
 /** Objetos pendurados na parede do fundo dos interiores (desenhados logo à frente da parede). */

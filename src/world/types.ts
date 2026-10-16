@@ -35,6 +35,12 @@ export interface HudState {
   place?: string | null;
   /** A cidade tem mapa. */
   map?: boolean;
+  /** Campanha: missão ativa (com etapa e item carregado) ou a próxima a aceitar. */
+  missao?: { titulo: string; numero: number; etapa: number; total: number; objetivo: string; carregando: string | null } | null;
+  proxima?: { titulo: string; numero: number; quem: string } | null;
+  /** Ids dos selos do Passaporte do Absurdo já conquistados. */
+  selos?: string[];
+  completa?: boolean;
   /** Hora do dia da cidade ("08:30") e o período ("manhã"). */
   hora?: string;
   periodo?: string;

@@ -1,4 +1,6 @@
 import type { Point } from "../types";
+import { CAMPANHA } from "./missoes/campanha";
+import { estadoVazio, sanear, type Estado } from "./missoes/motor";
 import { initialPlaces, isPlace, PLACES, type PlaceId } from "./places";
 
 /**
@@ -16,10 +18,12 @@ export interface CityProgress {
   waypoint: (Point & { label: string }) | null;
   /** Hora do dia da cidade (minutos desde a meia-noite). Ausente em saves antigos. */
   hora?: number;
+  /** Campanha de missões: etapa, itens, selos e flags. Saves antigos começam sem missão. */
+  campanha: Estado;
 }
 
 function empty(): CityProgress {
-  return { places: initialPlaces(), discovered: [], visited: [], waypoint: null };
+  return { places: initialPlaces(), discovered: [], visited: [], waypoint: null, campanha: estadoVazio() };
 }
 
 export function readCity(): CityProgress {
@@ -35,6 +39,7 @@ export function readCity(): CityProgress {
       if (Array.isArray(data.discovered)) out.discovered = data.discovered.filter((d): d is string => typeof d === "string");
       if (Array.isArray(data.visited)) out.visited = data.visited.filter((d): d is string => typeof d === "string");
       if (typeof data.hora === "number" && Number.isFinite(data.hora)) out.hora = data.hora;
+      out.campanha = sanear((data as { campanha?: unknown }).campanha, CAMPANHA);
       const w = data.waypoint;
       if (w && typeof w.x === "number" && typeof w.y === "number" && typeof w.label === "string") out.waypoint = { x: w.x, y: w.y, label: w.label };
     }
@@ -73,6 +78,12 @@ export function visit(buildingId: string): boolean {
   p.visited.push(buildingId);
   write(p);
   return true;
+}
+
+export function saveCampanha(campanha: Estado) {
+  const p = readCity();
+  p.campanha = campanha;
+  write(p);
 }
 
 export function saveHora(minutos: number) {

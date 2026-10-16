@@ -1,5 +1,6 @@
 import type { CityBuilding, InteriorDef, TemplateId } from "../types";
 import { PAREDES } from "./kits";
+import { MISSOES_PREDIO } from "./missoes";
 import { MODELS } from "./modelos";
 import { Plan, rng } from "./plan";
 
@@ -95,5 +96,6 @@ export function interiorFor(b: CityBuilding): InteriorDef {
   const flip = !!model.flip && r.chance(0.5);
   const plan = new Plan(b, { id: interiorId(b), name: entry.name, template: entry.template, w: size.w, h: size.h, wallH: size.wallH, wall: entry.wall ?? r.pick(PAREDES) }, r, flip);
   model.build(plan);
+  MISSOES_PREDIO[b.id]?.(plan);
   return plan.def;
 }

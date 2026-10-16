@@ -32,6 +32,7 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
   const [visited, setVisited] = useState<string[]>([]);
   const [selected, setSelected] = useState<CityBuilding | null>(null);
   const [waypoint, setWaypoint] = useState(worldState.waypoint);
+  const missao = worldState.missaoAlvo;
   const pos = { x: worldState.x, y: worldState.y };
   const insideBuilding = worldState.insideBuilding ? BUILDINGS.find((b) => b.id === worldState.insideBuilding) : undefined;
   const insideRoom = insideBuilding ? INTERIORS.find((i) => i.building === insideBuilding.id) : undefined;
@@ -166,6 +167,20 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
                 </text>
               </g>
             ))}
+            {missao && (
+              <g transform={`translate(${missao.x} ${missao.y})`}>
+                <circle r={96} fill="#ffd23f" fillOpacity={0.3}>
+                  <animate attributeName="r" values="70;130;70" dur="1.4s" repeatCount="indefinite" />
+                </circle>
+                <circle r={62} fill="#ffd23f" stroke="#1e1424" strokeWidth={12} />
+                <text y={30} textAnchor="middle" fontSize={84} fontWeight={900} fill="#1e1424">
+                  ★
+                </text>
+                <text y={-92} textAnchor="middle" fontSize={64} fontWeight={900} fill="#fffaf0" stroke="#1e1424" strokeWidth={12} paintOrder="stroke">
+                  {`Missão: ${missao.label}`}
+                </text>
+              </g>
+            )}
             {waypoint && (
               <g transform={`translate(${waypoint.x} ${waypoint.y})`}>
                 <path d="M0 0 V-190" stroke="#1e1424" strokeWidth={14} />
@@ -184,6 +199,13 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
           </svg>
         </div>
         <aside className="max-h-[38vh] min-h-0 overflow-y-auto rounded-xl border-4 border-[#1e1424] bg-[#fffaf0] p-2 sm:max-h-none sm:w-60 lg:w-72">
+          {missao && (
+            <div className="mb-2 rounded-lg border-2 border-[#1e1424] bg-[#ffd23f] p-2 text-xs">
+              <p className="font-black">★ Destino da missão</p>
+              <p className="font-semibold">{missao.label}</p>
+              <p className="mt-0.5 text-[10px] font-semibold text-[#1e1424]/75">Sempre visível no mapa e na cidade; o destino que você marca é outro (bandeira).</p>
+            </div>
+          )}
           {selected && (
             <div className="mb-2 rounded-lg border-2 border-[#1e1424] bg-[#ffd23f]/30 p-2 text-xs">
               <p className="font-black">{interiorOf(selected)?.name}</p>

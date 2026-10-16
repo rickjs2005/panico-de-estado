@@ -316,6 +316,45 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
         outline: 1.1,
         body: box(3, 14, 30, 8, 40, "#c62835", 4) + `<rect x="7" y="4" width="22" height="14" rx="3" fill="#1e1424"/>` + txt(18, 15, 7, "SENHA", "#ff4d4d") + `<rect x="9" y="34" width="18" height="12" rx="2" fill="#fffaf0"/><rect x="12" y="46" width="12" height="5" rx="1" fill="#1e1424"/>`,
       };
+    case "cadeadao":
+      return {
+        w: 64,
+        h: 84,
+        originY: 0.95,
+        outline: 1.3,
+        body:
+          `<path d="M16 40 V26 C16 4 48 4 48 26 V40" fill="none" stroke="#9da8bd" stroke-width="10"/>` +
+          box(6, 36, 52, 10, 36, "#f5bf39", 7) +
+          `<circle cx="32" cy="62" r="7" fill="#362838"/><rect x="29" y="64" width="6" height="12" rx="2" fill="#362838"/>` +
+          txt(32, 53, 7, "3 TON", "#7a5a10"),
+      };
+    case "ferramenta": {
+      const v = variant ?? "martelo";
+      if (v === "pincel")
+        return { w: 44, h: 36, originY: 0.9, outline: 1, body: `<rect x="6" y="20" width="28" height="7" rx="3" fill="#a8734a"/><path d="M32 17 H42 L44 30 H32 Z" fill="#e63946"/><path d="M32 17 L26 14 V32 L32 30 Z" fill="#c9c2b0"/>` };
+      if (v === "chave-inglesa")
+        return { w: 48, h: 36, originY: 0.9, outline: 1, body: `<rect x="6" y="20" width="30" height="7" rx="3" fill="#9da8bd"/><path d="M34 12 H46 V32 H34 L38 22 Z" fill="#9da8bd"/><circle cx="12" cy="23" r="3" fill="#55555c"/>` };
+      return { w: 44, h: 36, originY: 0.9, outline: 1, body: `<rect x="18" y="14" width="7" height="22" rx="2" fill="#a8734a"/><rect x="8" y="6" width="26" height="12" rx="3" fill="#9da8bd"/><rect x="8" y="6" width="26" height="4" fill="#c9c2d0"/>` };
+    }
+    case "caixaBrasil":
+      return {
+        w: 72,
+        h: 60,
+        originY: 0.94,
+        outline: 1.2,
+        body:
+          box(4, 12, 64, 12, 36, "#d9a86a", 3) +
+          `<path d="M20 34 L28 26 L38 28 L46 24 L54 32 L50 44 L40 52 L28 48 Z" fill="#3aa655" stroke="#1e1424" stroke-width="1.5"/><circle cx="38" cy="38" r="5" fill="#ffd23f"/>` +
+          txt(36, 22, 8, "BRASIL", "#7a4e2d"),
+      };
+    case "etiquetadora":
+      return {
+        w: 44,
+        h: 46,
+        originY: 0.94,
+        outline: 1.1,
+        body: box(4, 14, 36, 10, 24, "#55555c", 4) + `<rect x="9" y="8" width="26" height="10" rx="2" fill="#fffaf0"/>` + txt(22, 16, 6, "ETIQ.", "#c62835") + `<rect x="12" y="32" width="20" height="5" rx="1" fill="#fff4ce"/>`,
+      };
     case "alavanca": {
       const on = variant !== "vermelha";
       const c = on ? "#2f9e5a" : "#c62835";

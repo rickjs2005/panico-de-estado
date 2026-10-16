@@ -9,6 +9,7 @@ import type { HeroId, HudState } from "@/world/types";
 import type { GameHandle } from "@/world/game/createGame";
 import CityMap from "./CityMap";
 import Joystick from "./Joystick";
+import { Dialogo, Passaporte, SeloCard } from "./Passaporte";
 
 const SOUND_KEY = "panico-de-estado:som";
 
@@ -33,15 +34,18 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   const [soundOn, setSoundOn] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
   const [banner, setBanner] = useState<{ name: string; tagline: string; color: string } | null>(null);
+  const [dialogo, setDialogo] = useState<{ quem: string | null; texto: string; i: number; total: number } | null>(null);
+  const [selo, setSelo] = useState<{ id: string; nome: string; cor: string; icone: string; n: number; completa: boolean } | null>(null);
+  const [passaporte, setPassaporte] = useState(false);
   const touch = useTouch();
   const hasMap = !!hud?.map;
 
   useEffect(() => {
-    const paused = menu || mapOpen;
+    const paused = menu || mapOpen || passaporte;
     bus.emit("pause", paused);
     if (paused) resetTouchInput();
     return () => bus.emit("pause", false);
-  }, [menu, mapOpen]);
+  }, [menu, mapOpen, passaporte]);
 
   useEffect(() => {
     if (!banner) return;
@@ -53,6 +57,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setMapOpen(false);
+        setPassaporte(false);
         return;
       }
       if ((e.key === "m" || e.key === "M") && hasMap && !menu && !e.repeat) setMapOpen((o) => !o);
@@ -75,6 +80,8 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       bus.on("ready", () => setReady(true)),
       bus.on("toast", (msg) => setToast(msg)),
       bus.on("district", (d) => setBanner(d)),
+      bus.on("dialogo", (d) => setDialogo(d)),
+      bus.on("selo", (s) => setSelo(s)),
     ];
     const debug = new URLSearchParams(window.location.search).has("debug");
     void import("@/world/game/createGame").then(({ createGame }) => {
@@ -110,7 +117,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   };
 
   const driving = hud?.mode === "carro";
-  const action = hud?.action ?? null;
+  const action = dialogo ? null : (hud?.action ?? null);
 
   return (
     <div className="fixed inset-0 overflow-hidden overscroll-none bg-[#8fcb68] text-[#1e1424]" style={{ touchAction: "none" }}>
@@ -152,9 +159,20 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                   )}
                   <span className="text-[8px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[9px] [@media(max-height:480px)]:text-[8px]">Brasil hipotético · ficção satírica</span>
                 </div>
+                {hud.missao && (
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[9px] font-black uppercase tracking-wide text-[#c62835] sm:text-[10px]">
+                    <span>
+                      Missão {hud.missao.numero}/6 · {hud.missao.titulo}
+                    </span>
+                    <span className="rounded bg-[#1e1424] px-1 py-px text-[#ffe9a8]">
+                      etapa {hud.missao.etapa}/{hud.missao.total}
+                    </span>
+                  </p>
+                )}
                 <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px] [@media(max-height:480px)]:text-[10px]">
                   {touch && hud.objective.startsWith("Explore a cidade") ? "Explore a cidade e entre nos prédios. 🗺️ abre o mapa." : hud.objective}
                 </p>
+                {hud.missao?.carregando && <p className="mt-0.5 text-[10px] font-black text-[#1e1424]/80">🎒 Carregando: {hud.missao.carregando}</p>}
                 {hud.stamina !== null && (
                   <div className="mt-1 flex items-center gap-1.5" title="Energia de corrida: recarregue nas placas CACHAÇA · ENERGIA">
                     <span className="text-[10px]" aria-hidden>
@@ -203,6 +221,12 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
               <button type="button" onClick={toggleSound} aria-label={soundOn ? "Desligar som" : "Ligar som"} className="hud-btn">
                 {soundOn ? "🔊" : "🔈"}
               </button>
+              {hasMap && (
+                <button type="button" onClick={() => setPassaporte(true)} aria-label={`Passaporte do Absurdo: ${hud.selos?.length ?? 0} de 6 selos`} className="hud-btn relative">
+                  🛂
+                  <span className="absolute -bottom-2 -right-1.5 rounded-full border-2 border-[#1e1424] bg-[#ffd23f] px-1 text-[9px] font-black leading-tight">{hud.selos?.length ?? 0}/6</span>
+                </button>
+              )}
               {hasMap && (
                 <button type="button" onClick={() => setMapOpen(true)} aria-label="Abrir mapa (M)" className="hud-btn">
                   🗺️
@@ -316,6 +340,9 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
       )}
 
       {mapOpen && <CityMap onClose={() => setMapOpen(false)} />}
+      {passaporte && hud && <Passaporte selos={hud.selos ?? []} ativaNumero={hud.missao?.numero ?? null} onClose={() => setPassaporte(false)} />}
+      {selo && <SeloCard selo={selo} onFim={() => setSelo(null)} />}
+      {dialogo && <Dialogo d={dialogo} />}
 
       {menu && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-black/55 p-4" onClick={() => setMenu(false)}>

@@ -47,6 +47,10 @@ import { Culler } from "./culler";
 import { InteriorView } from "./interior";
 import { restoreToggles, runSpot, type SpotContext } from "./interactions";
 import { Rotinas } from "./Rotinas";
+import { Adornos } from "./Adornos";
+import { Missoes, type Anfitriao } from "./Missoes";
+import type { SeloDef } from "../../cidade/missoes/motor";
+import { CAMPANHA } from "../../cidade/missoes/campanha";
 import { Traffic, type Obstacle } from "./traffic";
 
 export interface CityData {
@@ -115,6 +119,13 @@ export class CityScene extends Phaser.Scene {
   private focusText!: Phaser.GameObjects.Text;
   private nextChat = 0;
   private rotinas!: Rotinas;
+  private missoes!: Missoes;
+  private adornos!: Adornos;
+  private dialogo: { quem?: string; linhas: string[]; i: number; fim: () => void } | null = null;
+  private msMarker!: Phaser.GameObjects.Text;
+  private msRing!: Phaser.GameObjects.Graphics;
+  private msAlvo: { x: number; y: number; label: string } | null = null;
+  private ctxKey = "";
   private noite!: Phaser.GameObjects.Rectangle;
   private horaSalvaEm = 0;
   private keys!: Keys;
@@ -182,6 +193,14 @@ export class CityScene extends Phaser.Scene {
     // moradores da rua vivem uma rotina diária (casa, ponto, almoço, bar); a luz da rua acompanha a hora
     this.rotinas = new Rotinas(this, this.npcs.slice(NPCS.length), this.progress.hora ?? HORA_INICIAL);
     this.noite = this.add.rectangle(0, 0, 7000, 5000, 0x0b1236, 1).setAlpha(0).setDepth(900000);
+    // campanha de missões: estado salvo no progresso, adereços na rua e marcador do destino
+    this.missoes = new Missoes(this.anfitriao(), this.progress.campanha);
+    this.adornos = new Adornos(this, (o, b) => this.culler.add(o, b));
+    this.adornos.atualiza(this.missoes.contexto());
+    this.msMarker = this.add.text(0, 0, "★", { fontFamily: FONT, fontSize: "46px", color: "#ffd23f", stroke: "#1e1424", strokeThickness: 7, resolution: 2 }).setOrigin(0.5, 1).setDepth(90001).setVisible(false);
+    this.msRing = this.add.graphics().setVisible(false);
+    this.msAlvo = this.missoes.alvoMapa();
+    this.unsubs.push(bus.on("dialogo-acao", (a) => (a === "avancar" ? this.avancaDialogo() : this.pulaDialogo())));
     this.traffic = new Traffic(this, this.rotinas.minuto, SPAWN.hero);
     for (const v of VEHICLES) {
       const car = new Car(this, v.x, v.y, v.angle, v.color);
@@ -640,7 +659,7 @@ export class CityScene extends Phaser.Scene {
     this.cameras.main.fadeOut(160, 20, 16, 30);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.inside = room;
-      this.interior = new InteriorView(this, room, this.progress.places);
+      this.interior = new InteriorView(this, room, this.contextoJogo());
       this.chamaVisitantes(room);
       restoreToggles(this.spotContext());
       this.rebuildSolids();
@@ -736,6 +755,7 @@ export class CityScene extends Phaser.Scene {
     this.cameras.main.flash(220, 255, 244, 206);
     const name = PLACES[place].name;
     this.toast(`${name}: ${(PLACES[place].states as Record<string, string>)[state] ?? state}`);
+    this.missoes.emite(`lugar:${place}:${state}`);
   }
 
   /** Refaz o interior atual no lugar, para refletir um estado que mudou enquanto o jogador está dentro. */
@@ -745,7 +765,7 @@ export class CityScene extends Phaser.Scene {
     this.interior.destroy();
     this.bubbles.forEach((bb) => bb.destroy());
     this.bubbles.clear();
-    this.interior = new InteriorView(this, room, this.progress.places);
+    this.interior = new InteriorView(this, room, this.contextoJogo());
     this.chamaVisitantes(room);
     restoreToggles(this.spotContext());
     this.rebuildSolids();
@@ -762,6 +782,8 @@ export class CityScene extends Phaser.Scene {
     if (!this.interior) return;
     const ms = runSpot(this.spotContext(), spot);
     this.busyUntil = this.time.now + ms;
+    // interações de missão avisam a campanha (o que acontece depende da etapa)
+    if (spot.evento) this.missoes.emite(`usou:${spot.evento}`);
   }
 
   private sit(spot: InteractionSpot, pose: "sentado" | "deitado") {
@@ -1050,7 +1072,8 @@ export class CityScene extends Phaser.Scene {
           // qualquer direção levanta
           if (kx !== 0 || ky !== 0 || Math.hypot(touchInput.x, touchInput.y) > 0.4) this.standUp();
           else this.player.animate(dt, 0, false);
-        } else if (this.mode === "pe" || !this.car) this.updateWalking(dt, kx, ky);
+        } else if (this.dialogo) this.player.animate(dt, 0, false);
+        else if (this.mode === "pe" || !this.car) this.updateWalking(dt, kx, ky);
         else {
           const car = this.car;
           const before = car.speed;
@@ -1082,6 +1105,7 @@ export class CityScene extends Phaser.Scene {
     }
     this.rotinas.update(frame, (n) => !this.inside && n.x > cam.x - 300 && n.x < cam.right + 300 && n.y > cam.y - 300 && n.y < cam.bottom + 300);
     this.atualizaNoite();
+    this.updateMissaoMarker(now);
     if (now - this.horaSalvaEm > 6000) {
       this.horaSalvaEm = now;
       saveHora(this.rotinas.minuto);
@@ -1320,9 +1344,126 @@ export class CityScene extends Phaser.Scene {
   private queueAction() {
     if (this.paused) return;
     const now = this.time.now;
+    // com um diálogo aberto, a tecla de ação avança as falas
+    if (this.dialogo) {
+      if (now - this.lastActionAt < 220) return;
+      this.lastActionAt = now;
+      this.avancaDialogo();
+      return;
+    }
     if (now - this.lastActionAt < 280) return;
     this.lastActionAt = now;
     this.actionQueued = true;
+  }
+
+  // ------------------------------------------------------------------ campanha
+
+  private anfitriao(): Anfitriao {
+    return {
+      lugares: () => this.progress.places,
+      aplicaLugar: (p, s) => {
+        if (isPlace(p)) this.changePlace(p, s);
+      },
+      ler: (t) => this.say("hero", t, 4600),
+      dialogo: (linhas, quem, fim) => this.abreDialogo(linhas, quem, fim),
+      toast: (t) => this.toast(t),
+      celebrar: (selo, n, completa) => this.celebra(selo, n, completa),
+      mudou: () => this.campanhaMudou(),
+    };
+  }
+
+  /** Estado dos lugares mais as chaves da campanha (pontos ativos, itens, flags): o que as condições `when` dos interiores leem. */
+  private contextoJogo(): Record<string, string> {
+    return { ...this.progress.places, ...this.missoes.contexto() };
+  }
+
+  /** A campanha mudou: atualiza adereços da rua, HUD, destino e, se preciso, o interior em que o jogador está. */
+  private campanhaMudou() {
+    this.adornos.atualiza(this.missoes.contexto());
+    this.msAlvo = this.missoes.alvoMapa();
+    const key = JSON.stringify(this.missoes.contexto());
+    if (key !== this.ctxKey) {
+      this.ctxKey = key;
+      if (this.inside && !this.seated) this.refreshInterior();
+    }
+    this.emitHud(true);
+  }
+
+  private abreDialogo(linhas: string[], quem: string | undefined, fim: () => void) {
+    this.dialogo = { quem, linhas, i: 0, fim };
+    touchInput.x = 0;
+    touchInput.y = 0;
+    this.mostraDialogo();
+  }
+
+  private mostraDialogo() {
+    const d = this.dialogo;
+    if (!d) {
+      bus.emit("dialogo", null);
+      return;
+    }
+    bus.emit("dialogo", { quem: d.quem ?? null, texto: d.linhas[d.i], i: d.i, total: d.linhas.length });
+    this.emitHud(true);
+  }
+
+  private avancaDialogo() {
+    const d = this.dialogo;
+    if (!d) return;
+    d.i++;
+    if (d.i >= d.linhas.length) this.fechaDialogo();
+    else {
+      sound.pop();
+      this.mostraDialogo();
+    }
+  }
+
+  private pulaDialogo() {
+    if (this.dialogo) this.fechaDialogo();
+  }
+
+  private fechaDialogo() {
+    const d = this.dialogo!;
+    this.dialogo = null;
+    bus.emit("dialogo", null);
+    this.busyUntil = this.time.now + 250;
+    d.fim();
+    this.emitHud(true);
+  }
+
+  /** Comemoração do selo: confete em volta do jogador, som e o cartão do Passaporte na interface. */
+  private celebra(selo: SeloDef, n: number, completa: boolean) {
+    sound.success();
+    const p = this.activePos();
+    const cores = ["#ffd23f", "#e63946", "#3a86ff", "#2f9e5a", "#c77dff", "#ff8c42"];
+    const total = completa ? 70 : 34;
+    for (let i = 0; i < total; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 40 + Math.random() * (completa ? 150 : 100);
+      const t = this.add
+        .text(p.x, p.y - 50, ["★", "✦", "●", "▲"][i % 4], { fontFamily: FONT, fontSize: `${14 + Math.floor(Math.random() * 14)}px`, color: cores[i % cores.length], stroke: "#1e1424", strokeThickness: 3, resolution: 2 })
+        .setOrigin(0.5)
+        .setDepth(99000);
+      this.tweens.add({ targets: t, x: p.x + Math.cos(a) * r, y: p.y - 50 + Math.sin(a) * r * 0.7 - 30, duration: 500 + Math.random() * 300, ease: "Cubic.easeOut" });
+      this.tweens.add({ targets: t, y: p.y + 60 + Math.random() * 60, alpha: 0, angle: Math.random() * 360, delay: 520, duration: 900 + Math.random() * 500, onComplete: () => t.destroy() });
+    }
+    this.cameras.main.flash(260, 255, 244, 206);
+    this.toast(completa ? "Passaporte do Absurdo completo! 6/6" : `Selo conquistado ${n}/6: ${selo.nome}`);
+    bus.emit("selo", { id: selo.id, nome: selo.nome, cor: selo.cor, icone: selo.icone, n, completa });
+  }
+
+  /** Estrela e anel dourados no destino da missão (ao ar livre), diferentes do marcador azul do mapa. */
+  private updateMissaoMarker(now: number) {
+    const t = this.inside || this.dialogo ? null : this.msAlvo;
+    this.msMarker.setVisible(!!t);
+    this.msRing.setVisible(!!t);
+    if (!t) return;
+    const s = this.uiScale();
+    this.msMarker.setPosition(t.x, t.y - 70 - Math.sin(now / 200) * 6 * s).setScale(s);
+    const pulse = 1 + Math.sin(now / 260) * 0.14;
+    this.msRing.clear();
+    this.msRing.lineStyle(5, 0xffd23f, 0.95);
+    this.msRing.strokeEllipse(t.x, t.y, 84 * pulse, 34 * pulse);
+    this.msRing.setDepth(t.y - 2);
   }
 
   /** Escurece a rua à noite (dentro dos prédios a luz é sempre a mesma). */
@@ -1334,7 +1475,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   private updateCandidate() {
-    if (this.transition) {
+    if (this.transition || this.dialogo) {
       this.candidate = null;
       return;
     }
@@ -1353,7 +1494,7 @@ export class CityScene extends Phaser.Scene {
       const room = this.inside;
       const d = Math.hypot(room.exit.x - px, room.exit.y - py);
       if (d < 60) cands.push({ label: "Sair para a rua", priority: 1, dist: d - 12, run: () => this.leaveInterior(), focus: null });
-      for (const spot of interiorSpots(room, this.progress.places)) {
+      for (const spot of interiorSpots(room, this.contextoJogo())) {
         const ds = Math.hypot(spot.x - px, spot.y - py);
         if (ds >= SPOT_DIST) continue;
         const prop = spot.prop ? this.interior.props.get(spot.prop) : undefined;
@@ -1385,9 +1526,13 @@ export class CityScene extends Phaser.Scene {
           if (ds < DOOR_DIST) cands.push({ label: "Entrar pela porta lateral", priority: 1, dist: ds, run: () => this.enterInterior(b, side), focus: { x: side.x, y: b.y + b.d - 84 } });
         }
       }
+      for (const pt of this.missoes.pontosFora()) {
+        const d = Math.hypot(pt.x - px, pt.y - py);
+        if (d < DOOR_DIST) cands.push({ label: pt.label, priority: 0, dist: d - 20, run: () => this.missoes.emite(`usou:${pt.id}`), focus: { x: pt.x, y: pt.y - 70 } });
+      }
       for (const n of this.npcs) {
         const d = Math.hypot(n.x - px, n.y - py);
-        if (d < TALK_DIST) cands.push({ label: `Falar com ${n.def.name}`, priority: 2, dist: d, run: () => this.talk(n), focus: { x: n.x, y: n.y - 86 } });
+        if (d < TALK_DIST) cands.push({ label: `Falar com ${n.def.name}`, priority: this.missoes.relevante(n.def.id) ? 1 : 2, dist: d, run: () => this.talk(n), focus: { x: n.x, y: n.y - 86 } });
       }
     }
     if (this.stamina < MAX_STAMINA - 1 && this.time.now - this.lastDrinkAt > 1500) {
@@ -1504,7 +1649,12 @@ export class CityScene extends Phaser.Scene {
   private talk(n: Npc) {
     n.attend(this.player.x, this.player.y);
     this.player.faceToward(n.x - this.player.x, n.y - this.player.y);
-    const lines = n.def.lines;
+    // campanha: quem dá a próxima missão começa a conversa; senão, a fala pode ser parte de uma etapa
+    if (this.missoes.iniciaSe(n.def.id) || this.missoes.emite(`falou:${n.def.id}`)) {
+      sound.pop();
+      return;
+    }
+    const lines = this.missoes.falaPara(n.def.id) ?? n.def.lines;
     // moradores com rotina comentam o que estão fazendo agora (de vez em quando)
     const doMomento = n.lineIdx % 2 === 0 ? this.rotinas.fala(n.id, Math.floor(n.lineIdx / 2)) : null;
     this.say(n.id, doMomento ?? lines[n.lineIdx % lines.length], 2600);
@@ -1722,7 +1872,16 @@ export class CityScene extends Phaser.Scene {
       const meters = Math.round(Math.hypot(w.x - p.x, w.y - p.y) / 4 / 10) * 10;
       objective = `Destino: ${w.label} · ${meters} m`;
     }
+    const camp = this.missoes.hud();
+    if (camp.missao) objective = camp.missao.objetivo;
+    else if (camp.proxima) objective = `Nova missão ${camp.proxima.numero}/6: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.`;
+    else if (camp.completa) objective = "Passaporte do Absurdo completo! A cidade é toda sua.";
+    worldState.missaoAlvo = this.msAlvo;
     const state: HudState = {
+      missao: camp.missao,
+      proxima: camp.proxima,
+      selos: camp.selos,
+      completa: camp.completa,
       mode: this.mode,
       action: this.candidate?.label ?? null,
       missionTitle: null,
@@ -1819,17 +1978,31 @@ export class CityScene extends Phaser.Scene {
       leave: () => this.leaveInterior(),
       /** Teleporta para uma interação do interior atual e devolve o rótulo. */
       gotoSpot: (index: number) => {
-        const spot = this.inside ? interiorSpots(this.inside, this.progress.places)[index] : undefined;
+        const spot = this.inside ? interiorSpots(this.inside, this.contextoJogo())[index] : undefined;
         if (!spot) return null;
         this.standUp();
         this.player.setPosition(spot.x, spot.y);
         this.camTarget = { x: spot.x, y: spot.y };
         return spot.label;
       },
-      spots: () => (this.inside ? interiorSpots(this.inside, this.progress.places) : []).map((sp) => ({ id: sp.id, kind: sp.kind, label: sp.label, x: sp.x, y: sp.y })) ?? [],
+      spots: () => (this.inside ? interiorSpots(this.inside, this.contextoJogo()) : []).map((sp) => ({ id: sp.id, kind: sp.kind, label: sp.label, x: sp.x, y: sp.y })) ?? [],
       interiors: () => INTERIORS.map((i) => ({ id: i.id, building: i.building, template: i.template, name: i.name, spots: i.spots.length, rooms: i.rooms.length })),
       candidate: () => this.candidate?.label ?? null,
       toggles: () => Object.fromEntries(this.toggles),
+      campanha: () => ({ ...this.missoes.estado, hud: this.missoes.hud(), alvo: this.msAlvo, dialogo: !!this.dialogo }),
+      emite: (ev: string) => this.missoes.emite(ev),
+      /** Começa a próxima missão como se o jogador tivesse falado com quem a dá (apoio de teste). */
+      iniciar: (id: string) => {
+        const m = CAMPANHA.missoes.find((x) => x.id === id);
+        return m ? this.missoes.iniciaSe(m.inicio.npc) : false;
+      },
+      ctx: () => this.contextoJogo(),
+      /** Onde está um morador da rua (apoio de teste). */
+      npc: (id: string) => {
+        const n = this.npcs.find((m) => m.id === id);
+        return n ? { x: Math.round(n.x), y: Math.round(n.y) } : null;
+      },
+      avancaDialogo: () => this.avancaDialogo(),
       trafegoDebug: () => this.traffic.cars.filter((c) => c.ativo && c.speedNow < 5).map((c) => c.debug()),
       /** Muda a hora da cidade (em horas, por exemplo 21.5) e ajeita os moradores na hora. */
       setHora: (h: number) => this.rotinas.ajustar(h * 60),

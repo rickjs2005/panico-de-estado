@@ -487,8 +487,11 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
       return { w: 30, h: 36, originY: 0.94, outline: 1, body: `<rect x="5" y="4" width="20" height="16" rx="3" fill="#2f6fd6"/><rect x="5" y="20" width="20" height="6" rx="2" fill="#3a86ff"/><rect x="7" y="26" width="3" height="8" fill="#55555c"/><rect x="20" y="26" width="3" height="8" fill="#55555c"/>` };
     case "painelSenha":
       return { w: 130, h: 46, originY: 0.98, outline: 1.2, body: `<rect x="4" y="4" width="122" height="38" rx="4" fill="#1e1424"/>` };
-    case "pilhaPapel":
-      return { w: 32, h: 40, originY: 0.94, outline: 1, body: Array.from({ length: 6 }, (_, i) => `<rect x="${3 + (i % 2) * 2}" y="${32 - i * 5}" width="24" height="5" fill="${i % 2 ? "#fffaf0" : "#efe6d2"}"/>`).join("") + `<rect x="10" y="2" width="12" height="6" rx="1" fill="#c62835"/>` };
+    case "pilhaPapel": {
+      // formulários coloridos da repartição (missão do protocolo): a cor da folha de cima identifica
+      const cor = ({ amarelo: "#f6c445", azul: "#3a86c8", verde: "#2f9e5a" } as Record<string, string>)[variant ?? ""];
+      return { w: 32, h: 40, originY: 0.94, outline: 1, body: Array.from({ length: 6 }, (_, i) => `<rect x="${3 + (i % 2) * 2}" y="${32 - i * 5}" width="24" height="5" fill="${i === 5 && cor ? cor : i % 2 ? "#fffaf0" : "#efe6d2"}"/>`).join("") + `<rect x="10" y="2" width="12" height="6" rx="1" fill="${cor ?? "#c62835"}"/>` };
+    }
     default:
       return propArt("lixeira");
   }
