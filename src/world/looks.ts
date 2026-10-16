@@ -45,6 +45,15 @@ export const LOOKS = {
   reitora: { skin: PELE.b, hair: "rabo", hairColor: "#65514a", glasses: "grau", shirt: "#36978b", pants: "#273b4d" },
   atendente: { skin: PELE.a, hair: "coque", hairColor: "#7a5a40", glasses: "grau", shirt: "#3a6b5a", badge: true, pants: "#2a3a38" },
   despachante: { skin: PELE.d, hair: "bone", hairColor: "#38211b", capColor: "#d84236", shirt: "#e9bc48", pants: "#34425b" },
+  // moradores genéricos da cidade do Lula (sem história própria nesta fase)
+  m1: { skin: PELE.b, hair: "curto", hairColor: "#2b1d14", shirt: "#e76f51", pants: "#2f3e46" },
+  m2: { skin: PELE.d, hair: "careca", hairColor: "#1a1210", beard: "bigode", beardColor: "#1a1210", shirt: "#f4f1de", pants: "#5a4636" },
+  m3: { skin: PELE.a, hair: "lateral", hairColor: "#8a6a4a", glasses: "grau", shirt: "#2a9d8f", pants: "#264653" },
+  m4: { skin: PELE.e, hair: "raspado", hairColor: "#1a1210", shirt: "#e9c46a", pants: "#3d405b" },
+  m5: { skin: PELE.c, hair: "coque", hairColor: "#35283a", shirt: "#c77dff", pants: "#2b2d42" },
+  m6: { skin: PELE.b, hair: "rabo", hairColor: "#4a2c1a", shirt: "#ff8fa3", pants: "#3a3a58" },
+  m7: { skin: PELE.d, hair: "coque", hairColor: "#c9c2b8", glasses: "grau", shirt: "#90be6d", pants: "#4a4e69" },
+  m8: { skin: PELE.a, hair: "rabo", hairColor: "#d9a441", shirt: "#4d96ff", pants: "#22223b" },
 } satisfies Record<string, WorldLook>;
 
 export type LookId = keyof typeof LOOKS;

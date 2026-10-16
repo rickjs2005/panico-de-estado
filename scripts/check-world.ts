@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { advance, BRASIL_PARA_CHINA, CAMPUS_LIBERADO, CHICOTE_EXPRESSO, KIT_DO_ZAP, OPERACAO_CADEADO } from "../src/world/mission";
 import { clearSave, isDone, markDone, readSave, saveProgress } from "../src/world/save";
-import { drainStamina } from "../src/world/stamina";
+import { drainStamina, RUN_DRAIN } from "../src/world/stamina";
 
 // Exercita ações fora de ordem, conclusão única e os eventos necessários em cada boato.
 const paths = [
@@ -52,7 +52,8 @@ Object.defineProperty(window, "localStorage", { get: () => { throw new Error("ar
 assert.deepEqual(readSave(), { done: [], progress: {} });
 assert.doesNotThrow(() => { markDone("lula", OPERACAO_CADEADO.id); saveProgress("lula", "x", "y", null); clearSave("lula"); });
 
-assert.equal(drainStamina(100, 10, true), 0, "energia não fica negativa");
+assert.equal(drainStamina(100, 60, true), 0, "energia não fica negativa");
+assert.ok(100 / RUN_DRAIN >= 12, "a barra cheia permite pelo menos 12 s de corrida");
 assert.equal(drainStamina(0, 10, false), 0, "caminhada continua disponível sem energia");
 assert.equal(drainStamina(80, 10, false), 80, "andar e dirigir não gastam energia");
 assert.equal(drainStamina(100, 1, true), drainStamina(drainStamina(100, 0.5, true), 0.5, true), "dreno independente da taxa de quadros");

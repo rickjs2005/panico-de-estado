@@ -58,6 +58,7 @@ export const TERMINAL: DistrictContent = {
     ...row("cabeco", 3330, 4500, 3424, 130),
     { kind: "palete", x: 4480, y: 2760 },
     { id: "ter-tambor-1", kind: "tambor", x: 4500, y: 2820, react: "wobble" },
+    { id: "ter-bicicleta", kind: "bicicleta", x: 3560, y: 2280, react: "tip" },
   ],
   pois: [
     { id: "ter-terminal", name: "Terminal Brasil–China", district: D, x: 4260, y: 3000, kind: "terminal", landmark: true, hooks: { missions: ["brasil-para-china"] } },

@@ -148,7 +148,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                   <span className="text-[8px] font-bold uppercase tracking-wide text-[#66556a] sm:text-[9px]">Brasil hipotético · ficção satírica</span>
                 </div>
                 <p className="mt-0.5 text-[11px] font-bold leading-snug sm:text-[13px]">
-                  {touch && hud.objective.startsWith("Explore") ? "Explore a cidade. 🗺️ abre o mapa." : hud.objective}
+                  {touch && hud.objective.startsWith("Explore a cidade") ? "Explore a cidade e entre nos prédios. 🗺️ abre o mapa." : hud.objective}
                 </p>
                 {hud.stamina !== null && (
                   <div className="mt-1 flex items-center gap-1.5" title="Energia de corrida: recarregue nas placas CACHAÇA · ENERGIA">
@@ -209,7 +209,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
             </div>
           </div>
 
-          {banner && (
+          {banner && !hud.inside && (
             <div className="pointer-events-none absolute left-1/2 top-[24%] -translate-x-1/2 -translate-y-1/2 text-center">
               <p className="whitespace-nowrap text-2xl font-black text-[#fffaf0] sm:text-4xl" style={{ WebkitTextStroke: "2px #1e1424", textShadow: `0 4px 0 #1e1424, 0 0 18px ${banner.color}` }}>
                 {banner.name}
@@ -293,11 +293,11 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                 e.preventDefault();
                 if (action) bus.emit("action");
               }}
-              className={`hud-round flex-col leading-none transition ${touch ? "h-[88px] w-[88px] text-base" : "h-[74px] w-[74px] text-sm"} ${
+              className={`hud-action transition ${touch ? "min-h-[76px] min-w-[96px] max-w-[11.5rem] text-[15px]" : "min-h-[60px] min-w-[84px] max-w-[13rem] text-[14px]"} ${
                 action ? "bg-[#ffd23f]" : "pointer-events-none scale-75 opacity-0"
               }`}
             >
-              <span className="font-black">{action ?? "—"}</span>
+              <span className="font-black leading-tight">{action ?? "—"}</span>
               {!touch && action && <span className="mt-1 rounded bg-[#1e1424] px-1.5 py-0.5 text-[10px] text-bone">E</span>}
             </button>
           </div>

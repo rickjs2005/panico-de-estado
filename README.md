@@ -40,13 +40,21 @@ Um Brasil fictício onde os boatos absurdos viraram realidade e o Lula caricato 
 
 **Infraestrutura:** anel de ruas na borda, três avenidas (do Povo, do Boato e da Exportação) e ruas locais com traçado próprio em cada distrito; calçadas, meio-fio, faixas de pedestre em todos os cruzamentos, placas com o nome das ruas, postes nas avenidas, sete estacionamentos com vagas pintadas e onze carros estacionados em pontos úteis.
 
+**Todas as 46 edificações têm interior.** Casas (cozinha, área de descanso com cama ou rede, sala), conjuntos (portaria, corredor e apartamento), prefeitura e ministério (recepção, gabinete, arquivo, reuniões, Central de Boatos), igrejas (nave, altar, sino ou violão, sacristia), escola e universidade (salas, merenda, auditório, DCE, reitoria), comércio (gôndolas, vitrines, balcões, cozinhas, estoques), oficinas e indústria (máquinas, porta-paletes, empilhadeira, contêineres). Cada interior tem pelo menos duas interações: sentar, deitar, ligar TV e rádio, abrir geladeira e armário, tocar sino, órgão ou campainha, carimbar, tirar senha, acionar máquinas, examinar objetos e beber cachaça onde faz sentido. As igrejas interditadas mantêm correntes e cadeado na porta da frente ("Ler o decreto") e entram pela **porta lateral** (tapete azul).
+
+**Ruas vivas:** 40 moradores genéricos passeiam, atravessam nas faixas, conversam em duplas e esperam em filas; 12 carros circulam em seis circuitos no sentido horário (só viram à direita, então nunca se cruzam), freiam para pedestres e para o jogador, buzinam e ultrapassam carros parados.
+
 **Exploração:**
 - O nome do distrito aparece ao entrar nele, e o HUD mostra onde você está.
 - O mapa abre com a tecla M ou com o botão 🗺️. Ele mostra a posição atual e os lugares, e marca um destino com seta e distância.
 - Lugares menores entram no mapa depois que você passa por eles.
 - O carro mais próximo é o que você dirige. Ao sair numa vaga pintada, o jogo avisa que o carro está estacionado.
 - Batidas derrubam frutas da feira, viram lixeiras e cones e fazem tambores balançarem.
-- Interiores: entre no **Bar do Tião** (com cachaça no balcão) e na **Repartição de Carimbos** pela porta com tapete vermelho, explore e saia pela SAÍDA.
+- Toda porta tem tapete. Perto dela, o botão mostra a ação certa ("Entrar no mercadinho", "Entrar na casa") e uma seta amarela indica o que vai receber a ação: porta, carro, móvel ou morador.
+- Dentro, o HUD mostra o prédio e o cômodo; a saída é o tapete vermelho embaixo ("Sair para a rua"). Ao sair, o jogador volta à mesma porta, em um ponto livre.
+- O mapa marca com ✓ os prédios já visitados, avisa quando você está dentro de uma edificação e mostra a ficha de cada prédio (cômodos, interações, cachaça).
+- Paredes internas, fachadas, árvores e placas altas ficam transparentes quando o personagem passa atrás.
+- Energia: a barra cheia dura cerca de 15 s de corrida; 11 pontos de cachaça (6 na rua, 5 dentro de bar, padaria, cantina, república e DCE). Andar e dirigir não gastam energia.
 
 ### Como a cidade está organizada
 
@@ -54,18 +62,24 @@ Um Brasil fictício onde os boatos absurdos viraram realidade e o Lula caricato 
 | --- | --- |
 | `src/world/cidade/layout.ts` | Geometria: tamanho, limites, ruas e distritos |
 | `src/world/cidade/distritos/*.ts` | Um arquivo por distrito: chão, prédios, objetos, lugares, estacionamentos, carros, moradores e paradas de cachaça |
-| `src/world/cidade/interiors.ts` | Interiores (salas fora da câmera da rua). Para criar um novo, acrescente uma sala e marque `interior` no prédio |
+| `src/world/cidade/interiores/index.ts` | Catálogo: cada prédio aponta para um modelo de interior e tem nome próprio |
+| `src/world/cidade/interiores/modelos.ts` | Modelos (casa, conjunto, prefeitura, igreja, mercado, fábrica…): cômodos, paredes, móveis, interações e moradores |
+| `src/world/cidade/interiores/kits.ts`, `plan.ts` | Conjuntos de móveis reaproveitados e o montador (ids estáveis, sorteio determinístico, espelhamento) |
+| `src/world/cidade/vida.ts` | Moradores genéricos (passeio, travessia, conversa, fila) e circuitos de trânsito |
 | `src/world/cidade/places.ts` | Estados persistentes dos lugares: igreja aberta/interditada, depósito vazio/abastecido, terminal em operação/parado, universidade normal/liberou geral |
 | `src/world/cidade/progress.ts` | Progresso próprio da cidade (estados, lugares descobertos e destino), numa chave separada |
 | `src/world/cidade/index.ts` | Junta os distritos e calcula colisões, portas e vagas |
-| `src/world/game/city/CityScene.ts` | Cena da cidade: chão em blocos, câmera, carros, interiores, estados, descoberta e destino |
-| `src/world/game/city/cityArt.ts` | Arte dos prédios e objetos novos (SVG desenhado em código) |
+| `src/world/game/city/CityScene.ts` | Cena da cidade: chão em blocos, câmera, carros, portas, estados, descoberta e destino |
+| `src/world/game/city/interior.ts` | Monta um interior quando o jogador entra e destrói ao sair (só um existe por vez) |
+| `src/world/game/city/interactions.ts` | Comportamentos das interações, reaproveitados por tipo |
+| `src/world/game/city/traffic.ts` | Trânsito: faixa da direita, curvas, frenagem, buzina e ultrapassagem |
+| `src/world/game/city/cityArt.ts`, `interiorArt.ts` | Arte dos prédios, objetos de rua e móveis (SVG desenhado em código) |
 | `src/world/game/city/culler.ts` | Só deixa visível o que está perto da câmera |
 | `src/components/world/CityMap.tsx` | Mapa da cidade |
 
-Cada prédio, objeto, lugar, morador, carro e estacionamento tem um id estável. Os campos `hooks` (missões e personagens futuros), `place` (estado persistente) e `interior` (porta) são onde as próximas histórias se conectam, sem redesenhar o mapa. Com `?debug=1`, `window.__pde.setPlace("igreja-matriz", "aberta")` muda um estado na hora.
+Cada prédio, interior, cômodo, parede, objeto, interação, lugar, morador, carro e estacionamento tem um id estável. Os campos `hooks` (missões e personagens futuros), `place` (estado persistente) e `interior` (porta) são onde as próximas histórias se conectam, sem redesenhar o mapa. Objetos de interior podem depender de um estado (`when`): o depósito de kits fica vazio quando o lugar muda para "vazio", e o corredor da universidade perde as barracas no "expediente normal". Com `?debug=1`, `window.__pde.setPlace("igreja-matriz", "aberta")` muda um estado na hora e `window.__pde.enter("com-padaria")` entra direto num prédio.
 
-`pnpm check:city` confere ids, prédios dentro dos distritos e fora das ruas. Ele também testa, por busca em grade, se dá para chegar a pé a todas as portas, lugares, moradores e paradas de cachaça, e de carro a todos os estacionamentos e veículos.
+`pnpm check:city` confere ids, prédios dentro dos distritos e fora das ruas, portas sem objetos na frente e o trânsito sobre o asfalto. Para cada uma das 46 edificações, confere que há interior ligado ao prédio certo, entrada livre, saída junto à parede de baixo, pelo menos duas interações e acesso a todos os cômodos, interações, moradores e balcões de cachaça (também com os estados alternativos dos lugares). Por busca em grade, testa se dá para chegar a pé a todas as portas, lugares, moradores e paradas de cachaça, e de carro a todos os estacionamentos e veículos.
 
 ### Controles
 
@@ -73,7 +87,8 @@ Cada prédio, objeto, lugar, morador, carro e estacionamento tem um id estável.
 | --- | --- | --- |
 | Andar | WASD ou setas | Direcional virtual |
 | Correr | Shift | Empurrar o direcional até a borda |
-| Interagir (Falar, Pegar, Entrar, Sair, Entregar, Beber) | E ou Enter | Botão de ação |
+| Interagir (entrar, sair, sentar, ligar, abrir, falar, beber…) | E ou Enter | Botão de ação (mostra a ação) |
+| Levantar | Qualquer direção | Direcional |
 | Mapa da cidade (Lula) | M (Esc fecha) | Botão 🗺️ |
 | Carro | W/↑ acelera, S/↓ freia e dá ré, A/D ←/→ vira, Espaço freio de mão, H buzina | Aponte o direcional para onde quer ir; segure **Ré** para voltar; **Bi-bi** buzina |
 

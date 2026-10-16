@@ -50,8 +50,8 @@ export const CIVICO: DistrictContent = {
     { id: "civ-assembleia", district: D, kind: "capela", x: 2855, y: 1480, w: 210, d: 110, h: 115, wall: "#e8e4f2", roof: "laje", sign: "ASSEMBLEIA DA FÉ", place: "assembleia" },
   ],
   props: [
-    { kind: "outdoor", x: 1840, y: 612, text: "O BOATO VIROU LEI" },
-    { kind: "outdoor", x: 2960, y: 612, text: "MINISTÉRIO DO BOATO · SEU ÁUDIO É NOTÍCIA" },
+    { kind: "placaColetiva", x: 1770, y: 612, text: "O BOATO VIROU LEI" },
+    { kind: "placaColetiva", x: 3020, y: 612, text: "SEU ÁUDIO É NOTÍCIA" },
     { kind: "bandeira", x: 2175, y: 612 },
     { kind: "bandeira", x: 2625, y: 612 },
     { kind: "bandeira", x: 2300, y: 612 },
@@ -72,14 +72,16 @@ export const CIVICO: DistrictContent = {
     { id: "civ-lixeira-praca", kind: "lixeira", x: 2460, y: 1050, react: "tip" },
     ...frades(),
     // igreja e repartições
-    { kind: "palmeira", x: 1745, y: 1170 },
     { kind: "palmeira", x: 1940, y: 1170 },
     { kind: "placaColetiva", x: 1780, y: 1655, text: "SENHA: RETIRE NO GUICHÊ" },
     { kind: "orelhao", x: 1985, y: 1650 },
-    { kind: "outdoor", x: 2560, y: 1668, text: "PIX COLETIVO: O SEU É DE TODOS" },
     { kind: "pontoOnibus", x: 2400, y: 1705 },
     { id: "civ-cone-1", kind: "cone", x: 2460, y: 1390, react: "tip" },
     { id: "civ-cone-2", kind: "cone", x: 2140, y: 1390, react: "tip" },
+    { kind: "quiosque", x: 2620, y: 1170, variant: "praca" },
+    { kind: "canteiro", x: 1900, y: 600 },
+    { kind: "canteiro", x: 2250, y: 640 },
+    { kind: "canteiro", x: 2550, y: 640 },
   ],
   pois: [
     { id: "civ-praca", name: "Praça da Revolução Boateira", district: D, x: 2400, y: 1040, kind: "praca", landmark: true },
@@ -130,5 +132,5 @@ export const CIVICO: DistrictContent = {
       hooks: { missions: ["operacao-cadeado"] },
     },
   ],
-  cachaca: [],
+  cachaca: [{ id: "cachaca-praca", name: "Quiosque da Praça", district: D, x: 2568, y: 1160 }],
 };

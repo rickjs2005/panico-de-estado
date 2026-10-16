@@ -1,6 +1,8 @@
 import type { BuildingDef } from "../../map";
 import type { CityBuilding, CityPropKind } from "../../cidade/types";
-import { awningSvg, buildingArt, INK, laje, propArt, shade, signSvg, telhado, windowSvg, type Art, type PropArt } from "../art";
+import { doorFrac } from "../../cidade";
+import { awningSvg, buildingArt, INK, laje, propArt, shade, signSvg, telhado, windowSvg, type Art, type PropArt, type RoofColors } from "../art";
+import { interiorPropArt } from "./interiorArt";
 
 /**
  * Arte da cidade do Lula: prédios com função própria (prefeitura, ministério,
@@ -8,7 +10,87 @@ import { awningSvg, buildingArt, INK, laje, propArt, shade, signSvg, telhado, wi
  * e o mobiliário de cada distrito. Mesmo traço do bairro: chapado, contorno escuro.
  */
 
-const OLD_KINDS = new Set(["casa", "loja", "igreja", "fabrica", "escola"]);
+const OLD_KINDS = new Set(["loja", "igreja", "fabrica", "escola"]);
+
+/** Telhados em tons mais suaves que o laranja do bairro: não disputam atenção com o personagem. */
+const ROOFS: RoofColors[] = [
+  { back: "#d4896a", front: "#bc6f52", ridge: "#e2a084", line: "#a65d43" },
+  { back: "#a9acb3", front: "#93979f", ridge: "#c0c3c8", line: "#7f838b" },
+  { back: "#98ae84", front: "#82986f", ridge: "#adc39a", line: "#6f845d" },
+  { back: "#b97468", front: "#a05e54", ridge: "#cc8d82", line: "#8b4f46" },
+  { back: "#c99a6a", front: "#b18255", ridge: "#dbb184", line: "#966c45" },
+];
+
+function idHash(id: string) {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h;
+}
+
+export function roofFor(id: string): RoofColors {
+  return ROOFS[idHash(id) % ROOFS.length];
+}
+
+/**
+ * Casas da cidade: porta onde o jogo espera, janelas do outro lado e detalhes sorteados
+ * por casa (jardim, vasos, grade, botijão, toldo, varal e caixa d'água na laje).
+ */
+function casaArt(b: CityBuilding): Art {
+  const h = idHash(b.id);
+  const top = b.top ?? 0;
+  const W = b.w;
+  const H = top + b.d + b.h;
+  const fy = top + b.d;
+  const parts: string[] = [];
+  const doorX = W * doorFrac(b);
+  if (b.roof === "telha") parts.push(telhado(W, top, b.d, roofFor(b.id)));
+  else {
+    parts.push(laje(W, top, b.d, h));
+    // varal na laje
+    const vy = top + b.d * 0.62;
+    const clothes = ["#e63946", "#ffd23f", "#3a86ff", "#2e7d32", "#ff9f80", "#f4f1de"];
+    parts.push(`<path d="M${W * 0.08} ${vy} H${W * 0.5}" stroke="#55555c" stroke-width="1.2"/>`);
+    for (let i = 0; i < 4; i++) parts.push(`<rect x="${W * 0.1 + i * (W * 0.1)}" y="${vy}" width="${8 + (i % 2) * 3}" height="${9 - (i % 2) * 2}" fill="${clothes[(h + i) % 6]}"/>`);
+  }
+  parts.push(`<rect x="0" y="${fy}" width="${W}" height="${b.h}" fill="${b.wall}"/>`);
+  parts.push(`<rect x="0" y="${fy}" width="${W}" height="7" fill="${shade(b.wall, 0.3)}"/>`);
+  // barrado (meia parede pintada) em parte das casas
+  if (h % 3 === 0) parts.push(`<rect x="0" y="${H - 30}" width="${W}" height="20" fill="${shade(b.wall, -0.12)}"/>`);
+  parts.push(`<rect x="0" y="${H - 10}" width="${W}" height="10" fill="${shade(b.wall, -0.25)}"/>`);
+  // porta com batente e número
+  parts.push(`<rect x="${doorX - 16}" y="${H - 54}" width="32" height="54" fill="${shade(b.wall, -0.3)}"/>`);
+  parts.push(`<rect x="${doorX - 13}" y="${H - 51}" width="26" height="51" fill="${["#8a5a3a", "#3a6b8a", "#6b8a3a", "#8a3a4a"][h % 4]}"/><circle cx="${doorX + 7}" cy="${H - 25}" r="2" fill="#f2c230"/>`);
+  parts.push(`<rect x="${doorX - 8}" y="${H - 66}" width="16" height="10" rx="2" fill="#fffaf0"/><text x="${doorX}" y="${H - 58}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="7" text-anchor="middle" fill="${INK}">${(h % 97) + 3}</text>`);
+  // janelas do outro lado da porta
+  const ww = Math.min(40, W * 0.24);
+  const wy = H - b.h * 0.64;
+  const left = doorX > W / 2;
+  const wx = left ? W * 0.1 : W - W * 0.1 - ww;
+  parts.push(windowSvg(wx, wy, ww, 28));
+  if (W > 170) parts.push(windowSvg(left ? wx + ww + 14 : wx - ww - 14, wy, ww, 28));
+  if (h % 4 === 1) parts.push(awningSvg(wx - 4, wy - 10, ww + 8, ["#e63946", "#fff4e0"]));
+  // grade baixa na frente, com vão na porta
+  if (h % 2 === 0) {
+    const g: string[] = [];
+    for (let x = 4; x < W - 4; x += 8) if (Math.abs(x - doorX) > 22) g.push(`M${x} ${H - 2} V${H - 16}`);
+    parts.push(`<path d="${g.join(" ")}" stroke="#55555c" stroke-width="1.6"/><path d="M2 ${H - 16} H${doorX - 22} M${doorX + 22} ${H - 16} H${W - 2}" stroke="#55555c" stroke-width="2"/>`);
+  }
+  // jardim ou vasos
+  const gx = left ? W * 0.08 : W * 0.62;
+  if (h % 5 < 2) {
+    parts.push(`<rect x="${gx}" y="${H - 9}" width="${W * 0.3}" height="9" fill="#5aa04a"/>`);
+    for (let i = 0; i < 4; i++) parts.push(`<circle cx="${gx + 8 + i * (W * 0.07)}" cy="${H - 8}" r="3" fill="${["#e63946", "#ffd23f", "#f28dc0", "#ffffff"][(h + i) % 4]}"/>`);
+  } else {
+    parts.push(`<path d="M${gx} ${H - 14} H${gx + 12} L${gx + 10} ${H} H${gx + 2} Z" fill="#c9552f"/><circle cx="${gx + 6}" cy="${H - 18}" r="6" fill="#4cae55"/>`);
+  }
+  // botijão de gás ou bicicleta coletiva encostada
+  if (h % 7 === 3) parts.push(`<rect x="${left ? W - 26 : 10}" y="${H - 22}" width="14" height="20" rx="5" fill="#2f6fd6"/><rect x="${left ? W - 23 : 13}" y="${H - 26}" width="8" height="5" fill="#55555c"/>`);
+  if (h % 7 === 5) parts.push(`<circle cx="${left ? W - 40 : 20}" cy="${H - 8}" r="7" fill="none" stroke="#2a2a35" stroke-width="2"/><circle cx="${left ? W - 18 : 42}" cy="${H - 8}" r="7" fill="none" stroke="#2a2a35" stroke-width="2"/><path d="M${left ? W - 40 : 20} ${H - 8} L${left ? W - 30 : 30} ${H - 18} L${left ? W - 18 : 42} ${H - 8}" stroke="#e63946" stroke-width="2" fill="none"/>`);
+  // adesivo da coletivização em algumas portas
+  if (h % 3 === 1) parts.push(`<rect x="${doorX - 11}" y="${H - 44}" width="22" height="9" rx="1" fill="#c62835"/><text x="${doorX}" y="${H - 37.5}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="4.6" text-anchor="middle" fill="#fff4ce">DO POVO</text>`);
+  if (b.sign) parts.push(signSvg(b.sign, W * 0.1, fy + 10, W * 0.8, 18));
+  return { w: W, h: H, body: parts.join(""), outline: 1.3 };
+}
 
 function star(cx: number, cy: number, r: number, fill: string) {
   const pts: string[] = [];
@@ -35,17 +117,18 @@ function glassDoor(x: number, bottom: number, w: number, h: number) {
 }
 
 export function cityBuildingArt(b: CityBuilding, seed: number): Art {
-  if (OLD_KINDS.has(b.kind)) return buildingArt(b as unknown as BuildingDef, seed);
+  if (b.kind === "casa") return casaArt(b);
+  if (OLD_KINDS.has(b.kind)) return buildingArt({ ...(b as unknown as BuildingDef), door: doorFrac(b) }, seed, roofFor(b.id));
   const top = b.top ?? 0;
   const W = b.w;
   const H = top + b.d + b.h;
   const fy = top + b.d;
   const parts: string[] = [];
-  const doorX = W * (b.door ?? 0.5);
+  const doorX = W * doorFrac(b);
 
   switch (b.kind) {
     case "prefeitura": {
-      parts.push(telhado(W, top, b.d));
+      parts.push(telhado(W, top, b.d, roofFor(b.id)));
       parts.push(`<path d="M${W / 2 - 74} ${fy - 6} A74 74 0 0 1 ${W / 2 + 74} ${fy - 6} Z" fill="#d94a3a"/>`);
       parts.push(`<path d="M${W / 2 - 40} ${fy - 30} Q${W / 2} ${fy - 74} ${W / 2 + 40} ${fy - 30}" stroke="#f28da0" stroke-width="5" fill="none"/>`);
       parts.push(`<rect x="${W / 2 - 9}" y="${fy - 98}" width="18" height="22" fill="#f2c230"/>` + star(W / 2, fy - 110, 13, "#ffd23f"));
@@ -153,7 +236,8 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
       parts.push(laje(W, top, b.d, seed));
       base(b, fy, H, parts);
       for (let x = 0; x < W; x += 20) parts.push(`<path d="M${x} ${fy + 38} l10 0 l-8 10 l-10 0 Z" fill="${INK}"/>`);
-      for (let i = 0; i < 3; i++) {
+      parts.push(glassDoor(doorX, H - 10, 40, 44));
+      for (const i of [0, 2]) {
         const cx = W * 0.2 + i * W * 0.3;
         parts.push(`<rect x="${cx - 26}" y="${H - 56}" width="52" height="46" rx="3" fill="#fffaf0"/><rect x="${cx - 18}" y="${H - 50}" width="36" height="18" fill="#8ec5e8"/>`);
         parts.push(`<text x="${cx}" y="${H - 18}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}">${["SAÍDA", "CARIMBO", "CHINA"][i]}</text>`);
@@ -163,7 +247,7 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
       break;
     }
     case "universidade": {
-      parts.push(telhado(W, top, b.d));
+      parts.push(telhado(W, top, b.d, roofFor(b.id)));
       // torre do relógio
       const tw = 70;
       parts.push(`<rect x="${W / 2 - tw / 2}" y="${top - 70}" width="${tw}" height="${b.d + 80}" fill="${shade(b.wall, -0.04)}"/>`);
@@ -195,10 +279,14 @@ const KIOSK: Record<string, [string, string]> = {
   boteco: ["#d62839", "#fff4e0"],
   dce: ["#3a86c8", "#ffd23f"],
   exportacao: ["#d1453b", "#ffd23f"],
+  praca: ["#c62835", "#ffd23f"],
+  fabrica: ["#8a8f98", "#ffd23f"],
 };
 
 export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
   if (OLD_PROPS.has(kind)) return propArt(kind as Parameters<typeof propArt>[0], variant);
+  const inner = interiorPropArt(kind, variant);
+  if (inner) return inner;
   switch (kind) {
     case "palmeira":
       return {
@@ -416,18 +504,21 @@ export function waterTile(): Art {
   };
 }
 
-export function cityTile(kind: "concreto" | "patio" | "quadra" | "piso-bar" | "piso-reparticao"): Art {
+export function cityTile(kind: "concreto" | "patio" | "quadra" | "ondas-cidade"): Art {
   switch (kind) {
+    case "ondas-cidade":
+      // calçadão de ondas em tons de areia: lembra Copacabana sem disputar atenção com o personagem
+      return {
+        w: 64,
+        h: 32,
+        body: `<rect width="64" height="32" fill="#e8dcc4"/><path d="M0 16 Q8 6 16 16 T32 16 T48 16 T64 16 V32 H0 Z" fill="#cdbb9a"/><path d="M0 16 Q8 6 16 16 T32 16 T48 16 T64 16" stroke="#bfae8c" stroke-width="1.2" fill="none"/>`,
+      };
     case "concreto":
       return { w: 64, h: 64, body: `<rect width="64" height="64" fill="#c9c4bb"/><path d="M0 0.5 H64 M0.5 0 V64" stroke="#b3ada2" stroke-width="1.2"/><circle cx="20" cy="40" r="1.4" fill="#aaa397"/><circle cx="48" cy="14" r="1.2" fill="#aaa397"/>` };
     case "patio":
       return { w: 64, h: 64, body: `<rect width="64" height="64" fill="#5a5a66"/><circle cx="12" cy="18" r="1.2" fill="#6c6c78"/><circle cx="44" cy="40" r="1.4" fill="#6c6c78"/><circle cx="30" cy="56" r="1" fill="#6c6c78"/>` };
     case "quadra":
       return { w: 64, h: 64, body: `<rect width="64" height="64" fill="#3f9b7a"/>` };
-    case "piso-bar":
-      return { w: 32, h: 32, body: `<rect width="32" height="32" fill="#f4efe4"/><rect width="16" height="16" fill="#c94a3a"/><rect x="16" y="16" width="16" height="16" fill="#c94a3a"/>` };
-    case "piso-reparticao":
-      return { w: 32, h: 32, body: `<rect width="32" height="32" fill="#d8d2c2"/><path d="M0 0.5 H32 M0.5 0 V32" stroke="#bdb5a3" stroke-width="1"/>` };
   }
 }
 

@@ -577,16 +577,25 @@ export function windowSvg(x: number, y: number, w: number, h: number) {
   return `<rect x="${x - 2}" y="${y - 2}" width="${w + 4}" height="${h + 4}" rx="2" fill="#fffaf0"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#8ec5e8"/><path d="M${x} ${y + h * 0.35} L${x + w * 0.4} ${y}" stroke="#c9e7ff" stroke-width="3"/>${bars}`;
 }
 
-export function telhado(w: number, top: number, d: number) {
+/** Cores de um telhado de telha: água de trás, água da frente, cumeeira e linhas. */
+export interface RoofColors {
+  back: string;
+  front: string;
+  ridge: string;
+  line: string;
+}
+const TELHA: RoofColors = { back: "#e07445", front: "#c9552f", ridge: "#ef8a5a", line: "#a9441f" };
+
+export function telhado(w: number, top: number, d: number, c: RoofColors = TELHA) {
   const ridge = top + d * 0.42;
-  const rows = Array.from({ length: Math.floor((top + d - ridge) / 9) }, (_, i) => `<path d="M2 ${ridge + 8 + i * 9} H${w - 2}" stroke="#a9441f" stroke-width="1.6"/>`).join("");
-  const back = Array.from({ length: Math.floor((ridge - top) / 9) }, (_, i) => `<path d="M2 ${top + 6 + i * 9} H${w - 2}" stroke="#c4582e" stroke-width="1.2"/>`).join("");
+  const rows = Array.from({ length: Math.floor((top + d - ridge) / 9) }, (_, i) => `<path d="M2 ${ridge + 8 + i * 9} H${w - 2}" stroke="${c.line}" stroke-width="1.6"/>`).join("");
+  const back = Array.from({ length: Math.floor((ridge - top) / 9) }, (_, i) => `<path d="M2 ${top + 6 + i * 9} H${w - 2}" stroke="${shade(c.back, -0.12)}" stroke-width="1.2"/>`).join("");
   return (
-    `<rect x="0" y="${top}" width="${w}" height="${d}" fill="#e07445"/>` +
+    `<rect x="0" y="${top}" width="${w}" height="${d}" fill="${c.back}"/>` +
     back +
-    `<rect x="0" y="${ridge}" width="${w}" height="${top + d - ridge}" fill="#c9552f"/>` +
+    `<rect x="0" y="${ridge}" width="${w}" height="${top + d - ridge}" fill="${c.front}"/>` +
     rows +
-    `<rect x="0" y="${ridge - 3}" width="${w}" height="6" fill="#ef8a5a"/>`
+    `<rect x="0" y="${ridge - 3}" width="${w}" height="6" fill="${c.ridge}"/>`
   );
 }
 
@@ -615,7 +624,7 @@ export function awningSvg(x: number, y: number, w: number, colors: [string, stri
   return s;
 }
 
-export function buildingArt(b: BuildingDef, seed: number): Art {
+export function buildingArt(b: BuildingDef & { door?: number }, seed: number, roof?: RoofColors): Art {
   const top = b.top ?? 0;
   const W = b.w;
   const H = top + b.d + b.h;
@@ -625,7 +634,7 @@ export function buildingArt(b: BuildingDef, seed: number): Art {
 
   if (b.kind === "igreja") {
     const tw = 54;
-    parts.push(telhado(W, top, b.d));
+    parts.push(telhado(W, top, b.d, roof));
     // corpo central
     parts.push(`<rect x="${tw - 6}" y="${fy - 20}" width="${W - 2 * tw + 12}" height="${b.h + 20}" fill="${b.wall}"/>`);
     parts.push(`<path d="M${tw - 6} ${fy - 20} L${W / 2} ${fy - 62} L${W - tw + 6} ${fy - 20} Z" fill="${b.wall}"/>`);
@@ -675,14 +684,15 @@ export function buildingArt(b: BuildingDef, seed: number): Art {
   }
 
   // casas, lojas e escola
-  parts.push(b.roof === "telha" ? telhado(W, top, b.d) : laje(W, top, b.d, seed));
+  parts.push(b.roof === "telha" ? telhado(W, top, b.d, roof) : laje(W, top, b.d, seed));
   parts.push(`<rect x="0" y="${fy}" width="${W}" height="${b.h}" fill="${b.wall}"/>`);
   parts.push(`<rect x="0" y="${fy}" width="${W}" height="7" fill="${shade(b.wall, 0.3)}"/>`);
   parts.push(`<rect x="0" y="${bottom - 10}" width="${W}" height="10" fill="${shade(b.wall, -0.25)}"/>`);
 
   if (b.kind === "loja") {
-    const dx = W * 0.12;
+    // a porta de enrolar fica centrada na porta (padrão: 37% da largura)
     const dw = W * 0.5;
+    const dx = Math.max(4, Math.min(W - dw - 4, W * (b.door ?? 0.37) - dw / 2));
     const dh = Math.min(56, b.h - 34);
     // porta de enrolar meio aberta
     parts.push(`<rect x="${dx}" y="${bottom - dh}" width="${dw}" height="${dh}" fill="#3a2f2f"/>`);
@@ -693,7 +703,8 @@ export function buildingArt(b: BuildingDef, seed: number): Art {
     parts.push(`<rect x="${dx}" y="${bottom - dh}" width="${dw}" height="${dh * 0.38}" fill="#a9adb3"/>`);
     for (let y = bottom - dh + 4; y < bottom - dh * 0.62; y += 4) parts.push(`<path d="M${dx} ${y} H${dx + dw}" stroke="#7d828a" stroke-width="1"/>`);
     if (b.awning) parts.push(awningSvg(dx - 8, bottom - dh - 16, dw + 16, b.awning));
-    parts.push(windowSvg(W * 0.7, bottom - dh + 4, W * 0.2, 30));
+    const winX = dx + dw / 2 < W / 2 ? W * 0.7 : W * 0.1;
+    parts.push(windowSvg(winX, bottom - dh + 4, W * 0.2, 30));
     if (b.sign) parts.push(signSvg(b.sign, W * 0.06, fy + 12, W * 0.88, Math.min(26, b.h - dh - 26)));
   } else if (b.kind === "escola") {
     parts.push(`<rect x="0" y="${bottom - 34}" width="${W}" height="24" fill="#3a86c8"/>`);

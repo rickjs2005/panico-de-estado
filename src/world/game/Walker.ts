@@ -175,9 +175,21 @@ export class Walker {
     if (carry) this.held.setPosition(side ? 6 : 0, -84 + bob).setRotation(Math.sin(this.t * 3) * 0.12);
   }
 
+  /** Sentado (pernas escondidas atrás do móvel) ou deitado (boneco tombado). `null` levanta. */
+  pose: "sentado" | "deitado" | null = null;
+  setPose(pose: "sentado" | "deitado" | null) {
+    this.pose = pose;
+    this.legA.setVisible(pose !== "sentado");
+    this.legB.setVisible(pose !== "sentado");
+    this.shadow.setVisible(pose === null);
+    this.body.setRotation(pose === "deitado" ? -Math.PI / 2 : 0);
+    this.body.setPosition(pose === "deitado" ? -6 : 0, pose === "sentado" ? 10 : pose === "deitado" ? -8 : 0);
+  }
+
   /** Pulinho de susto. */
   hop(height = 16) {
-    this.scene.tweens.add({ targets: this.body, y: -height, duration: 150, yoyo: true, ease: "Quad.easeOut" });
+    const base = this.body.y;
+    this.scene.tweens.add({ targets: this.body, y: base - height, duration: 150, yoyo: true, ease: "Quad.easeOut", onComplete: () => this.body.setY(base) });
   }
 
   destroy() {

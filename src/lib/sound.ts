@@ -73,6 +73,36 @@ export const sound = {
   tick() {
     tone(1000, 0, 0.05, "square", 0.025);
   },
+  /** Sino de igreja. */
+  sino() {
+    tone(392, 0, 1.4, "sine", 0.09);
+    tone(784, 0, 0.9, "sine", 0.03);
+    tone(392, 0.7, 1.4, "sine", 0.07);
+  },
+  /** Campainha de balcão ou de porta. */
+  campainha() {
+    tone(1568, 0, 0.35, "sine", 0.05);
+    tone(1175, 0.18, 0.45, "sine", 0.05);
+  },
+  /** Chiado de TV ou rádio ligando. */
+  chiado() {
+    for (let i = 0; i < 6; i++) tone(200 + ((i * 431) % 900), i * 0.03, 0.05, "square", 0.012);
+  },
+  /** Trecho curto de música (rádio, órgão, violão). */
+  notas(kind: "radio" | "orgao" | "violao" = "radio") {
+    const seq = kind === "orgao" ? [262, 330, 392, 523] : kind === "violao" ? [196, 247, 294, 392] : [523, 587, 659, 523];
+    const type: OscillatorType = kind === "orgao" ? "sawtooth" : kind === "violao" ? "triangle" : "square";
+    seq.forEach((f, i) => tone(f, i * 0.16, kind === "orgao" ? 0.5 : 0.18, type, kind === "orgao" ? 0.02 : 0.03));
+  },
+  /** Máquina ligando. */
+  maquina() {
+    tone(80, 0, 0.6, "sawtooth", 0.04);
+    tone(120, 0.15, 0.5, "square", 0.02);
+  },
+  /** Água ou fritura. */
+  agua() {
+    for (let i = 0; i < 5; i++) tone(1200 + i * 140, i * 0.05, 0.04, "sine", 0.02);
+  },
   success() {
     tone(660, 0, 0.12, "triangle", 0.06);
     tone(880, 0.1, 0.12, "triangle", 0.06);

@@ -7,6 +7,8 @@ import { BUILDINGS as CITY_BUILDINGS, PROPS as CITY_PROPS, INTERIOR_PROPS, VEHIC
 import { BUILDINGS, PROPS } from "../map";
 import type { HeroId } from "../types";
 import { casinhaArt, cityBuildingArt, cityPropArt, cityTile, interdicaoArt, navioArt, waterTile } from "./city/cityArt";
+import { floorTile } from "./city/interiorArt";
+import type { FloorKind } from "../cidade/types";
 import { lulaItemArt } from "./lulaArt";
 import {
   arm,
@@ -125,7 +127,8 @@ function jobs(hero: HeroId): Job[] {
     CITY_TEX.set(b.id, key);
     add(key, art, RES.cityBuilding);
   });
-  for (const t of ["concreto", "patio", "quadra", "piso-bar", "piso-reparticao"] as const) add(`tile:${t}`, cityTile(t), RES.tile);
+  for (const t of ["concreto", "patio", "quadra", "ondas-cidade"] as const) add(`tile:${t}`, cityTile(t), RES.tile);
+  for (const f of ["taco", "ceramica", "ladrilho", "piso-bar", "piso-reparticao", "concreto", "carpete", "marmore", "azulejo"] as FloorKind[]) add(`floor:${f}`, floorTile(f), RES.tile);
   add("tile:agua", waterTile(), RES.tile);
   ["#f2a7b8", "#7fb3d5", "#ffd23f", "#b5e48c", "#ff9f80", "#cdb4db"].forEach((c, i) => add(`casinha:${i}`, casinhaArt(c), RES.prop));
   add("navio", navioArt(), RES.big);

@@ -12,7 +12,7 @@ import type { DistrictDef, RoadDef } from "./types";
 export const CITY = { w: 4800, h: 3600 };
 
 /** Faixa de interiores, abaixo da cidade e fora da câmera da rua. */
-export const INTERIOR_ZONE = { y: 3900, h: 700 };
+export const INTERIOR_ZONE = { y: 3900, h: 900 };
 export const WORLD_H = INTERIOR_ZONE.y + INTERIOR_ZONE.h;
 
 /** Limites: morro ao norte, canal a oeste, baía ao sul e o muro a leste. */

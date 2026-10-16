@@ -23,7 +23,8 @@ export interface Point {
 /** O que a interface precisa saber do mundo. */
 export interface HudState {
   mode: "pe" | "carro";
-  action: ActionLabel | null;
+  /** Texto da ação contextual (na cidade pode ser longo: "Entrar no mercadinho"). */
+  action: string | null;
   missionTitle: string | null;
   objective: string;
   done: boolean;
@@ -34,4 +35,6 @@ export interface HudState {
   place?: string | null;
   /** A cidade tem mapa. */
   map?: boolean;
+  /** Dentro de uma edificação (nome do prédio e do cômodo). */
+  inside?: { building: string; name: string; room: string | null } | null;
 }
