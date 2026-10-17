@@ -1,5 +1,5 @@
 import type { LookId } from "../../looks";
-import type { Point, Rect } from "../../types";
+import type { HeroId, Point, Rect } from "../../types";
 import type {
   CityBuilding,
   CityPropKind,
@@ -59,13 +59,35 @@ export interface PlanOptions {
   wall: string;
   /** Posição da porta de saída na parede de baixo (local). */
   exitX?: number;
+  /** Tradução dos textos do modelo (falas, cartazes, rótulos, nomes) para o universo da cidade. */
+  texto?: (s: string) => string;
+  /** A cidade não tem energia de corrida: os balcões de cachaça não entram. */
+  semCachaca?: boolean;
+  /** Universo do interior: no do Flávio, objetos com marca do Lula (bandeira, retrato, freezer…) trocam de arte. */
+  universo?: HeroId;
 }
+
+/** Objetos com a marca do Lula ganham a versão do Brasil do Flávio (a planta e as ações são as mesmas). */
+const VARIANTE_FLAVIO: Partial<Record<CityPropKind, (v: string | undefined) => string | undefined>> = {
+  bandeira: () => "brasil",
+  quadro: (v) => `${v ?? "padrao"}-flavio`,
+  maquina: (v) => `${v ?? "prensa"}-flavio`,
+  freezer: (v) => `${v ?? "padrao"}-flavio`,
+  cofre: (v) => (v?.endsWith("-flavio") ? v : `${v ?? "padrao"}-flavio`),
+  painelLoteria: () => "flavio",
+  conteiner: (v) => (v?.endsWith("-eua") ? v : `${v ?? "vermelho"}-eua`),
+};
 
 export class Plan {
   readonly def: InteriorDef;
   readonly o: Point;
   private n = 0;
   private flipX: boolean;
+  /** Passa um texto do modelo pela tradução da cidade (no Lula, devolve igual). */
+  readonly t: (s: string) => string;
+  /** Universo do interior (o do Lula, se nada for dito). */
+  readonly universo: HeroId;
+  private semCachaca: boolean;
 
   constructor(
     readonly b: CityBuilding,
@@ -75,6 +97,9 @@ export class Plan {
   ) {
     this.o = INTERIOR_ORIGIN;
     this.flipX = flip;
+    this.t = opts.texto ?? ((s) => s);
+    this.semCachaca = !!opts.semCachaca;
+    this.universo = opts.universo ?? "lula";
     const wallH = opts.wallH ?? 96;
     const exitX = opts.exitX ?? opts.w / 2;
     this.def = {
@@ -129,7 +154,7 @@ export class Plan {
   }
 
   room(id: string, name: string, x: number, y: number, w: number, h: number, floor: FloorKind, tint: string) {
-    this.def.rooms.push({ id: `${this.def.id}-${id}`, name, rect: this.rect(x, y, w, h), floor, tint });
+    this.def.rooms.push({ id: `${this.def.id}-${id}`, name: this.t(name), rect: this.rect(x, y, w, h), floor, tint });
   }
 
   /** Parede horizontal em y, de x0 a x1, com vãos [x, largura]. */
@@ -161,7 +186,9 @@ export class Plan {
   prop(kind: CityPropKind, x: number, y: number, extra: Partial<InteriorProp> = {}): string {
     const id = extra.id ?? this.uid(kind.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`));
     const p = this.pt(x, y);
-    this.def.props.push({ kind, ...extra, id, x: p.x, y: p.y });
+    const troca = this.universo === "flavio" ? VARIANTE_FLAVIO[kind] : undefined;
+    const variant = troca ? troca(extra.variant) : extra.variant;
+    this.def.props.push({ kind, ...extra, ...(extra.text !== undefined ? { text: this.t(extra.text) } : {}), ...(variant !== undefined ? { variant } : {}), id, x: p.x, y: p.y });
     return id;
   }
 
@@ -173,22 +200,37 @@ export class Plan {
   spot(kind: SpotKind, x: number, y: number, label: string, extra: Partial<Omit<InteractionSpot, "seat">> & { seat?: { x: number; y: number; facing: "front" | "back" | "side"; flip?: boolean } } = {}) {
     const p = this.pt(x, y);
     const seat = extra.seat ? { ...this.pt(extra.seat.x, extra.seat.y), facing: extra.seat.facing, flip: extra.seat.facing === "side" ? (this.flipX ? !extra.seat.flip : !!extra.seat.flip) : undefined } : undefined;
-    this.def.spots.push({ id: this.uid(`acao-${kind}`), kind, label, ...extra, x: p.x, y: p.y, seat });
+    const lines = extra.lines?.map(this.t);
+    const stamp = extra.stamp ? { ...extra.stamp, text: this.t(extra.stamp.text) } : undefined;
+    this.def.spots.push({ id: this.uid(`acao-${kind}`), kind, ...extra, label: this.t(label), lines, stamp, x: p.x, y: p.y, seat });
   }
 
   npc(look: LookId, name: string, x: number, y: number, lines: string[], extra: Partial<CityNpc> = {}) {
     const p = this.pt(x, y);
     const route = extra.route?.map((q) => this.pt(q.x, q.y));
     const flip = extra.flip !== undefined && this.flipX ? !extra.flip : extra.flip;
-    this.def.npcs.push({ id: this.uid("morador"), district: this.b.district, name, look, facing: "front", lines, ...extra, flip, route, x: p.x, y: p.y });
+    this.def.npcs.push({
+      id: this.uid("morador"),
+      district: this.b.district,
+      look,
+      facing: "front",
+      ...extra,
+      name: this.t(extra.name ?? name),
+      lines: (extra.lines ?? lines).map(this.t),
+      flip,
+      route,
+      x: p.x,
+      y: p.y,
+    });
   }
 
   poster(text: string, x: number, color = "#fffaf0", bg = "#c62835", y = 46, when?: PlaceCondition) {
     const p = this.pt(x, y);
-    this.def.posters.push({ text, x: p.x, y: p.y, color, bg, when });
+    this.def.posters.push({ text: this.t(text), x: p.x, y: p.y, color, bg, when });
   }
 
   cachaca(name: string, x: number, y: number) {
+    if (this.semCachaca) return;
     const p = this.pt(x, y);
     this.def.cachaca = { id: `cachaca-${this.def.id}`, name, district: this.b.district, x: p.x, y: p.y };
   }

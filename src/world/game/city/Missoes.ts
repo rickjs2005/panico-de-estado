@@ -1,5 +1,4 @@
-import { buildingById, doorPoint } from "../../cidade";
-import { CAMPANHA, DECISOES, ITENS } from "../../cidade/missoes/campanha";
+import { buildingById, CAMPANHA, CIDADE, DECISOES, doorPoint, ITENS } from "../../cidade";
 import {
   alvosDe,
   completa,
@@ -19,7 +18,6 @@ import {
   type SeloDef,
   type Valor,
 } from "../../cidade/missoes/motor";
-import { falaGeral } from "../../cidade/missoes/final";
 import { saveCampanha } from "../../cidade/progress";
 
 /**
@@ -50,8 +48,8 @@ export interface Anfitriao {
 
 type Bloco = { tipo: "fala"; linhas: string[]; quem?: string } | { tipo: "escolha"; s: Extract<Saida, { tipo: "escolha" }> } | { tipo: "cerimonia" };
 
-/** Ponto solto para rever a cerimônia depois de concluída (ao lado do palanque). */
-const REVER = { id: "rever-cerimonia", x: 2400, y: 1000, label: "Rever a cerimônia no palanque" };
+/** Ponto solto para rever a cerimônia depois de concluída (ao lado do palanque da cidade ativa). */
+const REVER_ID = "rever-cerimonia";
 
 export class Missoes {
   estado: Estado;
@@ -134,7 +132,7 @@ export class Missoes {
 
   /** Fala de morador comum sobre o decreto, depois da cerimônia. */
   falaGeral(indice: number): string | null {
-    return falaGeral(this.estado.flags, indice);
+    return CIDADE.final.falaGeral(this.estado.flags, indice);
   }
 
   falaPara(npc: string): string[] | null {
@@ -143,7 +141,8 @@ export class Missoes {
 
   /** A cerimônia final já foi vista pelo menos uma vez? */
   get cerimoniaFeita(): boolean {
-    return this.estado.concluidas.includes("ditadura");
+    const ep = CAMPANHA.epilogo?.id;
+    return !!ep && this.estado.concluidas.includes(ep);
   }
 
   /** Pontos de missão ao ar livre que estão ativos agora (mais o de rever a cerimônia, se já concluída). */
@@ -154,13 +153,13 @@ export class Missoes {
       const vis = pontosVisiveis(CAMPANHA, this.estado, this.host.lugares());
       for (const p of m.pontos) if (p.fora && vis.has(p.id)) out.push({ id: p.id, ...p.fora });
     }
-    if (this.cerimoniaFeita && !this.estado.ativa) out.push(REVER);
+    if (this.cerimoniaFeita && !this.estado.ativa) out.push({ id: REVER_ID, ...CIDADE.final.rever });
     return out;
   }
 
   /** Usa um ponto ao ar livre: o de rever a cerimônia não passa pelo motor. */
   usaPonto(id: string) {
-    if (id === REVER.id) this.rever();
+    if (id === REVER_ID) this.rever();
     else this.emite(`usou:${id}`);
   }
 
@@ -254,7 +253,7 @@ export class Missoes {
       else if (s.tipo === "lugar") this.host.aplicaLugar(s.place, s.estado);
       else if (s.tipo === "concluiu") {
         const m = missaoDe(CAMPANHA, s.missao);
-        if (m && s.missao !== "ditadura") this.celebracoes.push({ selo: m.selo, completa: s.completa });
+        if (m && s.missao !== CAMPANHA.epilogo?.id) this.celebracoes.push({ selo: m.selo, completa: s.completa });
         else if (m) this.celebracoes.push({ selo: m.selo, completa: false });
       }
     }

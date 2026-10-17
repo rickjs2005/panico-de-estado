@@ -158,6 +158,16 @@ export class Cao {
     if (!this.calmo) this.scene.tweens.add({ targets: this.corpo, y: -8, duration: 140, yoyo: true });
   }
 
+  /** Barulho forte (o tiro para o alto do Flávio caricato): o cão sai correndo para longe e acorda, se dormia. */
+  assusta(origem: Point, agora: number) {
+    const a = Math.atan2(this.y - origem.y, this.x - origem.x) + rnd(-0.4, 0.4);
+    this.alvo = { x: this.x + Math.cos(a) * 120, y: this.y + Math.sin(a) * 120 };
+    this.estado = "fugindo";
+    this.ate = agora + 1400;
+    this.olhoFechado.setVisible(false);
+    this.olho.setVisible(true);
+  }
+
   private latir(m: MundoCaes) {
     this.proximaLatida = m.agora + rnd(7000, 16000);
     if (!m.visivel(this.x, this.y)) return;
@@ -345,6 +355,17 @@ export class Matilha {
   }
 
   /** O cão mais perto de um ponto, dentro do raio. */
+  /** Assusta os cães perto de um barulho; devolve quantos saíram correndo. */
+  assusta(p: Point, raio: number, agora: number): number {
+    let n = 0;
+    for (const c of this.caes) {
+      if (Math.hypot(c.x - p.x, c.y - p.y) > raio) continue;
+      c.assusta(p, agora);
+      n++;
+    }
+    return n;
+  }
+
   proximo(p: Point, raio: number): Cao | null {
     let melhor: Cao | null = null;
     let d = raio;

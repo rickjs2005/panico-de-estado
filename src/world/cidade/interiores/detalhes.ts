@@ -15,7 +15,7 @@ import type { Plan } from "./plan";
 const lugar = (place: string, state: string): PlaceCondition => ({ place, state });
 
 /** Dupla de interações que se alternam: uma só existe em cada estado e leva ao outro. */
-function alternar(
+export function alternar(
   p: Plan,
   opts: {
     place: string;
@@ -181,15 +181,17 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
     p.prop("planta", 900, h - 40);
     const cf = p.prop("cafezinho", w - 170, h - 60);
     p.spot("fogao", w - 170, h - 30, "Servir um café do DCE", { prop: cf, lines: ["Café de assembleia: esfria antes da votação.", "Pagou? Não: o café também foi coletivizado."] });
-    // portaria do expediente: troca o estado do campus (liberou geral ↔ expediente normal)
+    // portaria do expediente: troca o estado do campus (liberou geral ↔ expediente normal), se o prédio tiver um
+    const campus = p.b.place;
+    if (!campus) return;
     const mx = w - 50;
     const liberado = "liberou-geral";
     const normal = "normal";
     const q: Record<string, string> = {};
-    q[liberado] = p.wallProp("quadro", mx, { variant: "decreto", when: lugar("universidade", liberado) });
-    q[normal] = p.wallProp("quadro", mx, { variant: "revogado", when: lugar("universidade", normal) });
+    q[liberado] = p.wallProp("quadro", mx, { variant: "decreto", when: lugar(campus, liberado) });
+    q[normal] = p.wallProp("quadro", mx, { variant: "revogado", when: lugar(campus, normal) });
     alternar(p, {
-      place: "universidade",
+      place: campus,
       de: liberado,
       para: normal,
       prop: (s) => q[s],
@@ -221,13 +223,14 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
 
   "deposito-kits"(p) {
     const { h } = p;
+    const deposito = p.b.place ?? "deposito-kits";
     const ab = "abastecido";
     const vz = "vazio";
     const alav: Record<string, string> = {};
-    alav[ab] = p.prop("alavanca", 130, h - 70, { variant: "verde", when: lugar("deposito-kits", ab) });
-    alav[vz] = p.prop("alavanca", 130, h - 70, { variant: "vermelha", when: lugar("deposito-kits", vz) });
+    alav[ab] = p.prop("alavanca", 130, h - 70, { variant: "verde", when: lugar(deposito, ab) });
+    alav[vz] = p.prop("alavanca", 130, h - 70, { variant: "vermelha", when: lugar(deposito, vz) });
     alternar(p, {
-      place: "deposito-kits",
+      place: deposito,
       de: ab,
       para: vz,
       prop: (s) => alav[s],
@@ -273,13 +276,19 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
 
   despacho(p) {
     const { w, h } = p;
+    const cf = p.prop("cafezinho", 90, h - 60);
+    p.spot("fogao", 90, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de cais: forte como maré de fofoca.", "A garrafa térmica viaja na carga do navio."] });
+    p.prop("planta", 40, back(p) + 80);
+    // alavanca do terminal: para ou religa a operação do cais, se o prédio tiver esse estado
+    const terminal = p.b.place;
+    if (!terminal) return;
     const op = "em-operacao";
     const pr = "parado";
     const alav: Record<string, string> = {};
-    alav[op] = p.prop("alavanca", w - 110, back(p) + 120, { variant: "verde", when: lugar("terminal-china", op) });
-    alav[pr] = p.prop("alavanca", w - 110, back(p) + 120, { variant: "vermelha", when: lugar("terminal-china", pr) });
+    alav[op] = p.prop("alavanca", w - 110, back(p) + 120, { variant: "verde", when: lugar(terminal, op) });
+    alav[pr] = p.prop("alavanca", w - 110, back(p) + 120, { variant: "vermelha", when: lugar(terminal, pr) });
     alternar(p, {
-      place: "terminal-china",
+      place: terminal,
       de: op,
       para: pr,
       prop: (s) => alav[s],
@@ -295,10 +304,7 @@ export const DETALHES: Partial<Record<TemplateId, (p: Plan) => void>> = {
         [pr]: { text: "EM OPERAÇÃO!", color: "#fffaf0", bg: "#b62f3e" },
       },
     });
-    p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL EM OPERAÇÃO: BRASIL EMBARCANDO", when: lugar("terminal-china", op) });
-    p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL PARADO: GREVE DO GUINDASTE", when: lugar("terminal-china", pr) });
-    const cf = p.prop("cafezinho", 90, h - 60);
-    p.spot("fogao", 90, h - 30, "Servir um cafezinho", { prop: cf, lines: ["Café de cais: forte como maré de fofoca.", "A garrafa térmica viaja na carga do navio."] });
-    p.prop("planta", 40, back(p) + 80);
+    p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL EM OPERAÇÃO: BRASIL EMBARCANDO", when: lugar(terminal, op) });
+    p.prop("quadroAvisos", 110, h - 120, { text: "TERMINAL PARADO: GREVE DO GUINDASTE", when: lugar(terminal, pr) });
   },
 };

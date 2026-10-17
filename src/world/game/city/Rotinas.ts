@@ -1,8 +1,8 @@
 import type * as Phaser from "phaser";
-import { buildingById, doorPoint, type Solid } from "../../cidade";
+import { buildingById, CIDADE, doorPoint, type Solid } from "../../cidade";
 import { caminho } from "../../cidade/navegacao";
 import { MIN_POR_SEG, normaliza } from "../../cidade/relogio";
-import { agendaDe, alvoEm, BAR, falaDe, type Agenda, type Alvo, type Atividade } from "../../cidade/rotinas";
+import { agendaDe, alvoEm, falaDe, type Agenda, type Alvo, type Atividade } from "../../cidade/rotinas";
 import type { CityNpc, InteriorDef } from "../../cidade/types";
 import type { Point } from "../../types";
 import { isFree } from "../collide";
@@ -103,7 +103,7 @@ export class Rotinas {
     } else de = { x: npc.x, y: npc.y };
     const pb = destino.tipo === "dentro" ? buildingById(destino.predio) : null;
     const para = pb ? doorPoint(pb) : ag.base;
-    ag.atividade = destino.tipo === "ponto" ? "indo-ponto" : destino.predio === BAR ? "indo-bar" : destino.predio === ag.agenda.casa ? "indo-casa" : "indo-almoco";
+    ag.atividade = destino.tipo === "ponto" ? "indo-ponto" : destino.predio === CIDADE.bar ? "indo-bar" : destino.predio === ag.agenda.casa ? "indo-casa" : "indo-almoco";
     const rota = caminho(de, para);
     if (!rota || rota.length < 2) {
       this.chegar(ag, true);

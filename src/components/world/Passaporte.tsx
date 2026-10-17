@@ -2,12 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { bus, type DialogoState } from "@/world/bridge";
-import { CAMPANHA, SELOS } from "@/world/cidade/missoes/campanha";
+import { CAMPANHA, CIDADE, SELOS } from "@/world/cidade";
+import { temaDe } from "@/world/game/city/temas";
 import type { SeloDef } from "@/world/cidade/missoes/motor";
 import { useModalFoco } from "./useModal";
 
 /**
- * Peças da campanha na interface: o selo desenhado do Passaporte do Absurdo, o passaporte (os seis
+ * Peças da campanha na interface: o selo desenhado do passaporte da cidade, o passaporte (os seis
  * selos e o estado de cada missão), o cartão que comemora um selo novo e a caixa de diálogo com
  * opção de pular.
  */
@@ -62,13 +63,14 @@ export function Passaporte({
   onClose: () => void;
 }) {
   const total = SELOS.length;
+  const tema = temaDe(CIDADE.id);
   const raiz = useRef<HTMLDivElement>(null);
   useModalFoco(raiz);
   return (
-    <div ref={raiz} className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label="Passaporte do Absurdo" onClick={onClose}>
+    <div ref={raiz} className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label={tema.passaporte} onClick={onClose}>
       <div className="max-h-full w-full max-w-xl overflow-y-auto rounded-2xl border-4 border-[#1e1424] bg-[#fffaf0] p-3 shadow-[0_6px_0_#1e1424]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
-          <p className="text-lg font-black">🛂 Passaporte do Absurdo</p>
+          <p className="text-lg font-black">🛂 {tema.passaporte}</p>
           <span className="rounded-full bg-[#1e1424] px-2 py-0.5 text-xs font-black text-[#ffe9a8]">
             {selos.length}/{total}
           </span>
@@ -92,7 +94,7 @@ export function Passaporte({
         </ul>
         {final && (
           <p className="mt-2 rounded-xl border-2 border-[#1e1424] bg-[#1e1424] px-3 py-2 text-center text-[12px] font-black text-[#ffd23f]">
-            👑 Carimbo final: Ditadura do Carimbo. Dá para rever a cerimônia no palanque da praça.
+            {tema.seloFinal}
           </p>
         )}
         <section className="mt-3" aria-label="O que você decidiu">
@@ -150,7 +152,7 @@ export function SeloCard({ selo, onFim }: { selo: { id: string; nome: string; co
     <div className="pointer-events-none absolute left-1/2 top-[30%] z-10 -translate-x-1/2 -translate-y-1/2 text-center" role="status" aria-live="polite">
       <div className="selo-pop rounded-2xl border-4 border-[#1e1424] bg-[#fffaf0] px-5 py-3 shadow-[0_6px_0_#1e1424]">
         <p className="text-[11px] font-black uppercase tracking-wide text-[#c62835]">
-          {selo.final ? "Carimbo final" : selo.completa ? "Passaporte do Absurdo completo!" : `Selo ${selo.n}/${SELOS.length} conquistado`}
+          {selo.final ? (CIDADE.id === "lula" ? "Carimbo final" : "Selo final") : selo.completa ? `${temaDe(CIDADE.id).passaporte} completo!` : `Selo ${selo.n}/${SELOS.length} conquistado`}
         </p>
         <div className="mx-auto my-1 w-fit">
           <SeloArte selo={def} ganho tamanho={selo.completa || selo.final ? 132 : 112} indice={selo.n - 1} />

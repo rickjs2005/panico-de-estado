@@ -2,6 +2,9 @@
  * Estados persistentes dos lugares. Histórias futuras mudam estes estados
  * (por exemplo, reabrir a igreja ou esvaziar o depósito) e a cidade se redesenha.
  * Os ids são estáveis: não renomeie sem migrar o salvamento.
+ *
+ * Estes são os lugares da cidade do Lula. Os da cidade ativa (e as funções `isPlace` e
+ * `initialPlaces`) saem do índice da cidade.
  */
 
 export interface PlaceDef {
@@ -10,7 +13,7 @@ export interface PlaceDef {
   initial: string;
 }
 
-export const PLACES = {
+export const PLACES_LULA = {
   "igreja-matriz": { name: "Igreja Matriz", states: { interditada: "Interditada por decreto", aberta: "Aberta" }, initial: "interditada" },
   assembleia: { name: "Assembleia da Fé", states: { interditada: "Lacrada", aberta: "Aberta" }, initial: "interditada" },
   "deposito-kits": { name: "Depósito de Kits", states: { abastecido: "Abastecido", vazio: "Vazio" }, initial: "abastecido" },
@@ -18,14 +21,11 @@ export const PLACES = {
   universidade: { name: "Universidade do Pânico", states: { "liberou-geral": "Liberou geral", normal: "Expediente normal" }, initial: "liberou-geral" },
 } satisfies Record<string, PlaceDef>;
 
-export type PlaceId = keyof typeof PLACES;
+/** Id de um lugar com estado (os ids variam por cidade). */
+export type PlaceId = string;
 
-export function initialPlaces(): Record<PlaceId, string> {
-  const out = {} as Record<PlaceId, string>;
-  for (const id of Object.keys(PLACES) as PlaceId[]) out[id] = PLACES[id].initial;
+export function estadosIniciais(places: Record<string, PlaceDef>): Record<PlaceId, string> {
+  const out: Record<PlaceId, string> = {};
+  for (const id of Object.keys(places)) out[id] = places[id].initial;
   return out;
-}
-
-export function isPlace(id: string): id is PlaceId {
-  return id in PLACES;
 }

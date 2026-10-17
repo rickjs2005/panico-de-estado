@@ -1,14 +1,11 @@
 import type { Point } from "../types";
-import { CAMPANHA } from "./missoes/campanha";
+import { CAMPANHA, CIDADE, initialPlaces, isPlace, PLACES, type PlaceId } from "./index";
 import { estadoVazio, sanear, type Estado } from "./missoes/motor";
-import { initialPlaces, isPlace, PLACES, type PlaceId } from "./places";
 
 /**
- * Progresso próprio da cidade do Lula: estados dos lugares, locais descobertos
- * e o destino marcado no mapa. Fica numa chave separada do salvamento das missões.
+ * Progresso próprio da cidade ativa: estados dos lugares, locais descobertos e o destino marcado
+ * no mapa. Cada cidade tem a sua chave (`chaveSave`), separada do salvamento das missões do bairro.
  */
-
-const KEY = "panico-de-estado:cidade-lula:v1";
 
 export interface CityProgress {
   places: Record<PlaceId, string>;
@@ -28,7 +25,7 @@ function empty(): CityProgress {
 
 export function readCity(): CityProgress {
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(CIDADE.chaveSave);
     if (!raw) return empty();
     const data = JSON.parse(raw) as Partial<CityProgress> | null;
     const out = empty();
@@ -51,14 +48,14 @@ export function readCity(): CityProgress {
 
 function write(p: CityProgress) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(p));
+    window.localStorage.setItem(CIDADE.chaveSave, JSON.stringify(p));
   } catch {
     // sem armazenamento: vale só nesta visita
   }
 }
 
 export function setPlaceState(id: PlaceId, state: string) {
-  if (!(state in PLACES[id].states)) return;
+  if (!isPlace(id) || !(state in PLACES[id].states)) return;
   const p = readCity();
   p.places[id] = state;
   write(p);
@@ -98,9 +95,10 @@ export function saveWaypoint(w: CityProgress["waypoint"]) {
   write(p);
 }
 
-export function clearCity() {
+/** Apaga o progresso de uma cidade (a ativa, se nenhuma chave for dada). */
+export function clearCity(chave = CIDADE.chaveSave) {
   try {
-    window.localStorage.removeItem(KEY);
+    window.localStorage.removeItem(chave);
   } catch {
     // nada a limpar
   }

@@ -19,6 +19,12 @@ const LINS = Math.ceil(CITY.h / CELULA);
 let bloqueado: Uint8Array | null = null;
 let custo: Float32Array | null = null;
 
+/** A cidade ativa mudou: a grade é refeita na próxima consulta (as duas cidades têm o mesmo tamanho). */
+export function reiniciaNavegacao() {
+  bloqueado = null;
+  custo = null;
+}
+
 function montar() {
   if (bloqueado && custo) return;
   const blk = new Uint8Array(COLS * LINS);

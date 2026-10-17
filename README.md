@@ -19,10 +19,10 @@ Ao abrir o site, o jogador escolhe **Lula** ou **Flávio Bolsonaro** (caricatura
 - Bairro compacto com praça e coreto, igreja matriz, Fábrica Feliz, Selaria do Zeca, padaria, borracharia, mercadinho, bar, farmácia, escola, lotérica e ruas conectadas.
 - Moradores que andam pelas calçadas, olham para o protagonista, pulam para longe do carro e reagem à buzina.
 - Feira livre na avenida: bater numa barraca derruba as frutas e o feirante reclama.
-- **Missão do Flávio: Chicote Expresso.** Na porta da fábrica, o patrão trata os funcionários bem. Seu Boato acha isso um absurdo e manda buscar um chicote na Selaria do Zeca. O jogador vai de carro, pega o chicote no expositor e volta com ele balançando no carro. Ao receber o chicote, o patrão vira capataz de desenho animado: estala o chicote no ar, a fábrica acelera, a chaminé solta fumaça em forma de cifrão, a faixa muda para "META: 300%" e os funcionários passam a correr com caixas. A consequência fica salva e continua visível.
-- **Brasil do Flávio:** continua no bairro original, com a missão Chicote Expresso.
-- **Brasil do Lula: uma cidade maior para explorar** (veja abaixo), com uma campanha de seis missões jogáveis na própria cidade, escolhas com consequências e a cerimônia final "Ditadura do Carimbo". As quatro missões antigas do Lula do bairro original (`src/world/mission.ts`, `src/world/game/LulaWorld.ts`) continuam no código, mas não são usadas: a campanha da cidade é a de `src/world/cidade/missoes/`.
-- **Cachaça como energia de corrida do Lula caricato:** correr gasta a barra; as placas CACHAÇA · ENERGIA espalhadas pela cidade recarregam. Andar e dirigir continuam funcionando com a barra zerada.
+- **Brasil do Lula: uma cidade maior para explorar** (veja abaixo), com uma campanha de seis missões jogáveis na própria cidade, escolhas com consequências e a cerimônia final "Ditadura do Carimbo".
+- **Brasil do Flávio: outra cidade, com mapa próprio** (veja "O Brasil do Flávio"), com seis missões sobre trabalho e salário, privatização, soberania e ordem e voto, e a cerimônia final "Eleição no Cofre". No lugar da cachaça, a **motociata**; e o Flávio caricato dá **tiros pro alto** de desenho animado.
+- O bairro original (`src/world/map.ts`, `src/world/mission.ts`, `src/world/game/LulaWorld.ts`, `WorldScene.ts`) continua no código, com o Chicote Expresso antigo e as quatro missões antigas do Lula, mas não é mais usado: as duas cidades abrem direto.
+- **Cachaça como energia de corrida do Lula caricato:** correr gasta a barra; as placas CACHAÇA · ENERGIA espalhadas pela cidade recarregam. Andar e dirigir continuam funcionando com a barra zerada. No Brasil do Flávio não há barra: a corrida é livre.
 - Cada Brasil mantém o próprio progresso. O menu "Reiniciar este Brasil" apaga só o do protagonista atual.
 
 ## A cidade do Lula (mundo em construção)
@@ -48,7 +48,7 @@ Um Brasil fictício e absurdo onde o Lula caricato já governa. A cidade tem 480
 
 **Objetos que se mexem e cães:** cada placa CACHAÇA · ENERGIA tem um caixote com três garrafas. O Lula pega uma (ela fica na mão), bebe quando quiser (a barra de corrida enche) e joga a garrafa vazia: ela voa, quica e rola, ou cai direto na lixeira se houver uma por perto; o caixote se reabastece aos poucos. Nos balcões dos interiores também dá para pegar a garrafa. Três bolas soltas (campinho da Vila do Mutirão, quadra da escola e praça) rolam quando o Lula anda contra elas ou chuta ("Chutar a bola"), quicam nas paredes e voltam para o lugar se ficarem perdidas longe. Dezessete vira-latas com nome (Caramelo, Carimbo, Decreto, Fiado, Pix, Mutirão, Estagiário…) moram pelos seis distritos: passeiam perto de casa, sentam, latem, fogem dos carros, correm atrás da bola, dormem à noite e, de vez em quando ou depois de um carinho ("Fazer carinho no…"), seguem o Lula por um tempo. Nenhum deles bloqueia o caminho.
 
-**Textos:** as falas e os nomes da cidade não usam a palavra "boato" (o `check:city` confere isso nos textos da cidade); o tom irônico fica por conta das situações. O Seu Boato virou **Seu Repassa** e o Ministério do Boato, **Ministério do Áudio**. O Brasil do Flávio, no bairro original, não mudou.
+**Textos:** as falas e os nomes da cidade não usam a palavra "boato" (o `check:city` confere isso nos textos da cidade); o tom irônico fica por conta das situações. O Seu Boato virou **Seu Repassa** e o Ministério do Boato, **Ministério do Áudio**. A mesma regra vale para o Brasil do Flávio.
 
 **Exploração:**
 - O nome do distrito aparece ao entrar nele, e o HUD mostra onde você está.
@@ -78,7 +78,7 @@ Um Brasil fictício e absurdo onde o Lula caricato já governa. A cidade tem 480
 
 **Interface.** O cartão da missão destaca o objetivo da etapa; checklist, destino e item carregado ficam em detalhes recolhíveis (a preferência fica salva só no navegador; em tela estreita começam recolhidos) e os indicadores numéricos (níveis do som, etiquetas que batem) ficam sempre visíveis, com número além das marcas. O destino principal da missão é uma estrela dourada no mapa e na cidade (várias, quando há mais de um pendente); dentro dos prédios a estrela marca as interações ativas. O botão 🛂 abre o **Passaporte do Absurdo** com os selos, o que você decidiu em cada missão e o **diário de pistas**. As escolhas funcionam por mouse, toque e teclado (Tab, setas, 1 a 9, Enter, Esc para "Ainda não"); o foco vai para o painel ao abrir e volta ao fechar (mapa, passaporte, pausa, diálogos e escolhas). Em telas de toque, o diálogo fica acima do direcional no retrato e entre o direcional e o botão de ação na paisagem. Com `prefers-reduced-motion`, não há tremor de câmera, clarão, confete denso, balanço de marcadores nem animações SVG do mapa.
 
-As missões são **dados** (`missoes/campanha.ts`); o motor (`missoes/motor.ts`) é puro e recebe eventos (`falou:<morador>`, `usou:<ponto>`, `lugar:<lugar>:<estado>`, `cerimonia:fim`), aplica efeitos (itens, flags, notas do diário, escolhas, lugares, sons) e devolve saídas; a cena (`game/city/Missoes.ts`) apenas emite eventos e mostra consequências. Cada etapa pode declarar `exige`/`volta` (se o save não tem o item exigido, volta à etapa certa), `alvos` contextuais, `lista` (checklist) e `painel` (indicadores). O progresso fica em `campanha` no save da cidade do Lula, indexado pelo **id** da etapa: recarregar retoma a etapa, saves do formato antigo (só índice) são migrados, itens que não existem mais ou incoerentes são corrigidos sem apagar missões nem selos, o item não duplica nem é entregue duas vezes, eventos fora de ordem são ignorados, lugares já alterados antes da missão não dão recompensa automática e missão concluída não volta a pendente. **Reiniciar este Brasil** limpa só a cidade do Lula; o Brasil do Flávio usa outra chave e não tem Passaporte. Com `?debug=1`: `window.__pde.campanha()`, `iniciar("<missão>")`, `emite("usou:<ponto>")`, `escolhas()`, `escolhe("<id>")`, `baloes()`, `ctx()`, `npc("<id>")`, `npcsDentro()`, `cerimonia()` e `reverCerimonia()`.
+As missões são **dados** (`missoes/campanha.ts`); o motor (`missoes/motor.ts`) é puro e recebe eventos (`falou:<morador>`, `usou:<ponto>`, `lugar:<lugar>:<estado>`, `cerimonia:fim`), aplica efeitos (itens, flags, notas do diário, escolhas, lugares, sons) e devolve saídas; a cena (`game/city/Missoes.ts`) apenas emite eventos e mostra consequências. Cada etapa pode declarar `exige`/`volta` (se o save não tem o item exigido, volta à etapa certa), `alvos` contextuais, `lista` (checklist) e `painel` (indicadores). O progresso fica em `campanha` no save da cidade do Lula, indexado pelo **id** da etapa: recarregar retoma a etapa, saves do formato antigo (só índice) são migrados, itens que não existem mais ou incoerentes são corrigidos sem apagar missões nem selos, o item não duplica nem é entregue duas vezes, eventos fora de ordem são ignorados, lugares já alterados antes da missão não dão recompensa automática e missão concluída não volta a pendente. **Reiniciar este Brasil** limpa só a cidade do protagonista atual; o Brasil do Flávio usa outra chave e tem o próprio passaporte (o **Passaporte da Ordem**). Com `?debug=1`: `window.__pde.campanha()`, `iniciar("<missão>")`, `emite("usou:<ponto>")`, `escolhas()`, `escolhe("<id>")`, `baloes()`, `ctx()`, `npc("<id>")`, `npcsDentro()`, `cerimonia()` e `reverCerimonia()`.
 
 ### Como a cidade está organizada
 
@@ -113,6 +113,10 @@ As missões são **dados** (`missoes/campanha.ts`); o motor (`missoes/motor.ts`)
 | `src/world/game/city/Missoes.ts`, `Adornos.ts` | Gerente da campanha na cena (diálogos, escolhas, HUD, destinos, celebração, cerimônia) e as consequências desenhadas na rua (igreja, campus, depósito, embarque e a praça depois da cerimônia) |
 | `src/world/cidade/caes.ts`, `game/city/Caes.ts`, `Bolas.ts`, `Garrafas.ts` | Cães e bolas (dados: nome, casa, pelagem) e o comportamento deles na cena; caixotes de cachaça, garrafa na mão e garrafa jogada |
 | `src/components/world/Passaporte.tsx`, `useModal.ts` | Selos, Passaporte (com decisões e diário), cartão de selo, diálogo com **Pular** e escolhas; foco preso e devolvido nos painéis |
+| `src/world/cidade/definicao.ts`, `ativa.ts`, `lula.ts` | O formato de uma cidade (`CidadeDef`) e a cidade do Lula; `ativaCidade(hero)` troca a cidade ativa (as exportações de `index.ts` passam a apontar para ela) antes de a cena abrir |
+| `src/world/cidade/flavio/` | O Brasil do Flávio inteiro: layout, distritos, catálogo de interiores, `textos.ts` (tradução das falas dos interiores para este universo), moradores, cães, lugares, campanha, cerimônia e interiores de missão |
+| `src/world/cidade/interiores/modelosFlavio.ts` | Interiores que só existem no Flávio: Posto de Saúde Premium, Casa de Leilões e Tribunal Eleitoral do Cofre |
+| `src/world/game/city/flavio/`, `temas.ts` | Bordas e lugares desenhados do Flávio, a motociata, as consequências na rua e os textos de cena de cada universo |
 
 Cada prédio, interior, cômodo, parede, objeto, interação, lugar, morador, carro e estacionamento tem um id estável. Os campos `hooks` (missões e personagens futuros), `place` (estado persistente) e `interior` (porta) são onde as próximas histórias se conectam, sem redesenhar o mapa. Objetos, interações, cartazes e moradores de interior podem depender de um estado (`when`): o depósito de kits fica vazio quando o lugar muda para "vazio", o corredor da universidade perde as barracas no "expediente normal" e a igreja troca castiçais, cartazes e pastor entre "interditada" e "aberta". Uma interação com `setPlace` (tipo `decreto`) muda o estado de um lugar: salva o progresso, redesenha a rua e refaz o interior onde o jogador está. `check:city` confere que todo estado citado existe e que quem muda um lugar tem a interação de volta em cada estado. Com `?debug=1`, `window.__pde.setPlace("igreja-matriz", "aberta")` muda um estado na hora e `window.__pde.enter("com-padaria")` entra direto num prédio.
 
@@ -126,8 +130,9 @@ Cada prédio, interior, cômodo, parede, objeto, interação, lugar, morador, ca
 | Correr | Shift | Empurrar o direcional até a borda |
 | Interagir (entrar, sair, sentar, ligar, abrir, falar, beber…) | E ou Enter | Botão de ação (mostra a ação) |
 | Levantar | Qualquer direção | Direcional |
-| Mapa da cidade (Lula) | M (Esc fecha) | Botão 🗺️ |
-| Carro | W/↑ acelera, S/↓ freia e dá ré, A/D ←/→ vira, Espaço freio de mão, H buzina | Aponte o direcional para onde quer ir; segure **Ré** para voltar; **Bi-bi** buzina |
+| Mapa da cidade | M (Esc fecha) | Botão 🗺️ |
+| Carro ou moto | W/↑ acelera, S/↓ freia e dá ré, A/D ←/→ vira, Espaço freio de mão, H buzina | Aponte o direcional para onde quer ir; segure **Ré** para voltar; **Bi-bi** (ou **Fom-fom**, na moto) buzina |
+| Tiro pro alto (Flávio, na rua) | F | Botão **Pro alto** |
 
 O menu (☰) pausa o mundo e tem **Reiniciar este Brasil**, que apaga apenas o progresso do protagonista atual, e **Trocar personagem**.
 
@@ -161,6 +166,41 @@ Para testar com atalhos de depuração, abra com `?debug=1`. Isso expõe `window
 - Sons sintetizados com Web Audio (`src/lib/sound.ts`).
 - Dependência nova: [Phaser](https://github.com/phaserjs/phaser) 4.2.1, licença MIT.
 - Os pacotes da Kenney (CC0) pesquisados antes não foram usados nesta versão.
+
+## O Brasil do Flávio (cidade própria)
+
+Outro Brasil fictício e absurdo, agora com o Flávio caricato governando. É uma cidade nova, com mapa próprio de 4800 × 3600 px: serra com letreiro ao norte, rio a oeste, mata a leste e o mar ao sul, onde o navio "Destino: EUA · Carga: o Brasil" espera no cais. O motor é o mesmo da cidade do Lula (trânsito, rotinas, interiores, campanha, mapa); os dados ficam em `src/world/cidade/flavio/`.
+
+| Distrito | O que tem |
+| --- | --- |
+| **Esplanada da Ordem** (cívico) | Praça do Desfile com o palanque e a estátua "À Motociata, eterna e barulhenta", Palácio da Ordem, Ministério da Ordem Comunicacional, Cartório das Autorizações, Tribunal Eleitoral do Cofre, Gabinete do Desmentido e Secretaria de Privatização |
+| **Condomínio Pátria Amada** (residencial) | Casas atrás de cancela, administração, Edifício Patriota, Motoclube Pátria Sobre Rodas e a pracinha com catraca |
+| **Colégio Cívico-Militar** (educacional) | Colégio, Cantina do Rancho, Faculdade de Ordem Unida, Biblioteca dos Livros Aprovados e República dos Cadetes |
+| **Livre Mercado** (comercial) | Posto de Saúde Premium com catraca e camarote VIP, farmácia, banco, shopping, lotérica, padaria, supermercado, choperia, pastelaria e a feira da Rua do Pedágio |
+| **Distrito do Chicote** (industrial) | Fábrica Feliz, Galpão das Metas, Selaria do Zeca, RH do calendário sem dezembro, almoxarifado, galpões terceirizados, oficina e borracharia |
+| **Porto Brasil–EUA** | Casa de Leilões da Pátria, Alfândega do Made In, Imobiliária Floresta Inteira, a reserva nacional "aluga-se", armazéns, Controle de Embarque, esteira, guindaste e cais |
+
+**Números:** 20 ruas, 54 edificações, todas com interior (137 cômodos, mais de 380 interações), 41 moradores com rotina diária, 17 cães com nome (Coturno, Crachá, Cancela, Boleto…), 3 bolas e 15 veículos estacionados, motos incluídas. Os interiores reaproveitam as plantas da cidade do Lula com as falas traduzidas para este universo (`flavio/textos.ts`; o `check:city` reprova fala do Lula com marca daquele universo que ficou sem tradução). Posto, Casa de Leilões e Tribunal têm plantas próprias.
+
+**Motociata no lugar da cachaça.** Não há barra de energia: a corrida é livre. Subir numa das motos estacionadas (motoclube, Esplanada, shopping, porto) chama a motociata, que segue o rastro do jogador; na moto, a buzina é **Fom-fom**.
+
+**Tiro pro alto.** Na rua, F (ou o botão **Pro alto**) dispara um tiro de desenho animado: "POW!", clarão, pombos fugindo, moradores tapando o ouvido e cães correndo. É sempre para cima, nunca mira em ninguém e não acerta nada. Dentro dos prédios não funciona (o Flávio caricato faz uma piada).
+
+**Campanha: seis missões e a Eleição no Cofre.** Mesmo motor e mesmas regras da campanha do Lula: uma missão ativa por vez, começando pelo @PatriotaRaiz.Oficial na Praça do Desfile, toda escolha concede o selo e muda algo visível, e todo erro é recuperável.
+
+| # | Missão | O que se faz | Escolhas (todas concedem o selo) | O que muda no mundo |
+| --- | --- | --- | --- | --- |
+| 1 | **Chicote Expresso** | Falar com Seu Durval e ler o quadro de metas da Fábrica Feliz, buscar o chicote na Selaria do Zeca e decidir na porta da fábrica | **Entregar o chicote de couro**, **trocar por vale-refeição** ou **um chicote de alcaçuz** (só depois de ouvir o Zeca: a ordem não diz de quê) | Placa na porta da fábrica, chicote pendurado de enfeite, cartazes dentro; Durval, Zeca e o @PatriotaRaiz comentam |
+| 2 | **Dezembro Realocado** | Ouvir a Dona Rosângela e ler o calendário oficial no RH, acertar o relógio de ponto no dia e na hora da placa lá fora (terça, 3h; "terça, 15h" é pegadinha) e bater o ponto | **Aceitar o calendário sem dezembro**, **devolver dezembro à caneta** ou **parcelar o 13º em doze novembros** | Calendário com dezembro na parede, cartaz e placa no RH, fila na porta quando o calendário fica sem dezembro; o Tonhão comenta |
+| 3 | **SUS com Catraca** | Falar com a Recepcionista Premium e ler o regulamento no consultório do posto | **Cobrar os cinco reais da Vó Zuleica**, **liberar a catraca para todos** ou **usar o artigo 2º** (idoso não paga) | O estado da catraca (fachada e interior), cartazes e a fila comum na calçada; Zuleica e a recepcionista reagem |
+| 4 | **Leilão da Petrobras** | Conferir o lote 1 (um barril, usado), o rodapé da planilha de arremates e o leiloeiro (bastam 2 de 3) e decidir no púlpito | **Vender ao pinguim por um peixe**, **cancelar e devolver o barril** ou **não dar lance** (o lote volta ao patrimônio) | Quadro do resultado no salão e placa na porta; Leila Farah e o leiloeiro comentam |
+| 5 | **Urna com Autorização** | No cartório, ouvir a atendente (a autorização pede a certidão de voto, que pede a autorização) e o Mesário Anderson (o regimento antigo) | **Emitir a autorização em três vias**, **rasgar a exigência** ou **usar o título de eleitor** | Cartaz, placa e fila na porta quando a autorização sai em três vias; a Prima Kelly e o mesário comentam |
+| 6 | **Brasil, Destino EUA** | Retirar a caixa do Brasil (com laço) no Armazém 1, declarar na Alfândega, conferir o manifesto e levar à esteira do cais com o terminal em operação | **Embarcar com laço**, **devolver ao armazém** ou **embarcar só a caixa vazia** | Caixa e placa no cais, rastreio no Controle de Embarque; Robson e o @PatriotaRaiz comentam |
+| final | **Eleição no Cofre** | Conferir a urna oficial na Sala do Cofre do Tribunal e subir ao palanque da Praça do Desfile | Duas ações curtas: como anunciar (da moto, lendo com o hino ou com um tiro pro alto) e o que fazer quando a praça quer votar | Faixa sobre o palanque, cadeado na Moto da Pátria, plateia, decreto e "senha do cofre: solicite no cofre"; falas da cidade |
+
+**A cerimônia final.** O anúncio é sempre o mesmo: a eleição está garantida e guardada no cofre, até segunda ordem emitida pelo próprio presidente, e a senha fica com ele. O resto depende das decisões: com maioria obediente, a praça aplaude em fila por ordem de crachá; com maioria rebelde, a cidade vai para a feira e ignora o cofre; nas trajetórias mistas, o relatório junta a consequência de cada decisão. O selo extra "Eleição no Cofre" fica fora dos seis do **Passaporte da Ordem**, e a cerimônia pode ser revista no palanque sem duplicar recompensa.
+
+O progresso fica numa chave própria (`panico-de-estado:cidade-flavio:v1`); "Reiniciar este Brasil" no Flávio não toca na cidade do Lula. Tudo é ficção satírica: a sátira mira a burocracia, o autoritarismo imaginado e quem vende medo, nunca quem trabalha, quem vota, quem compra ou alguma nacionalidade.
 
 ## Versão anterior: episódios
 
@@ -198,9 +238,10 @@ pnpm dev             # http://localhost:3000
 pnpm typecheck       # TypeScript
 pnpm lint            # ESLint
 pnpm check:content   # confere o roteiro dos episódios e o mapa/missão do mundo 2D
-pnpm check:city      # cidade do Lula: ids, distritos, colisões e acessos a pé e de carro
+pnpm check:city      # as duas cidades: ids, distritos, colisões, acessos a pé e de carro, campanha e traduções
 pnpm check:world     # progressão, ações fora de ordem, compatibilidade dos saves e energia
 pnpm check:campanha  # campanha do Lula: motor, todas as decisões, escolhas, recuperação de saves, cerimônia final
+pnpm check:campanha-flavio  # campanha do Flávio: as seis missões com cada decisão, relógio, catraca, terminal, Eleição no Cofre
 pnpm build           # build de produção
 ```
 

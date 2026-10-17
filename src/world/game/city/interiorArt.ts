@@ -104,6 +104,7 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
       return { w: 92, h: 44, originY: 0.6, outline: 1, body: `<rect x="2" y="6" width="88" height="34" rx="6" fill="${c}"/><rect x="6" y="10" width="24" height="12" rx="4" fill="#ffffff"/>` };
     }
     case "quadro": {
+      if (variant?.endsWith("-flavio")) return { w: 54, h: 46, originY: 1, outline: 1, body: `<rect x="2" y="2" width="50" height="42" rx="2" fill="#a8734a"/><rect x="6" y="6" width="42" height="34" fill="#fffaf0"/>${quadroFlavio(variant.slice(0, -7))}` };
       const inner =
         variant === "retrato"
           ? `<circle cx="27" cy="20" r="8" fill="#f1c7a3"/><rect x="15" y="28" width="24" height="10" fill="#c62835"/><path d="M15 30 L39 36" stroke="#ffd23f" stroke-width="3"/>`
@@ -169,12 +170,18 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
     case "caixaRegistradora":
       return { w: 96, h: 70, originY: 0.95, outline: 1.2, body: box(3, 26, 90, 16, 24, "#c9c2b0") + `<rect x="54" y="6" width="32" height="24" rx="3" fill="#55505c"/><rect x="58" y="10" width="24" height="8" fill="#9be7a0"/><rect x="58" y="20" width="24" height="8" fill="#7a7480"/><rect x="10" y="28" width="36" height="10" fill="#3a3640"/>` };
     case "freezer":
+      if (variant?.endsWith("-flavio")) return { w: 96, h: 60, originY: 0.96, outline: 1.2, body: box(3, 8, 90, 20, 28, "#f4f1ea") + `<rect x="7" y="11" width="82" height="14" fill="#a8d8ff" opacity="0.8"/><rect x="12" y="13" width="10" height="8" fill="#ffd23f"/><rect x="26" y="13" width="10" height="8" fill="#2f9e5a"/><rect x="40" y="13" width="10" height="8" fill="#3a86ff"/>` + txt(48, 48, 8, "GELADO PREMIUM") };
       return { w: 96, h: 60, originY: 0.96, outline: 1.2, body: box(3, 8, 90, 20, 28, "#f4f1ea") + `<rect x="7" y="11" width="82" height="14" fill="#a8d8ff" opacity="0.8"/><rect x="12" y="13" width="10" height="8" fill="#ffd23f"/><rect x="26" y="13" width="10" height="8" fill="#e63946"/><rect x="40" y="13" width="10" height="8" fill="#3a86ff"/>` + txt(48, 48, 8, "GELADO DO POVO") };
     case "vitrinePao":
       return { w: 156, h: 70, originY: 0.95, outline: 1.2, body: box(3, 30, 150, 12, 24, "#c98a4b") + `<rect x="6" y="4" width="144" height="28" rx="4" fill="#d8f0ff" opacity="0.85"/>` + Array.from({ length: 8 }, (_, i) => `<ellipse cx="${20 + i * 17}" cy="22" rx="7" ry="5" fill="${i % 3 === 2 ? "#f6d36b" : "#d9944a"}"/>`).join("") };
     case "forno":
       return { w: 78, h: 84, originY: 0.96, outline: 1.2, body: `<path d="M8 82 V36 Q39 0 70 36 V82 Z" fill="#c9552f"/><path d="M22 82 V52 Q39 34 56 52 V82 Z" fill="#3a2a2a"/><path d="M28 80 Q39 64 50 80" fill="#ff7a1a"/><rect x="34" y="4" width="10" height="16" fill="#8a8494"/>` };
     case "maquina": {
+      if (variant?.endsWith("-flavio")) {
+        const emb = variant.startsWith("embaladora");
+        const cf = emb ? "#3a86c8" : "#2f8a4f";
+        return { w: 100, h: 104, originY: 0.96, outline: 1.3, body: box(4, 30, 92, 18, 52, cf) + `<rect x="30" y="6" width="40" height="30" fill="${shade(cf, -0.2)}"/><rect x="40" y="0" width="20" height="10" fill="#55555c"/><circle cx="76" cy="62" r="8" fill="#ffd23f"/><circle cx="24" cy="62" r="6" fill="#ffd23f"/><rect x="14" y="80" width="72" height="4" fill="#ffd23f"/>` + txt(50, 76, 7, emb ? "EMBALA PROS EUA" : "PRENSA DA META", "#fffaf0") };
+      }
       const c = variant === "embaladora" ? "#3a86c8" : "#e07a3a";
       return { w: 100, h: 104, originY: 0.96, outline: 1.3, body: box(4, 30, 92, 18, 52, c) + `<rect x="30" y="6" width="40" height="30" fill="${shade(c, -0.2)}"/><rect x="40" y="0" width="20" height="10" fill="#55555c"/><circle cx="76" cy="62" r="8" fill="#ffd23f"/><circle cx="24" cy="62" r="6" fill="#e63946"/><rect x="14" y="80" width="72" height="4" fill="#ffd23f"/>` + txt(50, 76, 7, variant === "embaladora" ? "EMBALA O POVO" : "PRENSA DO POVO", "#fffaf0") };
     }
@@ -187,8 +194,15 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
     case "caixaEletronico":
       return { w: 46, h: 84, originY: 0.96, outline: 1.1, body: box(3, 6, 40, 8, 68, "#1f6e44") + `<rect x="9" y="18" width="28" height="18" fill="#9be7a0"/><rect x="11" y="42" width="24" height="14" fill="#d9d4c8"/><rect x="13" y="62" width="20" height="4" fill="#3a3640"/>` + txt(23, 13, 5, "PIX", "#fffaf0") };
     case "cofre":
+      if (variant?.endsWith("-flavio")) {
+        if (variant.startsWith("grande"))
+          return { w: 110, h: 120, originY: 0.96, outline: 1.4, body: box(3, 6, 104, 12, 98, "#3f4a44") + `<rect x="18" y="26" width="74" height="74" rx="4" fill="#55605a"/>` + box(30, 40, 50, 8, 46, "#6a7570") + `<circle cx="55" cy="66" r="11" fill="#8a948f"/><circle cx="55" cy="66" r="6" fill="#2a302d"/><path d="M55 58 V74 M47 66 H63" stroke="#ffd23f" stroke-width="2"/>` + txt(55, 112, 7, "COFRE DO COFRE", "#ffd23f") };
+        return { w: 78, h: 92, originY: 0.96, outline: 1.3, body: box(3, 6, 72, 10, 72, "#3f4a44") + `<circle cx="39" cy="48" r="16" fill="#8a948f"/><circle cx="39" cy="48" r="10" fill="#2a302d"/><path d="M39 38 V58 M29 48 H49" stroke="#ffd23f" stroke-width="2"/>` + txt(39, 80, 7, "PREMIUM", "#ffd23f") };
+      }
       return { w: 78, h: 92, originY: 0.96, outline: 1.3, body: box(3, 6, 72, 10, 72, "#55555c") + `<circle cx="39" cy="48" r="16" fill="#8a8494"/><circle cx="39" cy="48" r="10" fill="#3a3640"/><path d="M39 38 V58 M29 48 H49" stroke="#ffd23f" stroke-width="2"/>` + txt(39, 80, 7, "DO POVO", "#ffd23f") };
     case "painelLoteria":
+      if (variant === "flavio")
+        return { w: 164, h: 76, originY: 1, outline: 1.2, body: `<rect x="2" y="2" width="160" height="66" rx="4" fill="#1f6f43"/>` + txt(82, 18, 10, "BOLSA BINGO", "#ffd23f") + ["SUS", "PÉ", "FARM", "13º", "BF", "?"].map((t, i) => `<rect x="${12 + i * 25}" y="28" width="22" height="30" rx="3" fill="#fffaf0"/>` + txt(23 + i * 25, 47, 6, t)).join("") };
       return { w: 164, h: 76, originY: 1, outline: 1.2, body: `<rect x="2" y="2" width="160" height="66" rx="4" fill="#2a6fdb"/>` + txt(82, 18, 10, "MEGA-PALPITE", "#ffd23f") + [0, 1, 2, 3, 4, 5].map((i) => `<circle cx="${22 + i * 24}" cy="44" r="10" fill="#fffaf0"/>` + txt(22 + i * 24, 48, 9, "13")).join("") };
     case "rotativa":
       return { w: 212, h: 112, originY: 0.96, outline: 1.3, body: box(4, 40, 204, 20, 46, "#55606b") + [40, 90, 140].map((x) => `<circle cx="${x}" cy="44" r="18" fill="#8a929c"/><circle cx="${x}" cy="44" r="7" fill="#3a3640"/>`).join("") + `<path d="M20 40 Q100 -10 190 40" stroke="#fffaf0" stroke-width="8" fill="none"/>` + txt(106, 80, 9, "IMPRENSA OFICIAL", "#ffd23f") };
@@ -400,13 +414,133 @@ export function interiorPropArt(kind: CityPropKind, variant?: string): PropArt |
     case "bicicletario":
       return { w: 96, h: 34, originY: 0.9, outline: 1, body: Array.from({ length: 5 }, (_, i) => `<path d="M${10 + i * 19} 30 V12 Q${19 + i * 19} 2 ${28 + i * 19} 12 V30" stroke="#9aa0a8" stroke-width="3" fill="none"/>`).join("") + `<rect x="2" y="28" width="92" height="4" fill="#7a7480"/>` };
     case "muroBaixo": {
+      if (variant === "verde") return { w: 124, h: 40, originY: 0.9, outline: 1, body: box(2, 8, 120, 8, 22, "#9fd4a8") + `<rect x="10" y="20" width="18" height="6" fill="#ffd23f"/>` + txt(80, 30, 6.4, "PROPRIEDADE PRIVADA", "#1f6f43") };
       const c = variant === "amarelo" ? "#f2d06b" : variant === "azul" ? "#8fb8e8" : "#e9a8a0";
       return { w: 124, h: 40, originY: 0.9, outline: 1, body: box(2, 8, 120, 8, 22, c) + `<path d="M12 22 Q20 14 30 22 T48 22" stroke="#7b4bd1" stroke-width="3" fill="none"/>` + txt(86, 30, 7, "É DO POVO", "#c62835") };
     }
+    // ---------------- Brasil do Flávio
+    case "catraca":
+      return {
+        w: 62,
+        h: 72,
+        originY: 0.95,
+        outline: 1.1,
+        body:
+          `<rect x="23" y="16" width="16" height="52" rx="3" fill="#9aa0a8"/><rect x="19" y="8" width="24" height="12" rx="3" fill="#55555c"/><rect x="25" y="24" width="12" height="8" rx="1" fill="#9be7a0"/>` +
+          `<path d="M31 38 L5 32 M31 38 L57 32 M31 38 L31 62" stroke="#c9ced6" stroke-width="5" stroke-linecap="round"/>` +
+          txt(31, 17, 6, "R$", "#ffd23f"),
+      };
+    case "urna":
+      return {
+        w: 54,
+        h: 50,
+        originY: 0.94,
+        outline: 1.1,
+        body:
+          box(3, 16, 48, 10, 20, "#e9e2d0") +
+          `<rect x="8" y="4" width="22" height="16" rx="2" fill="#55555c"/><rect x="10" y="6" width="18" height="11" fill="#9be7a0"/>` +
+          Array.from({ length: 9 }, (_, i) => `<rect x="${34 + (i % 3) * 5}" y="${5 + Math.floor(i / 3) * 5}" width="4" height="4" fill="#2a2a35"/>`).join("") +
+          txt(27, 44, 6, "URNA"),
+      };
+    case "pinguim":
+      return {
+        w: 40,
+        h: 56,
+        originY: 0.95,
+        outline: 1.1,
+        body:
+          `<ellipse cx="18" cy="34" rx="13" ry="18" fill="#22222a"/><ellipse cx="18" cy="37" rx="8" ry="13" fill="#fffaf0"/><circle cx="18" cy="16" r="9" fill="#22222a"/>` +
+          `<circle cx="15" cy="15" r="2" fill="#fffaf0"/><circle cx="21" cy="15" r="2" fill="#fffaf0"/><path d="M16 19 L18 24 L20 19 Z" fill="#ff9f1c"/><path d="M10 52 h6 M20 52 h6" stroke="#ff9f1c" stroke-width="3"/>` +
+          `<rect x="30" y="6" width="3" height="26" fill="#7a4e2d"/><rect x="26" y="2" width="12" height="9" rx="2" fill="#ffd23f"/>` +
+          txt(32, 9, 5, "1"),
+      };
+    case "pombo":
+      return {
+        w: 32,
+        h: 26,
+        originY: 0.9,
+        outline: 0.9,
+        body: `<ellipse cx="15" cy="15" rx="11" ry="7" fill="#9aa0b0"/><circle cx="24" cy="9" r="5" fill="#8a90a0"/><path d="M27 9 L31 10 L27 11 Z" fill="#e9a85a"/><circle cx="25" cy="8" r="1.1" fill="${INK}"/><path d="M6 14 Q1 12 3 18" fill="#7a8090"/><rect x="11" y="21" width="2" height="4" fill="#e9a85a"/><rect x="17" y="21" width="2" height="4" fill="#e9a85a"/>`,
+      };
+    case "calendario": {
+      const semDez = variant !== "com-dezembro";
+      return {
+        w: 64,
+        h: 74,
+        originY: 1,
+        outline: 1,
+        body:
+          `<rect x="4" y="6" width="56" height="64" rx="3" fill="#fffaf0"/><rect x="4" y="6" width="56" height="14" rx="3" fill="${semDez ? "#c62835" : "#1f8a4c"}"/>` +
+          txt(32, 17, 6.4, semDez ? "SEM DEZEMBRO" : "COM DEZEMBRO", "#fffaf0") +
+          Array.from({ length: 12 }, (_, i) => `<rect x="${9 + (i % 4) * 12}" y="${24 + Math.floor(i / 4) * 14}" width="10" height="11" fill="${i === 11 ? (semDez ? "#efe6d2" : "#9be7a0") : "#d8e6f2"}"/>`).join("") +
+          (semDez ? `<path d="M45 52 L55 63 M55 52 L45 63" stroke="#c62835" stroke-width="2"/>` : ""),
+      };
+    }
+    case "palanque":
+      return {
+        w: 214,
+        h: 112,
+        originY: 0.95,
+        outline: 1.3,
+        body:
+          box(4, 54, 206, 18, 34, "#c98a4b") +
+          Array.from({ length: 10 }, (_, i) => `<rect x="${6 + i * 20.4}" y="72" width="20.4" height="34" fill="${i % 2 ? "#ffd23f" : "#1f8a4c"}"/>`).join("") +
+          `<rect x="88" y="26" width="38" height="32" rx="3" fill="#2a3a6b"/><rect x="104" y="10" width="3" height="18" fill="#55555c"/><circle cx="105.5" cy="9" r="4" fill="#2a2a35"/>` +
+          `<rect x="20" y="4" width="3" height="52" fill="#55555c"/><rect x="23" y="6" width="26" height="18" fill="#1f8a4c"/><path d="M36 9 L46 15 L36 21 L26 15 Z" fill="#ffd23f"/><circle cx="36" cy="15" r="3.4" fill="#2f6fd6"/>` +
+          `<rect x="190" y="4" width="3" height="52" fill="#55555c"/><rect x="165" y="6" width="25" height="18" fill="#1f8a4c"/><path d="M177.5 9 L187 15 L177.5 21 L168 15 Z" fill="#ffd23f"/><circle cx="177.5" cy="15" r="3.4" fill="#2f6fd6"/>`,
+      };
+    case "motoEstatua":
+      return {
+        w: 120,
+        h: 176,
+        originY: 0.96,
+        outline: 1.6,
+        body:
+          `<rect x="20" y="130" width="80" height="40" rx="3" fill="#d9cfc0"/><rect x="12" y="156" width="96" height="16" rx="2" fill="#bdb5a6"/>` +
+          txt(60, 146, 7.5, "À MOTOCIATA") +
+          txt(60, 154, 6, "ETERNA E BARULHENTA") +
+          `<circle cx="32" cy="108" r="18" fill="#6b5a3a"/><circle cx="32" cy="108" r="8" fill="#a8925f"/><circle cx="90" cy="108" r="18" fill="#6b5a3a"/><circle cx="90" cy="108" r="8" fill="#a8925f"/>` +
+          `<path d="M32 108 L52 80 H80 L90 108 M52 80 L46 66 H34 M80 80 L92 62 L104 60" stroke="#8a7240" stroke-width="7" fill="none" stroke-linecap="round"/>` +
+          `<path d="M56 78 Q66 60 78 76" fill="#8a7240"/><circle cx="64" cy="44" r="10" fill="#8a7240"/><path d="M60 54 L58 74 M66 54 L76 72" stroke="#8a7240" stroke-width="7" stroke-linecap="round"/>` +
+          `<path d="M70 50 Q86 40 96 22" stroke="#8a7240" stroke-width="5" fill="none" stroke-linecap="round"/><rect x="92" y="10" width="20" height="13" fill="#b89a52"/>`,
+      };
+    case "placaAluga":
+      return {
+        w: 176,
+        h: 104,
+        originY: 0.97,
+        outline: 1.3,
+        body:
+          `<rect x="24" y="44" width="8" height="58" fill="#7a4e2d"/><rect x="144" y="44" width="8" height="58" fill="#7a4e2d"/><rect x="4" y="4" width="168" height="62" rx="4" fill="#ffd23f"/><rect x="10" y="10" width="156" height="50" rx="3" fill="none" stroke="#c62835" stroke-width="3"/>` +
+          txt(88, 33, 20, "ALUGA-SE", "#c62835"),
+      };
     default:
       return null;
   }
 }
+
+/** Quadros do Brasil do Flávio: retrato com faixa verde-amarela, brasão, portaria, mapa à venda e a bandeira. */
+function quadroFlavio(base: string): string {
+  switch (base) {
+    case "retrato":
+      return `<circle cx="27" cy="20" r="8" fill="#f1c7a3"/><path d="M21 15 Q27 9 33 15" fill="#2a211b"/><rect x="15" y="28" width="24" height="10" fill="#1f2433"/><path d="M15 30 L39 36" stroke="#1f8a4c" stroke-width="3"/><path d="M15 33 L39 39" stroke="#ffd23f" stroke-width="2"/>`;
+    case "brasao":
+      return `<rect x="8" y="8" width="38" height="30" fill="#1f6f43"/><circle cx="27" cy="23" r="11" fill="#2f6fd6"/><path d="M17 23 Q27 17 37 23" stroke="#fffaf0" stroke-width="2" fill="none"/><circle cx="23" cy="26" r="1.2" fill="#fffaf0"/><circle cx="29" cy="28" r="1.2" fill="#fffaf0"/><circle cx="32" cy="25" r="1.2" fill="#fffaf0"/>`;
+    case "decreto":
+      return `<rect x="8" y="8" width="38" height="30" fill="#fff8e1"/><path d="M12 14 H42 M12 19 H42 M12 24 H36" stroke="#7a6a50" stroke-width="2"/><circle cx="36" cy="31" r="5.5" fill="#1f6f43"/><path d="M33 31 H39 M36 28 V34" stroke="#ffd23f" stroke-width="1.6"/>`;
+    case "revogado":
+      return `<rect x="8" y="8" width="38" height="30" fill="#fff8e1"/><path d="M12 14 H42 M12 19 H42 M12 24 H36" stroke="#b9ad92" stroke-width="2"/><path d="M10 34 L44 12" stroke="#c62835" stroke-width="3.5"/>`;
+    case "mapa":
+      return `<rect x="8" y="8" width="38" height="30" fill="#b5e48c"/><circle cx="18" cy="18" r="3" fill="#1f8a4c"/><circle cx="30" cy="26" r="3" fill="#ffd23f"/><circle cx="38" cy="14" r="3" fill="#1f8a4c"/><path d="M14 33 H40" stroke="#c62835" stroke-width="2"/>`;
+    case "bandeira":
+      return `<rect x="8" y="8" width="38" height="30" fill="#1f8a4c"/><path d="M27 11 L44 23 L27 35 L10 23 Z" fill="#ffd23f"/><circle cx="27" cy="23" r="6.5" fill="#2f6fd6"/>`;
+    case "festa":
+      return `<rect x="8" y="8" width="38" height="30" fill="#1f8a4c"/><circle cx="20" cy="22" r="6" fill="#ffd23f"/><circle cx="34" cy="20" r="5" fill="#2f6fd6"/>`;
+    default:
+      return `<rect x="8" y="8" width="38" height="30" fill="#8ec5e8"/><path d="M8 32 L20 20 L30 30 L38 22 L46 30 V38 H8 Z" fill="#4cae55"/><circle cx="38" cy="16" r="4" fill="#ffd23f"/>`;
+  }
+}
+
 
 /** Pisos claros e neutros; cada interior tinge com a própria cor. */
 export function floorTile(kind: FloorKind): Art {

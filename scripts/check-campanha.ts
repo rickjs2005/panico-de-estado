@@ -6,7 +6,9 @@ import { ALVARA_SOM, CAMPANHA, DECISOES, ITENS, SELOS, SELO_FINAL } from "../src
 import { apura, marcasDaPraca, roteiro, tomDe } from "../src/world/cidade/missoes/final";
 import { completa, contexto, disponivel, escolher, estadoVazio, evento, iniciar, pontosVisiveis, recupera, sanear, situacao, todasMissoes, type Efeito, type Estado, type Saida, type Valor } from "../src/world/cidade/missoes/motor";
 import { INTERIORS, interiorChaves } from "../src/world/cidade";
-import { initialPlaces } from "../src/world/cidade/places";
+import { estadosIniciais, PLACES_LULA } from "../src/world/cidade/places";
+
+const initialPlaces = () => estadosIniciais(PLACES_LULA);
 import { Missoes, type Anfitriao } from "../src/world/game/city/Missoes";
 import { clearCity, readCity, saveCampanha } from "../src/world/cidade/progress";
 

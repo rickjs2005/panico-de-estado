@@ -1,6 +1,7 @@
 import type { TemplateId } from "../types";
 import { back, cadeiras, CERAMICA, cozinha, descanso, fileira, LADRILHO, MADEIRA, mesaTrabalho, morador, PAREDES, sala } from "./kits";
 import { DETALHES } from "./detalhes";
+import { MODELOS_FLAVIO } from "./modelosFlavio";
 import type { Plan } from "./plan";
 
 /**
@@ -276,7 +277,7 @@ function reparticao(p: Plan) {
   p.prop("guiche", vx / 2, back(p) + 50, { variant: "2" });
   p.prop("guiche", vx / 2 + 190, back(p) + 50, { variant: "3" });
   p.spot("carimbo", vx / 2 + 190, back(p) + 82, "Carimbar o próprio protocolo", { prop: g1, lines: ["CARIMBADO! Agora falta o carimbo do carimbo.", "DEFERIDO… para daqui a 300 anos úteis."] });
-  p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu pedido foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front", id: "atendente" });
+  p.npc("atendente", "Atendente Dona Protocolo", vx / 2, back(p) + 12, ["Seu pedido foi protocolado. Prazo: trezentos anos úteis.", "Sem senha, sem carimbo. Sem carimbo, sem senha."], { facing: "front", id: p.def.id === "reparticao" ? "atendente" : `${p.def.id}-atendente` });
   // fila: cadeiras de espera e correntes de baliza dos dois lados, deixando o corredor do meio livre até a porta
   cadeiras(p, vx / 2 - 170, 3, back(p) + 190, 60);
   cadeiras(p, vx / 2 + 60, 3, back(p) + 190, 60);
@@ -766,11 +767,14 @@ function universidade(p: Plan) {
   p.spot("computador", rm, back(p) + 116, "Assinar um diploma digital", { prop: mesa, lines: ["Diploma emitido: “Doutor em Grupos de Família”.", "O sistema da reitoria trava por assembleia."] });
   p.prop("bandeira", xs[3] + 40, back(p));
   p.npc("reitora", "Reitora Vera", rm - 50, back(p) + 150, ["Aqui até o absurdo precisa de assinatura.", "Universidade do Pânico: formada nos grupos de família."], { facing: "front" });
-  // corredor (estado do campus)
-  p.prop("barracaCamping", 160, h - 70, { variant: "laranja", when: { place: "universidade", state: "liberou-geral" } });
-  p.prop("barracaCamping", 260, h - 60, { variant: "azul", when: { place: "universidade", state: "liberou-geral" } });
-  p.prop("caixaSom", 340, h - 70, { when: { place: "universidade", state: "liberou-geral" } });
-  p.prop("planta", 200, h - 60, { when: { place: "universidade", state: "normal" } });
+  // corredor (estado do campus, quando o prédio tem um: liberou geral ou expediente normal)
+  const campus = p.b.place;
+  if (campus) {
+    p.prop("barracaCamping", 160, h - 70, { variant: "laranja", when: { place: campus, state: "liberou-geral" } });
+    p.prop("barracaCamping", 260, h - 60, { variant: "azul", when: { place: campus, state: "liberou-geral" } });
+    p.prop("caixaSom", 340, h - 70, { when: { place: campus, state: "liberou-geral" } });
+    p.prop("planta", 200, h - 60, { when: { place: campus, state: "normal" } });
+  } else p.prop("planta", 200, h - 60);
   p.prop("quadroAvisos", w - 260, hy + 60, { text: "CALOURADA PERMANENTE · INSCRIÇÕES ABERTAS DESDE 1968" });
   p.spot("examinar", w - 260, hy + 90, "Ler os cartazes", { lines: ["“Grupo de estudos sobre o grupo de estudos.”", "“Vendo apostila usada (por todos).”"] });
   p.prop("bebedouro", w - 60, h - 70);
@@ -936,6 +940,7 @@ export const MODELS: Record<TemplateId, ModelSpec> = {
   "deposito-kits": { size: () => ({ w: 760, h: 520 }), build: (p) => galpao(p, "deposito-kits") },
   alfandega: { size: () => ({ w: 900, h: 560 }), build: alfandega },
   despacho: { size: () => ({ w: 680, h: 460 }), build: despacho },
+  ...MODELOS_FLAVIO,
 };
 
 // detalhes por modelo (objetos e ações a mais, inclusive as que mudam o estado de um lugar)

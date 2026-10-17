@@ -23,6 +23,8 @@ export interface Point {
 /** O que a interface precisa saber do mundo. */
 export interface HudState {
   mode: "pe" | "carro";
+  /** Veículo em que o protagonista está (a moto só existe no Brasil do Flávio). */
+  veiculo?: "carro" | "moto";
   /** Texto da ação contextual (na cidade pode ser longo: "Entrar no mercadinho"). */
   action: string | null;
   missionTitle: string | null;

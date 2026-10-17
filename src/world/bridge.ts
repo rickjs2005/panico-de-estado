@@ -18,6 +18,8 @@ interface Events {
   toast: string;
   action: undefined;
   horn: undefined;
+  /** Tiro para o alto (só no Brasil do Flávio). */
+  tiro: undefined;
   pause: boolean;
   /** Entrou num distrito (só na cidade). */
   district: { name: string; tagline: string; color: string };

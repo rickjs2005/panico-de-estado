@@ -1,5 +1,5 @@
 import type { Point, Rect } from "../types";
-import { ROADS } from "./layout";
+import { ROADS as ROADS_LULA } from "./layout";
 import type { RoadDef } from "./types";
 
 /**
@@ -54,13 +54,15 @@ const eixo = (r: RoadDef) => (horizontal(r) ? r.rect.y + r.rect.h / 2 : r.rect.x
 const FAIXA = (r: RoadDef) => (r.kind === "avenida" ? 62 : 27);
 const meia = (r: RoadDef) => (horizontal(r) ? r.rect.h : r.rect.w) / 2;
 const TOL = 6;
-/** Ruas fechadas ao trânsito (a feira ocupa a pista): os carros do jogo ainda podem passar, os da cidade não. */
-const RUAS_SEM_CARRO = new Set(["rua-da-feira"]);
 /** Cruzamentos de ruas deslocadas por poucos pixels viram um só. */
 const JUNTA = 25;
 const AGRUPA = 180;
 
-function constroi() {
+/**
+ * Monta a rede a partir das ruas da cidade. `semCarro` são as ruas fechadas ao trânsito (a feira ocupa
+ * a pista): os carros do jogo ainda podem passar, os da cidade não.
+ */
+function constroi(ROADS: RoadDef[], semCarro: Set<string>) {
   const nos: No[] = [];
   const horiz = ROADS.filter(horizontal);
   const vert = ROADS.filter((r) => !horizontal(r));
@@ -98,7 +100,7 @@ function constroi() {
   for (const n of nos) n.r = larguras.get(n.id) ?? 55;
   const arestas: Aresta[] = [];
   for (const rua of ROADS) {
-    if (RUAS_SEM_CARRO.has(rua.id)) continue;
+    if (semCarro.has(rua.id)) continue;
     const lista = [...(porRua.get(rua.id) ?? [])].sort((p, q) => (horizontal(rua) ? p.x - q.x : p.y - q.y));
     for (let i = 0; i + 1 < lista.length; i++) {
       const p = lista[i];
@@ -151,9 +153,18 @@ function constroi() {
   return { nos, arestas };
 }
 
-const REDE = constroi();
-export const NOS: No[] = REDE.nos;
-export const ARESTAS: Aresta[] = REDE.arestas;
+const REDE = constroi(ROADS_LULA, new Set(["rua-da-feira"]));
+/** Rede da cidade ativa (começa com a do Lula; `montaRede` troca quando a cidade muda). */
+export let NOS: No[] = REDE.nos;
+export let ARESTAS: Aresta[] = REDE.arestas;
+
+/** Refaz a rede para as ruas da cidade ativa. */
+export function montaRede(roads: RoadDef[], semCarro: string[]) {
+  const rede = constroi(roads, new Set(semCarro));
+  NOS = rede.nos;
+  ARESTAS = rede.arestas;
+  cache.clear();
+}
 
 /** Interseção de duas retas (ponto + direção); `null` se paralelas. */
 function cruza(p: Point, d: Point, q: Point, e: Point): Point | null {

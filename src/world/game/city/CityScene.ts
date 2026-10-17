@@ -2,8 +2,18 @@ import * as Phaser from "phaser";
 import { sound } from "@/lib/sound";
 import { bus, touchInput, worldState } from "../../bridge";
 import {
+  AMBIENT,
+  BOLAS,
   BUILDINGS,
+  CAES,
+  CAMPANHA,
+  CHATTER,
+  CIDADE,
   CITY,
+  PLACES,
+  SELO_FINAL,
+  isPlace,
+  type PlaceId,
   DECALS,
   GROUNDS,
   INTERIORS,
@@ -29,11 +39,9 @@ import {
   type Solid,
 } from "../../cidade";
 import { WORLD_H } from "../../cidade/layout";
-import { isPlace, PLACES, type PlaceId } from "../../cidade/places";
 import { discover, readCity, saveHora, saveWaypoint, setPlaceState, visit, type CityProgress } from "../../cidade/progress";
 import { escuridao, formataHora, HORA_INICIAL, periodoDe } from "../../cidade/relogio";
 import type { CachacaStop, CityBuilding, CityNpc, CityProp, DistrictDef, InteractionSpot, InteriorDef } from "../../cidade/types";
-import { AMBIENT, CHATTER } from "../../cidade/vida";
 import { drainStamina, MAX_STAMINA } from "../../stamina";
 import type { HeroId, HudState, Point, Rect } from "../../types";
 import { INK, toInt } from "../art";
@@ -51,15 +59,16 @@ import { Rotinas } from "./Rotinas";
 import { Adornos } from "./Adornos";
 import { Missoes, type Anfitriao } from "./Missoes";
 import type { SeloDef, Valor } from "../../cidade/missoes/motor";
-import { CAMPANHA, SELO_FINAL } from "../../cidade/missoes/campanha";
-import { roteiro } from "../../cidade/missoes/final";
 import { movimentoReduzido } from "../../reduzido";
-import { BOLAS, CAES } from "../../cidade/caes";
 import { livre, pontoLivre } from "../../cidade/navegacao";
 import { Bolas } from "./Bolas";
 import { Matilha, type Cao } from "./Caes";
 import { Garrafas } from "./Garrafas";
 import { Traffic, type Obstacle } from "./traffic";
+import { temaDe, type TemaCena } from "./temas";
+import { AdornosFlavio } from "./flavio/Adornos";
+import { criaNaoDaReserva, desenhaBordasFlavio, desenhaLugarFlavio } from "./flavio/cena";
+import { Motociata } from "./flavio/Motociata";
 
 export interface CityData {
   hero: HeroId;
@@ -76,12 +85,6 @@ const SPOT_DIST = 40;
 const CHUNK = 800;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 
-const DODGE_LINES = ["Olha o carro!", "Ê, motorista!", "Calma, presidente!", "Isso é calçada!"];
-const SPILL_LINES: Record<string, string[]> = {
-  laranja: ["Minhas laranjas!", "Laranja por comitê, não por atropelo!"],
-  banana: ["Minhas bananas!", "Até a banana ganhou plano quinquenal!"],
-  abacaxi: ["Meu abacaxi!", "Quem vai descascar esse abacaxi?"],
-};
 const DRINK_LINES = ["Um gole de cachaça e mais cem decretos!", "Cachaça presidencial: energia do povo!", "Esse gole foi coletivizado."];
 
 interface Candidate {
@@ -93,7 +96,13 @@ interface Candidate {
   focus: Point | null;
 }
 
-type Keys = Record<"W" | "A" | "S" | "D" | "UP" | "DOWN" | "LEFT" | "RIGHT" | "SHIFT" | "E" | "ENTER" | "SPACE" | "H", Phaser.Input.Keyboard.Key>;
+type Keys = Record<"W" | "A" | "S" | "D" | "UP" | "DOWN" | "LEFT" | "RIGHT" | "SHIFT" | "E" | "ENTER" | "SPACE" | "H" | "F", Phaser.Input.Keyboard.Key>;
+
+/** Adornos de campanha desenhados na rua (o da cidade do Lula ou o do Flávio). */
+interface AdornosDaCena {
+  atualiza(ctx: Record<string, string>): void;
+  aplaudir(nivel: "fila" | "dividido" | "nenhum"): void;
+}
 
 /** Objeto do cenário com a imagem e a definição. */
 interface PropView {
@@ -128,7 +137,14 @@ export class CityScene extends Phaser.Scene {
   private nextChat = 0;
   private rotinas!: Rotinas;
   private missoes!: Missoes;
-  private adornos!: Adornos;
+  private adornos!: AdornosDaCena;
+  /** Textos que mudam de universo (Lula ou Flávio). */
+  private tema: TemaCena = temaDe("lula");
+  /** Brasil do Flávio: a turma que segue a moto do protagonista. */
+  private motociata: Motociata | null = null;
+  /** Brasil do Flávio: o "NÃO" que as árvores da reserva escrevem à noite. */
+  private naoReserva: Phaser.GameObjects.Text | null = null;
+  private ultimoTiro = -Infinity;
   /** Diálogo curto ou escolha da campanha: enquanto aberto, o jogador não anda nem interage com o mundo. */
   private dialogo: { quem?: string; linhas: string[]; i: number; fim: () => void; escolha?: { opcoes: { id: string; rotulo: string }[]; fim: (id: string | null) => void } } | null = null;
   /** A cerimônia final está em cena (também trava o movimento nos intervalos entre as falas). */
@@ -198,6 +214,7 @@ export class CityScene extends Phaser.Scene {
     this.inside = null;
     this.paused = false;
     this.stamina = MAX_STAMINA;
+    this.tema = temaDe(this.hero);
     this.progress = readCity();
     this.calmo = movimentoReduzido();
     if (this.calmo) {
@@ -223,7 +240,7 @@ export class CityScene extends Phaser.Scene {
     this.noite = this.add.rectangle(0, 0, 7000, 5000, 0x0b1236, 1).setAlpha(0).setDepth(900000);
     // campanha de missões: estado salvo no progresso, adereços na rua e marcador do destino
     this.missoes = new Missoes(this.anfitriao(), this.progress.campanha);
-    this.adornos = new Adornos(this, (o, b) => this.culler.add(o, b), this.calmo);
+    this.adornos = CIDADE.id === "flavio" ? new AdornosFlavio(this, (o, b) => this.culler.add(o, b), this.calmo) : new Adornos(this, (o, b) => this.culler.add(o, b), this.calmo);
     this.adornos.atualiza(this.contextoJogo());
     // objetos que se mexem e bichos: garrafas de cachaça nos caixotes, bolas soltas e os cães da cidade
     this.garrafas = new Garrafas(this, STREET_CACHACA, (o, b) => this.culler.add(o, b), this.calmo);
@@ -240,12 +257,16 @@ export class CityScene extends Phaser.Scene {
     this.unsubs.push(bus.on("escolha-acao", (id) => this.escolheOpcao(id)));
     this.traffic = new Traffic(this, this.rotinas.minuto, SPAWN.hero);
     for (const v of VEHICLES) {
-      const car = new Car(this, v.x, v.y, v.angle, v.color);
+      const car = new Car(this, v.x, v.y, v.angle, v.color, v.tipo ?? "carro");
       this.cars.push(car);
       this.carIds.set(car, v.id);
     }
     this.player = new Walker(this, this.hero, SPAWN.hero.x, SPAWN.hero.y);
     this.player.setFacing("back");
+    if (CIDADE.id === "flavio") {
+      this.motociata = new Motociata(this, this.calmo);
+      this.naoReserva = criaNaoDaReserva(this, (o, b) => this.culler.add(o, b));
+    }
 
     this.marker = this.add.image(0, 0, "marker").setScale(1 / RES.small).setDepth(90000).setVisible(false);
     this.ring = this.add.graphics().setDepth(5).setVisible(false);
@@ -263,12 +284,14 @@ export class CityScene extends Phaser.Scene {
     worldState.waypoint = this.progress.waypoint;
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E,ENTER,SPACE,H") as Keys;
+    this.keys = kb.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E,ENTER,SPACE,H,F") as Keys;
     this.keys.E.on("down", () => this.queueAction());
     this.keys.ENTER.on("down", () => this.queueAction());
     this.keys.H.on("down", () => this.horn());
+    this.keys.F.on("down", () => this.tiroProAlto());
     this.unsubs.push(bus.on("action", () => this.queueAction()));
     this.unsubs.push(bus.on("horn", () => this.horn()));
+    this.unsubs.push(bus.on("tiro", () => this.tiroProAlto()));
     this.unsubs.push(
       bus.on("pause", (paused) => {
         this.paused = paused;
@@ -307,6 +330,7 @@ export class CityScene extends Phaser.Scene {
 
   private cleanup() {
     if (this.debug) delete (window as unknown as Record<string, unknown>).__pde;
+    this.motociata?.destroy();
     this.unsubs.forEach((u) => u());
     this.unsubs = [];
     this.scale.off(Phaser.Scale.Events.RESIZE, this.computeZoom, this);
@@ -491,6 +515,10 @@ export class CityScene extends Phaser.Scene {
 
   /** Morro com casinhas e letreiro ao norte, canal a oeste, baía com navio ao sul, muro a leste. */
   private drawLimits() {
+    if (CIDADE.id === "flavio") {
+      desenhaBordasFlavio(this, (o, b) => this.culler.add(o, b), this.water);
+      return;
+    }
     const ts = 1 / RES.tile;
     const canal = this.add.tileSprite(LIMITS.canal.x, LIMITS.canal.y, LIMITS.canal.w, LIMITS.canal.h, "tile:agua").setOrigin(0).setTileScale(ts).setDepth(-95);
     const baia = this.add.tileSprite(LIMITS.baia.x, LIMITS.baia.y, LIMITS.baia.w, LIMITS.baia.h, "tile:agua").setOrigin(0).setTileScale(ts).setDepth(-95);
@@ -908,6 +936,7 @@ export class CityScene extends Phaser.Scene {
       return img;
     };
 
+    if (desenhaLugarFlavio({ scene: this, b, d, facadeBottom, signAt, propImg, keep, tweens }, id, state, animated)) return;
     if (id === "igreja-matriz" || id === "assembleia") {
       if (state === "interditada") {
         const big = id === "igreja-matriz";
@@ -1134,6 +1163,7 @@ export class CityScene extends Phaser.Scene {
       }
     }
     if (this.car) this.car.render(frame);
+    this.motociata?.update(frame, this.time.now);
 
     const pos = this.activePos();
     worldState.x = pos.x;
@@ -1201,7 +1231,7 @@ export class CityScene extends Phaser.Scene {
         running = tm > 0.85;
       }
     }
-    if (this.stamina <= 0) running = false;
+    if (CIDADE.energia && this.stamina <= 0) running = false;
     if (this.time.now < this.busyUntil) mag = 0;
     let speed = 0;
     if (mag > 0) {
@@ -1215,7 +1245,7 @@ export class CityScene extends Phaser.Scene {
       this.dirJogador = { x: dirX, y: dirY };
     }
     this.velJogador = { x: (mag > 0 ? this.dirJogador.x : 0) * speed, y: (mag > 0 ? this.dirJogador.y : 0) * speed };
-    this.stamina = drainStamina(this.stamina, dt, running && speed > WALK);
+    if (CIDADE.energia) this.stamina = drainStamina(this.stamina, dt, running && speed > WALK);
     this.player.animate(dt, speed, running);
   }
 
@@ -1301,7 +1331,7 @@ export class CityScene extends Phaser.Scene {
         if (dx * dx + dy * dy < 34 * 34) {
           const side = Math.sign(-Math.sin(car.angle) * dx + Math.cos(car.angle) * dy) || 1;
           if (n.dodge(-Math.sin(car.angle) * side, Math.cos(car.angle) * side, (x, y) => isFree(x, y, 8, this.solids))) {
-            this.say(n.id, Phaser.Utils.Array.GetRandom(DODGE_LINES), 1400, "grito");
+            this.say(n.id, Phaser.Utils.Array.GetRandom(this.tema.desvio), 1400, "grito");
           }
           break;
         }
@@ -1381,7 +1411,7 @@ export class CityScene extends Phaser.Scene {
       .filter((n) => Math.hypot(n.x - p.x, n.y - p.y) < 260)
       .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
     if (witness) {
-      const lines = kind === "kits" ? ["Os kits! Eram do almoxarifado!", "Agora o zap espalhou de verdade!"] : SPILL_LINES[kind] ?? SPILL_LINES.laranja;
+      const lines = kind === "kits" ? ["Os kits! Eram do almoxarifado!", "Agora o zap espalhou de verdade!"] : (this.tema.frutas[kind] ?? this.tema.frutas.laranja);
       this.time.delayedCall(250, () => this.say(witness.id, Phaser.Utils.Array.GetRandom(lines), 1800, "grito"));
       witness.walker.hop(14);
       witness.walker.setFace("susto", 1500);
@@ -1546,7 +1576,7 @@ export class CityScene extends Phaser.Scene {
     }
     this.cameras.main.flash(260, 255, 244, 206);
     const final = selo.id === SELO_FINAL.id;
-    this.toast(final ? "Carimbo final: Ditadura do Carimbo" : completa ? "Passaporte do Absurdo completo! 6/6" : `Selo conquistado ${n}/6: ${selo.nome}`);
+    this.toast(final ? (this.hero === "lula" ? "Carimbo final: Ditadura do Carimbo" : `Selo final: ${this.tema.final}`) : completa ? `${this.tema.passaporte} completo! 6/6` : `Selo conquistado ${n}/6: ${selo.nome}`);
     bus.emit("selo", { id: selo.id, nome: selo.nome, cor: selo.cor, icone: selo.icone, n, completa, final });
   }
 
@@ -1557,7 +1587,7 @@ export class CityScene extends Phaser.Scene {
    * Rever a cerimônia passa pelo mesmo roteiro, mas as marcas novas não mudam o que já foi decidido.
    */
   private rodaCerimonia(flags: Record<string, Valor>, fim: (marcas?: Record<string, Valor>) => void) {
-    const { tom, passos } = roteiro(flags);
+    const { tom, passos } = CIDADE.final.roteiro(flags);
     const marcas: Record<string, Valor> = { "final.tom": tom };
     const base = this.contextoJogo();
     this.cerimoniaAtiva = true;
@@ -1574,7 +1604,8 @@ export class CityScene extends Phaser.Scene {
         return;
       }
       if (p.tipo === "montar") {
-        this.adornos.atualiza({ ...base, "flag:final.tom": tom, "flag:final.proc": "", "flag:final.aplauso": "" });
+        const limpo = Object.fromEntries(Object.keys(base).filter((k) => k.startsWith("flag:final.")).map((k) => [k, ""]));
+        this.adornos.atualiza({ ...base, ...limpo, "flag:final.proc": "", "flag:final.aplauso": "", "flag:final.tom": tom });
         this.cameras.main.flash(300, 255, 244, 206);
         sound.sino();
         this.time.delayedCall(900, () => proximo(i + 1));
@@ -1610,7 +1641,7 @@ export class CityScene extends Phaser.Scene {
   /** Chuva de carimbos em volta do palanque. */
   private chuvaDeCarimbos() {
     const p = this.activePos();
-    const palavras = ["CARIMBADO", "DEFERIDO", "AUTENTICADO", "FIRMA?", "VIA 2"];
+    const palavras = this.tema.chuva;
     for (let i = 0; i < (this.calmo ? 5 : 22); i++) {
       const x = p.x - 180 + Math.random() * 360;
       const t = this.add
@@ -1656,6 +1687,8 @@ export class CityScene extends Phaser.Scene {
   private atualizaNoite() {
     const cam = this.cameras.main;
     const alvo = this.inside ? 0 : 0.4 * escuridao(this.rotinas.minuto);
+    // as árvores da reserva respondem à placa de aluga-se, mas só no escuro
+    if (this.naoReserva) this.naoReserva.setAlpha(Math.max(0, (escuridao(this.rotinas.minuto) - 0.35) / 0.65) * 0.92);
     this.noite.setPosition(cam.midPoint.x, cam.midPoint.y);
     if (Math.abs(this.noite.alpha - alvo) > 0.002) this.noite.setAlpha(this.noite.alpha + (alvo - this.noite.alpha) * 0.08);
   }
@@ -1666,7 +1699,7 @@ export class CityScene extends Phaser.Scene {
       return;
     }
     if (this.mode === "carro") {
-      this.candidate = { label: "Sair do carro", priority: 0, dist: 0, run: () => this.requestExit(), focus: null };
+      this.candidate = { label: this.car?.tipo === "moto" ? "Descer da moto" : "Sair do carro", priority: 0, dist: 0, run: () => this.requestExit(), focus: null };
       return;
     }
     if (this.seated) {
@@ -1696,7 +1729,7 @@ export class CityScene extends Phaser.Scene {
     } else {
       for (const c of this.cars) {
         const d = Math.hypot(c.x - px, c.y - py);
-        if (d < CAR_DIST) cands.push({ label: "Entrar no carro", priority: 1, dist: d + 8, run: () => this.enterCar(c), focus: { x: c.x, y: c.y - 30 } });
+        if (d < CAR_DIST) cands.push({ label: c.tipo === "moto" ? "Subir na moto" : "Entrar no carro", priority: 1, dist: d + 8, run: () => this.enterCar(c), focus: { x: c.x, y: c.y - 30 } });
       }
       for (const b of BUILDINGS) {
         const main = doorPoint(b);
@@ -1758,7 +1791,11 @@ export class CityScene extends Phaser.Scene {
     car.setDriver(this.hero);
     this.computeZoom();
     this.busyUntil = this.time.now + 250;
-    sound.porta();
+    if (car.tipo === "moto") {
+      // no Brasil do Flávio, quem sobe numa moto chama a motociata
+      this.motociata?.comeca(car);
+      this.toast("Motociata! A turma veio junto.");
+    } else sound.porta();
     this.emitHud(true);
   }
 
@@ -1810,6 +1847,7 @@ export class CityScene extends Phaser.Scene {
     this.mode = "pe";
     car.speed = 0;
     car.setDriver(null);
+    if (car.tipo === "moto") this.motociata?.termina(this.time.now);
     car.render(0);
     this.car = null;
     this.player.setPosition(spot.x, spot.y);
@@ -1862,7 +1900,7 @@ export class CityScene extends Phaser.Scene {
     this.player.faceToward(cao.x - this.player.x, cao.y - this.player.y);
     sound.latido();
     this.busyUntil = this.time.now + 500;
-    this.say("hero", Phaser.Utils.Array.GetRandom([`Bom garoto, ${cao.nome}! Agora você é assessor especial.`, `${cao.nome} abanou o rabo: vai me acompanhar um pouco.`, `Quem é o cachorro mais coletivo da cidade? É o ${cao.nome}!`]), 2200);
+    this.say("hero", Phaser.Utils.Array.GetRandom(this.tema.carinho(cao.nome)), 2200);
   }
 
   /** Chuta a bola na direção em que o protagonista está andando (ou para longe dele, se parado). */
@@ -1905,6 +1943,63 @@ export class CityScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Tiro para o alto (Brasil do Flávio): gesto de desenho animado, sempre para cima. Estampido, clarão,
+   * "POW!", pombos fugindo, moradores tapando o ouvido e cães correndo. Nunca mira em ninguém e não
+   * acerta nada: é a caricatura do barulho.
+   */
+  private tiroProAlto() {
+    if (CIDADE.id !== "flavio" || this.paused || this.dialogo || this.cerimoniaAtiva || this.transition || this.seated) return;
+    const now = this.time.now;
+    if (now - this.ultimoTiro < 650) return;
+    this.ultimoTiro = now;
+    if (this.inside) {
+      this.say("hero", Phaser.Utils.Array.GetRandom(["Aqui dentro não. O síndico multa até eco.", "Dentro do prédio? Nem pensar: o teto é financiado."]), 2200);
+      return;
+    }
+    const p = this.activePos();
+    const naMoto = this.mode === "carro";
+    const topo = naMoto ? p.y - 64 : p.y - 112;
+    sound.tiro();
+    if (!naMoto) {
+      if (!this.garrafaNaMao) this.player.setCarry("revolver", "mao");
+      this.player.setFace("comemora", 700);
+      this.player.hop(4);
+      this.time.delayedCall(700, () => {
+        if (!this.garrafaNaMao) this.player.setCarry(null);
+      });
+    } else this.car?.setDriverFace("comemora", 700);
+    if (!this.calmo) this.cameras.main.shake(90, 0.0025);
+    const clarao = this.add.circle(p.x + 10, topo + 18, 12, 0xfff3a0, 0.95).setDepth(99000);
+    this.tweens.add({ targets: clarao, scale: this.calmo ? 1 : 2.4, alpha: 0, duration: 260, onComplete: () => clarao.destroy() });
+    const pow = this.add
+      .text(p.x + 18, topo, "POW!", { fontFamily: FONT, fontSize: "22px", fontStyle: "900", color: "#ffd23f", stroke: "#1e1424", strokeThickness: 6, resolution: 2.5 })
+      .setOrigin(0.5)
+      .setAngle(-8)
+      .setDepth(99001);
+    this.tweens.add({ targets: pow, y: topo - (this.calmo ? 6 : 46), alpha: 0, delay: 250, duration: 650, onComplete: () => pow.destroy() });
+    const fumaca = this.add.image(p.x + 10, topo + 6, "puff").setScale(0.5 / RES.small).setDepth(99000).setAlpha(0.85);
+    this.tweens.add({ targets: fumaca, y: topo - 30, alpha: 0, scale: 0.9 / RES.small, duration: 900, onComplete: () => fumaca.destroy() });
+    // pombos que estavam por perto saem voando
+    if (this.textures.exists(tex.prop("pombo"))) {
+      for (let i = 0; i < (this.calmo ? 2 : 5); i++) {
+        const sx = p.x - 120 + Math.random() * 240;
+        const sy = p.y - 20 - Math.random() * 60;
+        const pombo = this.add.image(sx, sy, tex.prop("pombo")).setScale(0.9 / RES.cityProp).setDepth(98000).setFlipX(Math.random() < 0.5);
+        this.tweens.add({ targets: pombo, x: sx + (Math.random() < 0.5 ? -1 : 1) * (180 + Math.random() * 200), y: sy - 260 - Math.random() * 120, alpha: 0, duration: 1100 + Math.random() * 500, onComplete: () => pombo.destroy() });
+      }
+    }
+    // quem está perto toma susto; alguns reclamam
+    const perto = this.npcs.filter((n) => Math.hypot(n.x - p.x, n.y - p.y) < 280).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+    const RECLAMA = ["Ai, meu tímpano!", "De novo esse barulho?", "Pelo menos foi para o alto!", "Meu cachorro já fugiu de novo!", "Aqui não é estande de tiro!"];
+    perto.forEach((n, i) => {
+      n.walker.hop(12);
+      n.walker.setFace("susto", 1100);
+      if (i < 2) this.time.delayedCall(180 + i * 220, () => this.say(n.id, Phaser.Utils.Array.GetRandom(RECLAMA), 1700, "grito"));
+    });
+    if (this.caes.assusta(p, 320, now)) this.time.delayedCall(200, () => sound.latido());
+  }
+
   private drink() {
     this.stamina = MAX_STAMINA;
     this.lastDrinkAt = this.time.now;
@@ -1939,7 +2034,10 @@ export class CityScene extends Phaser.Scene {
 
   private horn() {
     if (this.mode !== "carro" || !this.car) return;
-    sound.buzina();
+    if (this.car.tipo === "moto") {
+      sound.fomfom();
+      this.motociata?.buzina();
+    } else sound.buzina();
     for (const n of this.npcs) {
       if (Math.hypot(n.x - this.car.x, n.y - this.car.y) < 170) {
         n.walker.hop(12);
@@ -2150,8 +2248,8 @@ export class CityScene extends Phaser.Scene {
     const camp = this.missoes.hud();
     if (camp.missao) objective = camp.missao.objetivo;
     else if (camp.proxima) objective = camp.proxima.numero > 6 ? `Cerimônia final: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.` : `Nova missão ${camp.proxima.numero}/6: ${camp.proxima.titulo}. Fale com ${camp.proxima.quem}.`;
-    else if (camp.final) objective = "Ditadura do Carimbo proclamada. A cidade é sua: veja como cada canto recebeu o decreto, ou reveja a cerimônia no palanque da praça.";
-    else if (camp.completa) objective = "Passaporte do Absurdo completo! A cidade é toda sua.";
+    else if (camp.final) objective = this.tema.depoisDoFinal;
+    else if (camp.completa) objective = `${this.tema.passaporte} completo! A cidade é toda sua.`;
     worldState.missaoAlvo = this.msAlvos[0] ?? null;
     worldState.missaoAlvos = this.msAlvos;
     const state: HudState = {
@@ -2163,11 +2261,12 @@ export class CityScene extends Phaser.Scene {
       final: camp.final,
       completa: camp.completa,
       mode: this.mode,
+      veiculo: this.mode === "carro" ? this.car?.tipo : undefined,
       action: this.candidate?.label ?? null,
       missionTitle: null,
       objective,
       done: false,
-      stamina: Math.ceil(this.stamina),
+      stamina: CIDADE.energia ? Math.ceil(this.stamina) : null,
       completed: 0,
       total: 0,
       place: this.inside ? `${this.inside.name}${room ? ` · ${room}` : ""}` : (this.district?.name ?? null),
@@ -2273,7 +2372,7 @@ export class CityScene extends Phaser.Scene {
       emite: (ev: string) => this.missoes.emite(ev),
       /** Começa a próxima missão como se o jogador tivesse falado com quem a dá (apoio de teste). */
       iniciar: (id: string) => {
-        const m = CAMPANHA.missoes.find((x) => x.id === id);
+        const m = [...CAMPANHA.missoes, ...(CAMPANHA.epilogo ? [CAMPANHA.epilogo] : [])].find((x) => x.id === id);
         return m ? this.missoes.iniciaSe(m.inicio.npc) : false;
       },
       ctx: () => this.contextoJogo(),
@@ -2291,6 +2390,9 @@ export class CityScene extends Phaser.Scene {
       caes: () => this.caes.caes.map((c) => ({ id: c.def.id, nome: c.nome, x: Math.round(c.x), y: Math.round(c.y) })),
       bolas: () => this.bolas.lista.map((b) => ({ id: b.def.id, x: Math.round(b.x), y: Math.round(b.y), v: Math.round(b.v) })),
       garrafa: () => this.garrafaNaMao,
+      /** Tiro para o alto (Brasil do Flávio) e o estado da motociata (apoio de teste). */
+      tiro: () => this.tiroProAlto(),
+      motociata: () => this.motociata?.ativa ?? false,
       /** Moradores do interior atual (apoio de teste). */
       npcsDentro: () => (this.interior?.npcs ?? []).map((n) => ({ id: n.id, nome: n.def.name, x: Math.round(n.x), y: Math.round(n.y) })),
       escolhe: (id: string | null) => this.escolheOpcao(id),

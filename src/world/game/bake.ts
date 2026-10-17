@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PuppetHead, type Face } from "@/components/Puppet";
 import { LOOKS, type LookId } from "../looks";
 import { BUILDINGS as CITY_BUILDINGS, PROPS as CITY_PROPS, INTERIOR_PROPS, VEHICLES } from "../cidade";
+import { temCidade } from "../cidade/ativa";
+import { CIDADE } from "../cidade";
 import { CORES_TRANSITO } from "../cidade/vida";
 import { BUILDINGS, PROPS } from "../map";
 import type { HeroId } from "../types";
@@ -25,6 +27,9 @@ import {
   headSide,
   leg,
   markerArt,
+  motoLayer,
+  type MotoLayer,
+  revolverArt,
   propArt,
   puffArt,
   shadowArt,
@@ -51,7 +56,12 @@ export const tex = {
   prop: (kind: string, variant?: string) => `p:${kind}:${variant ?? ""}`,
   building: (id: string) => `b:${id}`,
   car: (layer: CarLayer, color: string = CAR_BODY) => (color === CAR_BODY || layer === "sombra" || layer === "base" || layer === "parabrisa" ? `car:${layer}` : `car:${layer}:${color}`),
+  moto: (layer: MotoLayer, color: string = MOTO_BODY) => (layer === "sombra" || layer === "base" ? `moto:${layer}` : `moto:${layer}:${color}`),
 };
+
+/** Cor padrão das motos e as cores da motociata. */
+export const MOTO_BODY = "#1f2433";
+export const CORES_MOTOCIATA = ["#1f2433", "#c62835", "#2f9e5a", "#f2c230", "#2f6fd6", "#55555c"];
 
 /** Textura de cada prédio da cidade (prédios com o mesmo desenho dividem a textura). */
 export const CITY_TEX = new Map<string, string>();
@@ -108,13 +118,14 @@ function jobs(hero: HeroId): Job[] {
   add("emote", emoteArt(), RES.small);
   for (const t of ["calcada", "ondas", "grama", "terra"] as const) add(`tile:${t}`, tileArt(t), RES.tile);
 
-  if (hero === "flavio") {
+  if (!temCidade(hero)) {
+    // bairro original
     for (const p of PROPS) add(tex.prop(p.kind, p.variant), propArt(p.kind, p.variant), RES.prop);
     BUILDINGS.forEach((b, i) => add(tex.building(b.id), buildingArt(b, i), RES.building));
     return list;
   }
 
-  // cidade do Lula
+  // cidade grande (a ativa)
   for (const color of new Set([...VEHICLES.map((v) => v.color), ...CORES_TRANSITO])) {
     for (const layer of ["lateral", "topo"] as const) add(tex.car(layer, color), carLayer(layer, color), RES.car);
   }
@@ -129,6 +140,15 @@ function jobs(hero: HeroId): Job[] {
     add(key, art, RES.cityBuilding);
   });
   for (const t of ["concreto", "patio", "quadra", "ondas-cidade"] as const) add(`tile:${t}`, cityTile(t), RES.tile);
+  // Brasil do Flávio: motos (as estacionadas e as da motociata), o revólver do tiro para o alto e o navio dos EUA
+  if (CIDADE.id === "flavio") {
+    for (const layer of ["sombra", "base"] as const) add(tex.moto(layer), motoLayer(layer, MOTO_BODY), RES.car);
+    for (const color of new Set([...VEHICLES.filter((v) => v.tipo === "moto").map((v) => v.color), ...CORES_MOTOCIATA])) {
+      for (const layer of ["lateral", "topo"] as const) add(tex.moto(layer, color), motoLayer(layer, color), RES.car);
+    }
+    add("revolver", revolverArt(), RES.small);
+    add("navio-eua", navioArt("EUA"), RES.big);
+  }
   for (const f of ["taco", "ceramica", "ladrilho", "piso-bar", "piso-reparticao", "concreto", "carpete", "marmore", "azulejo"] as FloorKind[]) add(`floor:${f}`, floorTile(f), RES.tile);
   add("tile:agua", waterTile(), RES.tile);
   ["#f2a7b8", "#7fb3d5", "#ffd23f", "#b5e48c", "#ff9f80", "#cdb4db"].forEach((c, i) => add(`casinha:${i}`, casinhaArt(c), RES.prop));

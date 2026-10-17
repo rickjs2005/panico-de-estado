@@ -54,6 +54,21 @@ export const LOOKS = {
   m6: { skin: PELE.b, hair: "rabo", hairColor: "#4a2c1a", shirt: "#ff8fa3", pants: "#3a3a58" },
   m7: { skin: PELE.d, hair: "coque", hairColor: "#c9c2b8", glasses: "grau", shirt: "#90be6d", pants: "#4a4e69" },
   m8: { skin: PELE.a, hair: "rabo", hairColor: "#d9a441", shirt: "#4d96ff", pants: "#22223b" },
+  // elenco do Brasil do Flávio (vem dos episódios, com calça para andar pela cidade)
+  patriota: { ...CHARACTERS.patriota.look, pants: "#1f6f43" },
+  kelly: { ...CHARACTERS.kelly.look, pants: "#2b2d42" },
+  mesario: { ...CHARACTERS.mesario.look, pants: "#3a3a48" },
+  fortaleza: { ...CHARACTERS.fortaleza.look, pants: "#2a3328" },
+  wanderley: { ...CHARACTERS.wanderley.look, pants: "#3a3a48" },
+  leila: { ...CHARACTERS.leila.look, pants: "#26323b" },
+  robson: { ...CHARACTERS.robson.look, pants: "#2a3150" },
+  valdir: { ...CHARACTERS.valdir.look, pants: "#2a1f30" },
+  motoqueiro: { skin: PELE.c, hair: "bone", hairColor: "#1a1210", capColor: "#1f2433", beard: "cheia", beardColor: "#2a1d14", glasses: "escuro", shirt: "#2a2a35", pants: "#1f2433" },
+  sargento: { skin: PELE.b, hair: "raspado", hairColor: "#3a3a3a", beard: "bigode", beardColor: "#3a3a3a", shirt: "#4f6a3f", badge: true, pants: "#3d4a33" },
+  zuleica: { skin: PELE.d, hair: "coque", hairColor: "#e6e6e6", glasses: "grau", shirt: "#d98ab0", pants: "#4a3a5a" },
+  leiloeiro: { skin: PELE.a, hair: "lateral", hairColor: "#c9c2b8", beard: "bigode", beardColor: "#c9c2b8", shirt: "#2a3a6b", tie: "#f2c230", pants: "#1f2433" },
+  rosangela: { skin: PELE.b, hair: "coque", hairColor: "#5a3a2a", glasses: "grau", shirt: "#7fb3a0", badge: true, pants: "#2f3a38" },
+  sindico: { skin: PELE.a, hair: "careca", hairColor: "#8a7a6a", glasses: "grau", shirt: "#e9e2cf", tie: "#1f6f43", pants: "#3a3a48" },
 } satisfies Record<string, WorldLook>;
 
 export type LookId = keyof typeof LOOKS;

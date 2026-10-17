@@ -86,10 +86,58 @@ function casaArt(b: CityBuilding): Art {
   // botijão de gás ou bicicleta coletiva encostada
   if (h % 7 === 3) parts.push(`<rect x="${left ? W - 26 : 10}" y="${H - 22}" width="14" height="20" rx="5" fill="#2f6fd6"/><rect x="${left ? W - 23 : 13}" y="${H - 26}" width="8" height="5" fill="#55555c"/>`);
   if (h % 7 === 5) parts.push(`<circle cx="${left ? W - 40 : 20}" cy="${H - 8}" r="7" fill="none" stroke="#2a2a35" stroke-width="2"/><circle cx="${left ? W - 18 : 42}" cy="${H - 8}" r="7" fill="none" stroke="#2a2a35" stroke-width="2"/><path d="M${left ? W - 40 : 20} ${H - 8} L${left ? W - 30 : 30} ${H - 18} L${left ? W - 18 : 42} ${H - 8}" stroke="#e63946" stroke-width="2" fill="none"/>`);
-  // adesivo da coletivização em algumas portas
-  if (h % 3 === 1) parts.push(`<rect x="${doorX - 11}" y="${H - 44}" width="22" height="9" rx="1" fill="#c62835"/><text x="${doorX}" y="${H - 37.5}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="4.6" text-anchor="middle" fill="#fff4ce">DO POVO</text>`);
+  // adesivo na porta: "DO POVO" na cidade do Lula, "SORRIA" (câmera do condomínio) na do Flávio
+  if (h % 3 === 1) {
+    const fl = b.id.startsWith("fl-");
+    parts.push(`<rect x="${doorX - 11}" y="${H - 44}" width="22" height="9" rx="1" fill="${fl ? "#1f6f43" : "#c62835"}"/><text x="${doorX}" y="${H - 37.5}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="4.6" text-anchor="middle" fill="${fl ? "#ffd23f" : "#fff4ce"}">${fl ? "SORRIA" : "DO POVO"}</text>`);
+  }
   if (b.sign) parts.push(signSvg(b.sign, W * 0.1, fy + 10, W * 0.8, 18));
   return { w: W, h: H, body: parts.join(""), outline: 1.3 };
+}
+
+/** Losango e círculo da bandeira do Brasil, desenhados em código. */
+function brasilFlag(x: number, y: number, w: number, h: number) {
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#1f8a4c"/><path d="M${x + w / 2} ${y + h * 0.1} L${x + w * 0.92} ${y + h / 2} L${x + w / 2} ${y + h * 0.9} L${x + w * 0.08} ${y + h / 2} Z" fill="#ffd23f"/><circle cx="${x + w / 2}" cy="${y + h / 2}" r="${h * 0.22}" fill="#2f6fd6"/>`;
+}
+
+/** Palácio da Ordem: cúpula verde, bandeiras do Brasil e colunata, no lugar da prefeitura popular. */
+function palacioFlavio(b: CityBuilding, W: number, H: number, top: number, fy: number, doorX: number, parts: string[]) {
+  parts.push(telhado(W, top, b.d, { back: "#9fb8a0", front: "#86a087", ridge: "#b6ccb7", line: "#6d876e" }));
+  parts.push(`<path d="M${W / 2 - 74} ${fy - 6} A74 74 0 0 1 ${W / 2 + 74} ${fy - 6} Z" fill="#2f8a4f"/>`);
+  parts.push(`<path d="M${W / 2 - 40} ${fy - 30} Q${W / 2} ${fy - 74} ${W / 2 + 40} ${fy - 30}" stroke="#ffd23f" stroke-width="5" fill="none"/>`);
+  parts.push(`<rect x="${W / 2 - 2}" y="${fy - 120}" width="4" height="44" fill="#55555c"/>` + brasilFlag(W / 2 + 2, fy - 120, 30, 20));
+  parts.push(`<rect x="0" y="${fy}" width="${W}" height="${b.h}" fill="${b.wall}"/><rect x="0" y="${fy}" width="${W}" height="7" fill="${shade(b.wall, 0.3)}"/><rect x="0" y="${H - 10}" width="${W}" height="10" fill="${shade(b.wall, -0.25)}"/>`);
+  for (const wx of [24, 74, W - 114, W - 64]) {
+    parts.push(windowSvg(wx, fy + 26, 34, 30));
+    parts.push(windowSvg(wx, fy + 76, 34, 30));
+  }
+  parts.push(`<path d="M${W * 0.27} ${fy + 24} L${W / 2} ${fy - 14} L${W * 0.73} ${fy + 24} Z" fill="${shade(b.wall, 0.15)}"/>`);
+  parts.push(brasilFlag(W / 2 - 12, fy + 2, 24, 16));
+  for (let i = 0; i < 6; i++) {
+    const cx = W * 0.29 + i * ((W * 0.42) / 5);
+    parts.push(`<rect x="${cx - 7}" y="${fy + 24}" width="14" height="${b.h - 46}" fill="#ffffff"/><rect x="${cx - 9}" y="${fy + 22}" width="18" height="6" fill="#e9dcc5"/>`);
+  }
+  for (const bx of [W * 0.36, W * 0.64]) parts.push(`<path d="M${bx - 12} ${fy + 30} H${bx + 12} V${fy + 86} L${bx} ${fy + 78} L${bx - 12} ${fy + 86} Z" fill="#1f8a4c"/><path d="M${bx} ${fy + 40} L${bx + 8} ${fy + 52} L${bx} ${fy + 64} L${bx - 8} ${fy + 52} Z" fill="#ffd23f"/>`);
+  parts.push(`<rect x="${doorX - 23}" y="${H - 64}" width="46" height="52" fill="#7a3e1d"/><path d="M${doorX} ${H - 64} V${H - 12}" stroke="${shade("#7a3e1d", -0.35)}" stroke-width="2"/>`);
+  parts.push(`<rect x="${W * 0.25}" y="${H - 12}" width="${W * 0.5}" height="12" fill="#e9dcc5"/><rect x="${W * 0.22}" y="${H - 5}" width="${W * 0.56}" height="5" fill="#d9cfc0"/>`);
+  if (b.sign) parts.push(signSvg(b.sign, W * 0.32, fy + 92, W * 0.36, 20, "#fff3a0"));
+}
+
+/** Ministério da Ordem Comunicacional: antena parabólica do desmentido no lugar do megafone, faixa verde e o balão "NÃO". */
+function ministerioFlavio(b: CityBuilding, W: number, H: number, top: number, fy: number, seed: number, parts: string[]) {
+  parts.push(laje(W, top, b.d, seed));
+  parts.push(`<rect x="${W * 0.3}" y="${top - 18}" width="10" height="40" fill="#55555c"/>`);
+  parts.push(`<path d="M${W * 0.3 - 30} ${top - 70} Q${W * 0.3 + 5} ${top - 10} ${W * 0.3 + 40} ${top - 70} Z" fill="#d9d4c8"/><path d="M${W * 0.3 + 5} ${top - 40} L${W * 0.3 + 5} ${top - 76}" stroke="#55555c" stroke-width="3"/><circle cx="${W * 0.3 + 5}" cy="${top - 78}" r="5" fill="#1f8a4c"/>`);
+  parts.push(`<path d="M${W * 0.3 + 26} ${top - 92} Q${W * 0.3 + 40} ${top - 86} ${W * 0.3 + 34} ${top - 74} M${W * 0.3 + 36} ${top - 104} Q${W * 0.3 + 56} ${top - 92} ${W * 0.3 + 46} ${top - 70}" stroke="#ffd23f" stroke-width="4" fill="none"/>`);
+  parts.push(`<rect x="${W * 0.78}" y="${top - 60}" width="4" height="70" fill="#55555c"/>` + brasilFlag(W * 0.78 + 4, top - 62, 26, 17));
+  parts.push(`<rect x="0" y="${fy}" width="${W}" height="${b.h}" fill="${b.wall}"/><rect x="0" y="${fy}" width="${W}" height="7" fill="${shade(b.wall, 0.3)}"/><rect x="0" y="${H - 10}" width="${W}" height="10" fill="${shade(b.wall, -0.25)}"/>`);
+  parts.push(`<rect x="${W / 2 - 12}" y="${fy}" width="24" height="${b.h}" fill="#1f8a4c"/><rect x="${W / 2 - 4}" y="${fy}" width="8" height="${b.h}" fill="#ffd23f"/>`);
+  for (let r = 0; r < 4; r++) {
+    for (const wx of [14, 54, W - 94, W - 54]) parts.push(`<rect x="${wx}" y="${fy + 44 + r * 28}" width="34" height="18" fill="#7fb3d5"/><path d="M${wx} ${fy + 50 + r * 28} H${wx + 34}" stroke="#d4ecff" stroke-width="2"/>`);
+  }
+  parts.push(`<rect x="${W / 2 - 22}" y="${H - 48}" width="44" height="38" fill="#5d8fb0"/><path d="M${W / 2} ${H - 48} V${H - 10}" stroke="#c9e7ff" stroke-width="2"/>`);
+  if (b.sign) parts.push(signSvg(b.sign, 8, fy + 10, W - 16, 26, "#fffaf0"));
+  parts.push(`<path d="M${W - 34} ${fy + 2} h26 v14 h-14 l-6 6 v-6 h-6 Z" fill="#ffd23f"/><text x="${W - 21}" y="${fy + 13}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}">NÃO</text>`);
 }
 
 function star(cx: number, cy: number, r: number, fill: string) {
@@ -126,8 +174,13 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
   const parts: string[] = [];
   const doorX = W * doorFrac(b);
 
+  const fl = b.id.startsWith("fl-");
   switch (b.kind) {
     case "prefeitura": {
+      if (fl) {
+        palacioFlavio(b, W, H, top, fy, doorX, parts);
+        break;
+      }
       parts.push(telhado(W, top, b.d, roofFor(b.id)));
       parts.push(`<path d="M${W / 2 - 74} ${fy - 6} A74 74 0 0 1 ${W / 2 + 74} ${fy - 6} Z" fill="#d94a3a"/>`);
       parts.push(`<path d="M${W / 2 - 40} ${fy - 30} Q${W / 2} ${fy - 74} ${W / 2 + 40} ${fy - 30}" stroke="#f28da0" stroke-width="5" fill="none"/>`);
@@ -150,6 +203,10 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
       break;
     }
     case "ministerio": {
+      if (fl) {
+        ministerioFlavio(b, W, H, top, fy, seed, parts);
+        break;
+      }
       parts.push(laje(W, top, b.d, seed));
       // megafone gigante no telhado
       parts.push(`<rect x="${W * 0.3}" y="${top - 18}" width="10" height="40" fill="#55555c"/>`);
@@ -240,7 +297,7 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
       for (const i of [0, 2]) {
         const cx = W * 0.2 + i * W * 0.3;
         parts.push(`<rect x="${cx - 26}" y="${H - 56}" width="52" height="46" rx="3" fill="#fffaf0"/><rect x="${cx - 18}" y="${H - 50}" width="36" height="18" fill="#8ec5e8"/>`);
-        parts.push(`<text x="${cx}" y="${H - 18}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}">${["SAÍDA", "CARIMBO", "CHINA"][i]}</text>`);
+        parts.push(`<text x="${cx}" y="${H - 18}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}">${(fl ? ["SAÍDA", "MADE IN", "EUA"] : ["SAÍDA", "CARIMBO", "CHINA"])[i]}</text>`);
       }
       parts.push(`<rect x="${W - 54}" y="${fy + 56}" width="40" height="24" rx="2" fill="#c62835"/><text x="${W - 34}" y="${fy + 72}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="#fffaf0">PAÍS</text>`);
       if (b.sign) parts.push(signSvg(b.sign, 10, fy + 10, W - 20, 24));
@@ -251,11 +308,11 @@ export function cityBuildingArt(b: CityBuilding, seed: number): Art {
       // torre do relógio
       const tw = 70;
       parts.push(`<rect x="${W / 2 - tw / 2}" y="${top - 70}" width="${tw}" height="${b.d + 80}" fill="${shade(b.wall, -0.04)}"/>`);
-      parts.push(`<path d="M${W / 2 - tw / 2 - 6} ${top - 68} L${W / 2} ${top - 98} L${W / 2 + tw / 2 + 6} ${top - 68} Z" fill="#3a86c8"/>`);
+      parts.push(`<path d="M${W / 2 - tw / 2 - 6} ${top - 68} L${W / 2} ${top - 98} L${W / 2 + tw / 2 + 6} ${top - 68} Z" fill="${fl ? "#1f8a4c" : "#3a86c8"}"/>`);
       parts.push(`<circle cx="${W / 2}" cy="${top - 30}" r="22" fill="#fffaf0"/><path d="M${W / 2} ${top - 30} V${top - 46} M${W / 2} ${top - 30} H${W / 2 + 12}" stroke="${INK}" stroke-width="3"/>`);
       base(b, fy, H, parts);
-      // murais coloridos
-      const mural = ["#e63946", "#ffd23f", "#2e7d32", "#3a86ff", "#7b4bd1", "#ff9f80"];
+      // murais coloridos (na faculdade do Flávio, só verde, amarelo e azul, em formação)
+      const mural = fl ? ["#1f8a4c", "#ffd23f", "#2f6fd6", "#1f8a4c", "#ffd23f", "#2f6fd6"] : ["#e63946", "#ffd23f", "#2e7d32", "#3a86ff", "#7b4bd1", "#ff9f80"];
       mural.forEach((c, i) => parts.push(`<path d="M${20 + i * 12} ${H - 12} Q${40 + i * 12} ${fy + 40} ${80 + i * 12} ${H - 12}" stroke="${c}" stroke-width="7" fill="none"/>`));
       mural.forEach((c, i) => parts.push(`<circle cx="${W - 90 + (i % 3) * 26}" cy="${fy + 50 + Math.floor(i / 3) * 26}" r="11" fill="${c}"/>`));
       for (let x = 170; x < W - 170; x += 56) if (Math.abs(x + 18 - W / 2) > 60) parts.push(windowSvg(x, fy + 46, 36, 28));
@@ -309,6 +366,8 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
       };
     }
     case "bandeira": {
+      if (variant === "brasil")
+        return { w: 64, h: 100, originY: 0.97, outline: 1, body: `<rect x="6" y="6" width="4" height="92" fill="#55555c"/><circle cx="8" cy="5" r="3" fill="#f2c230"/>` + `<path d="M10 10 Q32 4 58 12 L58 44 Q34 36 10 42 Z" fill="#1f8a4c"/>` + `<path d="M34 12 L54 26 L34 40 L14 26 Z" fill="#ffd23f"/><circle cx="34" cy="26" r="7" fill="#2f6fd6"/>` };
       const china = variant === "china";
       return {
         w: 64,
@@ -322,6 +381,8 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
       };
     }
     case "outdoor":
+      if (variant === "verde")
+        return { w: 190, h: 112, originY: 0.97, outline: 1.3, body: `<rect x="30" y="60" width="8" height="50" fill="#55555c"/><rect x="152" y="60" width="8" height="50" fill="#55555c"/><rect x="4" y="4" width="182" height="64" rx="3" fill="#fffaf0"/><rect x="4" y="4" width="182" height="10" fill="#1f8a4c"/><rect x="14" y="5" width="16" height="8" fill="#ffd23f"/>` };
       return {
         w: 190,
         h: 112,
@@ -330,6 +391,7 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
         body: `<rect x="30" y="60" width="8" height="50" fill="#55555c"/><rect x="152" y="60" width="8" height="50" fill="#55555c"/><rect x="4" y="4" width="182" height="64" rx="3" fill="#fffaf0"/><rect x="4" y="4" width="182" height="10" fill="#c62835"/>` + star(20, 9, 4, "#ffd23f"),
       };
     case "placaColetiva":
+      if (variant === "privada") return { w: 92, h: 62, originY: 0.97, outline: 1, body: `<rect x="43" y="28" width="5" height="32" fill="#7a4e2d"/><rect x="2" y="4" width="88" height="28" rx="3" fill="#1f6f43"/><rect x="2" y="28" width="88" height="4" fill="#ffd23f"/>` };
       return { w: 92, h: 62, originY: 0.97, outline: 1, body: `<rect x="43" y="28" width="5" height="32" fill="#7a4e2d"/><rect x="2" y="4" width="88" height="28" rx="3" fill="#c62835"/>` };
     case "placaRua":
       return { w: 104, h: 64, originY: 0.97, outline: 1, body: `<rect x="49" y="18" width="5" height="44" fill="#55555c"/><rect x="2" y="2" width="100" height="20" rx="3" fill="#1d5fa8"/>` };
@@ -342,20 +404,21 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
     case "palete":
       return { w: 50, h: 34, originY: 0.94, outline: 1, body: `<rect x="2" y="24" width="46" height="7" fill="#b5732f"/><rect x="6" y="8" width="18" height="16" fill="#c9915a"/><rect x="26" y="4" width="18" height="20" fill="#d9a066"/><path d="M6 14 H24 M26 12 H44" stroke="#8a5a2b" stroke-width="1"/>` };
     case "caminhao": {
-      const c = variant === "azul" ? "#2f6fd6" : "#e2533b";
+      const c = variant === "azul" || variant === "eua" ? "#2f6fd6" : "#e2533b";
       return {
         w: 160,
         h: 84,
         originY: 0.94,
         outline: 1.3,
         body:
-          `<rect x="4" y="10" width="110" height="56" rx="3" fill="#e9e4dc"/><rect x="4" y="10" width="110" height="10" fill="#cfc8bb"/><text x="58" y="48" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="12" text-anchor="middle" fill="${INK}">CARGA DO POVO</text>` +
+          `<rect x="4" y="10" width="110" height="56" rx="3" fill="#e9e4dc"/><rect x="4" y="10" width="110" height="10" fill="#cfc8bb"/><text x="58" y="48" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="12" text-anchor="middle" fill="${INK}">${variant === "eua" ? "CARGA PROS EUA" : "CARGA DO POVO"}</text>` +
           `<path d="M116 24 H140 L154 42 V66 H116 Z" fill="${c}"/><path d="M122 30 H138 L148 42 H122 Z" fill="#a8e0ff"/>` +
           `<circle cx="30" cy="70" r="10" fill="#25222b"/><circle cx="90" cy="70" r="10" fill="#25222b"/><circle cx="138" cy="70" r="10" fill="#25222b"/>`,
       };
     }
     case "conteiner": {
-      const c = CONTAINER[variant ?? "vermelho"] ?? CONTAINER.vermelho;
+      const eua = !!variant?.endsWith("-eua");
+      const c = CONTAINER[(eua ? variant!.slice(0, -4) : variant) ?? "vermelho"] ?? CONTAINER.vermelho;
       return {
         w: 90,
         h: 58,
@@ -364,7 +427,7 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
         body:
           `<rect x="3" y="3" width="84" height="16" fill="${shade(c, 0.25)}"/><rect x="3" y="19" width="84" height="36" fill="${c}"/>` +
           Array.from({ length: 10 }, (_, i) => `<path d="M${10 + i * 8} 21 V53" stroke="${shade(c, -0.25)}" stroke-width="1.6"/>`).join("") +
-          `<text x="45" y="16" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}" opacity="0.7">BR→CN</text>`,
+          `<text x="45" y="16" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="8" text-anchor="middle" fill="${INK}" opacity="0.7">${eua ? "BR→EUA" : "BR→CN"}</text>`,
       };
     }
     case "guindaste":
@@ -449,6 +512,8 @@ export function cityPropArt(kind: CityPropKind, variant?: string): PropArt {
       };
     }
     case "pontoOnibus":
+      if (variant === "patria")
+        return { w: 92, h: 66, originY: 0.95, outline: 1.1, body: `<rect x="6" y="12" width="4" height="50" fill="#55555c"/><rect x="82" y="12" width="4" height="50" fill="#55555c"/><rect x="2" y="6" width="88" height="10" rx="2" fill="#1f8a4c"/><rect x="12" y="20" width="68" height="30" fill="#a8e0ff" fill-opacity="0.6"/><rect x="16" y="46" width="60" height="6" fill="#b5732f"/><text x="46" y="14" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="7" text-anchor="middle" fill="#ffd23f">PONTO DA PÁTRIA</text>` };
       return { w: 92, h: 66, originY: 0.95, outline: 1.1, body: `<rect x="6" y="12" width="4" height="50" fill="#55555c"/><rect x="82" y="12" width="4" height="50" fill="#55555c"/><rect x="2" y="6" width="88" height="10" rx="2" fill="#3a86c8"/><rect x="12" y="20" width="68" height="30" fill="#a8e0ff" fill-opacity="0.6"/><rect x="16" y="46" width="60" height="6" fill="#b5732f"/><text x="46" y="14" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="7" text-anchor="middle" fill="#fffaf0">PONTO DO POVO</text>` };
     case "tabela":
       return { w: 40, h: 100, originY: 0.97, outline: 1.1, body: `<rect x="18" y="20" width="5" height="78" fill="#55555c"/><rect x="4" y="4" width="32" height="22" rx="2" fill="#fffaf0"/><rect x="14" y="12" width="12" height="8" fill="none" stroke="#e63946" stroke-width="2"/><ellipse cx="20" cy="28" rx="8" ry="3" fill="none" stroke="#ff7a1a" stroke-width="2.5"/>` };
@@ -534,14 +599,14 @@ export function casinhaArt(color: string): Art {
   };
 }
 
-export function navioArt(): Art {
+export function navioArt(destino = "CHINA"): Art {
   const boxes = ["#d1453b", "#2f6fd6", "#3aa655", "#f2c230", "#e0763b", "#7b4bd1"];
   return {
     w: 760,
     h: 190,
     body:
       `<path d="M10 110 H750 L700 180 H60 Z" fill="#c62835"/><path d="M30 140 H730 L712 166 H50 Z" fill="#2a2a35"/>` +
-      `<text x="380" y="132" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="22" text-anchor="middle" fill="#fffaf0">DESTINO: CHINA · CARGA: O BRASIL</text>` +
+      `<text x="380" y="132" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="22" text-anchor="middle" fill="#fffaf0">DESTINO: ${destino} · CARGA: O BRASIL</text>` +
       Array.from({ length: 16 }, (_, i) => `<rect x="${110 + (i % 8) * 60}" y="${i < 8 ? 76 : 44}" width="56" height="32" fill="${boxes[(i * 5) % 6]}"/>`).join("") +
       `<rect x="600" y="20" width="110" height="90" fill="#fffaf0"/><rect x="612" y="34" width="86" height="16" fill="#8ec5e8"/><rect x="640" y="0" width="22" height="24" fill="#c62835"/>` +
       star(380, 12, 0, "#fff"),

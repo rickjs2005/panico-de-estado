@@ -34,19 +34,26 @@ export interface Apuracao {
   itens: { missao: number; id: string; valor: string; texto: string; lado: "obediente" | "rebelde" | "meio" }[];
 }
 
-/** Conta o lado de cada decisão do jogador. Missões sem decisão (save antigo) não contam para nenhum lado. */
-export function apura(flags: Record<string, Valor>): Apuracao {
+/** Conta o lado de cada decisão do jogador, para qualquer campanha. Missões sem decisão (save antigo) não contam para nenhum lado. */
+export function apuraCom(
+  missoes: { id: string; numero: number }[],
+  decisoes: Record<string, Record<string, { lado: "obediente" | "rebelde" | "meio"; texto: string }>>,
+  flags: Record<string, Valor>,
+): Apuracao {
   const out: Apuracao = { obediente: 0, rebelde: 0, meio: 0, itens: [] };
-  for (const m of CAMPANHA.missoes) {
+  for (const m of missoes) {
     const v = flags[`d.${m.id}`];
     if (typeof v !== "string") continue;
-    const dec = DECISOES[m.id]?.[v];
+    const dec = decisoes[m.id]?.[v];
     if (!dec) continue;
     out[dec.lado]++;
     out.itens.push({ missao: m.numero, id: m.id, valor: v, texto: dec.texto, lado: dec.lado });
   }
   return out;
 }
+
+/** Apuração da campanha do Lula. */
+export const apura = (flags: Record<string, Valor>): Apuracao => apuraCom(CAMPANHA.missoes, DECISOES, flags);
 
 /** Obediência exagerada, decretos ignorados ou um meio-termo que combina as consequências específicas. */
 export function tomDe(a: Apuracao): Tom {

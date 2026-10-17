@@ -1,6 +1,7 @@
-import type { CityBuilding, InteriorDef, TemplateId } from "../types";
+import type { EntradaCatalogo } from "../definicao";
+import type { HeroId } from "../../types";
+import type { CityBuilding, InteriorDef } from "../types";
 import { PAREDES } from "./kits";
-import { MISSOES_PREDIO } from "./missoes";
 import { MODELS } from "./modelos";
 import { Plan, rng } from "./plan";
 
@@ -8,19 +9,14 @@ import { Plan, rng } from "./plan";
  * Catálogo: cada prédio da cidade aponta para um modelo de interior e tem nome próprio.
  * Os ids dos interiores são estáveis: `bar` e `reparticao` mantêm os ids antigos;
  * os outros usam `int-<id do prédio>`.
+ *
+ * `CATALOG` é o da cidade do Lula. As funções recebem o catálogo da cidade ativa
+ * (o índice da cidade faz essa ligação).
  */
 
-interface Entry {
-  template: TemplateId;
-  name: string;
-  label: { name: string; article: "o" | "a" | "os" | "as" };
-  id?: string;
-  wall?: string;
-}
+const casa = (name: string): EntradaCatalogo => ({ template: "casa", name, label: { name: "casa", article: "a" } });
 
-const casa = (name: string): Entry => ({ template: "casa", name, label: { name: "casa", article: "a" } });
-
-export const CATALOG: Record<string, Entry> = {
+export const CATALOG: Record<string, EntradaCatalogo> = {
   // Vila do Mutirão
   "res-casa-01": casa("Casa da Dona Lurdes"),
   "res-casa-02": casa("Casa do Seu Dirceu"),
@@ -75,27 +71,35 @@ export const CATALOG: Record<string, Entry> = {
   "ter-despacho": { template: "despacho", name: "Controle de Despacho", label: { name: "Controle de Despacho", article: "o" }, wall: "#ebe6dc" },
 };
 
-export function interiorId(b: CityBuilding): string {
-  return CATALOG[b.id]?.id ?? `int-${b.id}`;
+export function interiorIdEm(catalogo: Record<string, EntradaCatalogo>, b: CityBuilding): string {
+  return catalogo[b.id]?.id ?? `int-${b.id}`;
 }
 
 /** Texto da ação de entrar: "Entrar na casa", "Entrar no mercadinho". */
-export function entryLabel(b: CityBuilding): string {
-  const l = CATALOG[b.id]?.label ?? { name: "prédio", article: "o" as const };
+export function rotuloEntrada(catalogo: Record<string, EntradaCatalogo>, b: CityBuilding): string {
+  const l = catalogo[b.id]?.label ?? { name: "prédio", article: "o" as const };
   const prep = { o: "no", a: "na", os: "nos", as: "nas" }[l.article];
   return `Entrar ${prep} ${l.name}`;
 }
 
-/** Monta o interior de um prédio a partir do catálogo e do modelo. */
-export function interiorFor(b: CityBuilding): InteriorDef {
-  const entry = CATALOG[b.id];
+/** Monta o interior de um prédio a partir do catálogo e do modelo, com as falas no universo da cidade. */
+export function montaInterior(
+  b: CityBuilding,
+  cidade: { id: HeroId; catalogo: Record<string, EntradaCatalogo>; missoesPredio: Record<string, (p: Plan) => void>; texto?: (s: string) => string; energia: boolean },
+): InteriorDef {
+  const entry = cidade.catalogo[b.id];
   if (!entry) throw new Error(`prédio sem interior no catálogo: ${b.id}`);
   const model = MODELS[entry.template];
   const r = rng(b.id);
   const size = model.size(b.w, r);
   const flip = !!model.flip && r.chance(0.5);
-  const plan = new Plan(b, { id: interiorId(b), name: entry.name, template: entry.template, w: size.w, h: size.h, wallH: size.wallH, wall: entry.wall ?? r.pick(PAREDES) }, r, flip);
+  const plan = new Plan(
+    b,
+    { id: interiorIdEm(cidade.catalogo, b), name: entry.name, template: entry.template, w: size.w, h: size.h, wallH: size.wallH, wall: entry.wall ?? r.pick(PAREDES), texto: cidade.texto, semCachaca: !cidade.energia, universo: cidade.id },
+    r,
+    flip,
+  );
   model.build(plan);
-  MISSOES_PREDIO[b.id]?.(plan);
+  cidade.missoesPredio[b.id]?.(plan);
   return plan.def;
 }

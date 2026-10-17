@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/hooks";
 import { useModalFoco } from "./useModal";
 import { bus, worldState } from "@/world/bridge";
-import { BUILDINGS, CITY, DISTRICTS, INTERIORS, LIMITS, POIS, ROADS, districtById, doorPoint } from "@/world/cidade";
+import { BUILDINGS, CIDADE, CITY, DISTRICTS, INTERIORS, LIMITS, POIS, ROADS, districtById, doorPoint } from "@/world/cidade";
 import { readCity } from "@/world/cidade/progress";
 import type { CityBuilding, Poi, PoiKind } from "@/world/cidade/types";
 
@@ -20,6 +20,10 @@ const ICON: Record<PoiKind, string> = {
   cachaca: "🍶",
   estacionamento: "🅿️",
 };
+
+/** Cor de cada borda no mapa: água, morro ou serra, muro e mata. */
+const COR_BORDA: Record<string, string> = { canal: "#3f8fd2", baia: "#3f8fd2", rio: "#3f8fd2", mar: "#3f8fd2", morro: "#3f9b4a", serra: "#2f7f45", muro: "#c9b8a0", mata: "#245c34" };
+const AGUA = new Set(["canal", "baia", "rio", "mar"]);
 
 /** Área mostrada no mapa (a cidade sem as bordas de água e morro). */
 const VIEW = { x: 90, y: 110, w: CITY.w - 180, h: 3420 - 110 + 60 };
@@ -91,7 +95,7 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
     <div ref={raiz} className="absolute inset-0 z-20 flex flex-col bg-[#0b0b0f]/85 p-2 text-[#1e1424] sm:p-4" role="dialog" aria-modal="true" aria-label="Mapa da cidade">
       <div className="mb-2 flex items-center gap-2">
         <p className="rounded-lg border-[3px] border-[#1e1424] bg-[#fffaf0] px-3 py-1 text-sm font-black shadow-[0_3px_0_#1e1424]">
-          Mapa · Brasil hipotético do Lula
+          Mapa · Brasil hipotético do {CIDADE.id === "flavio" ? "Flávio" : "Lula"}
         </p>
         {insideRoom ? (
           <p className="rounded-lg bg-[#c62835] px-2 py-1 text-xs font-black text-white">Você está dentro: {insideRoom.name}</p>
@@ -113,9 +117,13 @@ export default function CityMap({ onClose }: { onClose: () => void }) {
             role="img"
             aria-label="Mapa da cidade com distritos, ruas e lugares"
           >
-            <rect x={LIMITS.canal.w} y={LIMITS.morro.h} width={LIMITS.muro.x - LIMITS.canal.w} height={LIMITS.baia.y - LIMITS.morro.h} fill="#d9d4ca" />
-            <rect x={0} y={0} width={CITY.w} height={LIMITS.morro.h} fill="#3f9b4a" />
-            <rect x={LIMITS.muro.x} y={0} width={LIMITS.muro.w} height={LIMITS.baia.y} fill="#c9b8a0" />
+            <rect x={0} y={0} width={CITY.w} height={CITY.h} fill="#d9d4ca" />
+            {/* bordas: terra firme primeiro, água por cima (a baía cobre o pé do muro) */}
+            {Object.entries(LIMITS)
+              .sort(([a], [b]) => Number(AGUA.has(a)) - Number(AGUA.has(b)))
+              .map(([id, r]) => (
+                <rect key={id} x={r.x} y={r.y} width={r.w} height={r.h} fill={COR_BORDA[id] ?? "#c9b8a0"} />
+              ))}
             {DISTRICTS.map((d) => (
               <rect key={d.id} x={d.area.x} y={d.area.y} width={d.area.w} height={d.area.h} fill={d.color} fillOpacity={0.22} />
             ))}

@@ -128,6 +128,24 @@ export const sound = {
     tone(1760, 0, 0.08, "sine", 0.04);
     tone(2350, 0.05, 0.12, "sine", 0.03);
   },
+  /** Estampido de desenho animado (tiro para o alto do Flávio caricato): estalo seco e um eco curto. */
+  tiro() {
+    tone(180, 0, 0.07, "square", 0.07);
+    tone(95, 0.01, 0.16, "sawtooth", 0.06);
+    tone(60, 0.03, 0.22, "sine", 0.08);
+    tone(140, 0.24, 0.1, "square", 0.02);
+  },
+  /** Ronco de moto subindo. */
+  ronco() {
+    tone(70, 0, 0.35, "sawtooth", 0.04);
+    tone(95, 0.12, 0.3, "sawtooth", 0.035);
+    tone(130, 0.24, 0.25, "square", 0.02);
+  },
+  /** Buzina de moto: fom-fom. */
+  fomfom() {
+    tone(523, 0, 0.12, "square", 0.03);
+    tone(523, 0.17, 0.16, "square", 0.03);
+  },
   /** Gole de cachaça. */
   gole() {
     for (let i = 0; i < 3; i++) tone(260 - i * 30, i * 0.12, 0.09, "sine", 0.05);

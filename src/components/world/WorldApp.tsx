@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sound } from "@/lib/sound";
+import { ativaCidade, temCidade } from "@/world/cidade/ativa";
 import { clearCity } from "@/world/cidade/progress";
 import { clearSave } from "@/world/save";
 import type { HeroId } from "@/world/types";
@@ -30,7 +31,10 @@ export default function WorldApp() {
       onSwitch={() => setHero(null)}
       onReset={() => {
         clearSave(hero);
-        if (hero === "lula") clearCity();
+        if (temCidade(hero)) {
+          ativaCidade(hero);
+          clearCity();
+        }
         setRun((r) => r + 1);
       }}
     />

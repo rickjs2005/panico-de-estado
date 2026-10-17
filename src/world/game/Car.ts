@@ -9,7 +9,12 @@ import { RES, tex } from "./bake";
  * Carro feito de fatias empilhadas: cada camada é a mesma vista de cima, girada junto
  * e deslocada alguns pixels para cima. Em qualquer ângulo ele mostra lateral e altura,
  * como as fachadas do bairro.
+ *
+ * A moto do Brasil do Flávio usa o mesmo esquema: fatias mais finas, física mais ágil e o piloto
+ * montado por cima (tronco e cabeça), em vez da cabeça na janela.
  */
+
+export type TipoVeiculo = "carro" | "moto";
 
 const SLICES: { layer: "base" | "lateral" | "topo" | "parabrisa"; h: number }[] = [
   { layer: "base", h: 0 },
@@ -25,6 +30,15 @@ const SLICES: { layer: "base" | "lateral" | "topo" | "parabrisa"; h: number }[] 
   { layer: "parabrisa", h: 13 },
 ];
 
+const SLICES_MOTO: { layer: "base" | "lateral" | "topo"; h: number }[] = [
+  { layer: "base", h: 0 },
+  { layer: "base", h: 1.4 },
+  { layer: "lateral", h: 2.8 },
+  { layer: "lateral", h: 4.2 },
+  { layer: "lateral", h: 5.6 },
+  { layer: "topo", h: 7 },
+];
+
 export const CAR = {
   accel: 310,
   brake: 640,
@@ -34,6 +48,17 @@ export const CAR = {
   radius: 15,
   /** Distância dos dois círculos de colisão ao centro. */
   axle: 18,
+};
+
+/** A moto: arranca mais, corre mais, vira mais fechado e ocupa menos. */
+export const MOTO: typeof CAR = {
+  accel: 420,
+  brake: 720,
+  max: 470,
+  reverseMax: 80,
+  steer: 3.6,
+  radius: 9,
+  axle: 13,
 };
 
 export interface CarControls {
@@ -49,6 +74,8 @@ export class Car {
   private slices: { img: Phaser.GameObjects.Image; h: number }[] = [];
   private shadow: Phaser.GameObjects.Image;
   private driver: Phaser.GameObjects.Image;
+  /** Tronco do piloto (só na moto). */
+  private torso: Phaser.GameObjects.Image | null = null;
   private whip: Phaser.GameObjects.Image;
   private driverLook: LookId | null = null;
   private driverFace: Face = "neutro";
@@ -57,6 +84,7 @@ export class Car {
   cargo = false;
   private cargoItem: string | null = null;
   private t = 0;
+  readonly spec: typeof CAR;
 
   constructor(
     private scene: Phaser.Scene,
@@ -64,16 +92,23 @@ export class Car {
     public y: number,
     public angle: number,
     readonly color?: string,
+    readonly tipo: TipoVeiculo = "carro",
   ) {
+    this.spec = tipo === "moto" ? MOTO : CAR;
     const s = 1 / RES.car;
-    this.shadow = scene.add.image(3, 4, tex.car("sombra")).setScale(s);
+    const moto = tipo === "moto";
+    this.shadow = scene.add.image(3, 4, moto ? tex.moto("sombra") : tex.car("sombra")).setScale(s);
     const parts: Phaser.GameObjects.GameObject[] = [this.shadow];
-    for (const sl of SLICES) {
-      const img = scene.add.image(0, -sl.h, tex.car(sl.layer, color)).setScale(s);
+    for (const sl of moto ? SLICES_MOTO : SLICES) {
+      const img = scene.add.image(0, -sl.h, moto ? tex.moto(sl.layer as "base" | "lateral" | "topo", color) : tex.car(sl.layer, color)).setScale(s);
       this.slices.push({ img, h: sl.h });
       parts.push(img);
     }
     this.whip = scene.add.image(0, 0, "chicote").setScale(1 / RES.small).setOrigin(0.13, 0.87).setVisible(false);
+    if (moto) {
+      this.torso = scene.add.image(0, 0, "shadow").setScale((1 / RES.char) * 0.8).setOrigin(0.5, 0.9).setVisible(false);
+      parts.push(this.torso);
+    }
     this.driver = scene.add.image(0, 0, "shadow").setScale((1 / RES.char) * 0.68).setOrigin(0.5, HEAD_NECK).setVisible(false);
     parts.push(this.whip, this.driver);
     this.root = scene.add.container(x, y, parts);
@@ -83,15 +118,17 @@ export class Car {
   circles(): Circle[] {
     const c = Math.cos(this.angle);
     const s = Math.sin(this.angle);
+    const { axle, radius } = this.spec;
     return [
-      { x: this.x + c * CAR.axle, y: this.y + s * CAR.axle, r: CAR.radius },
-      { x: this.x - c * CAR.axle, y: this.y - s * CAR.axle, r: CAR.radius },
+      { x: this.x + c * axle, y: this.y + s * axle, r: radius },
+      { x: this.x - c * axle, y: this.y - s * axle, r: radius },
     ];
   }
 
   setDriver(look: LookId | null) {
     this.driverLook = look;
     this.driver.setVisible(!!look);
+    this.torso?.setVisible(!!look);
   }
 
   setDriverFace(face: Face, ms = 800) {
@@ -108,13 +145,14 @@ export class Car {
 
   /** Atualiza velocidade e direção. A colisão é resolvida pela cena. */
   drive(dt: number, ctl: CarControls) {
+    const k = this.spec;
     let v = this.speed;
     if (ctl.throttle > 0) {
-      if (v < 0) v = Math.min(0, v + CAR.brake * dt);
-      else v += CAR.accel * ctl.throttle * dt * (1 - (v / CAR.max) * 0.45);
+      if (v < 0) v = Math.min(0, v + k.brake * dt);
+      else v += k.accel * ctl.throttle * dt * (1 - (v / k.max) * 0.45);
     } else if (ctl.throttle < 0) {
-      if (v > 0) v = Math.max(0, v - CAR.brake * -ctl.throttle * dt);
-      else v -= CAR.accel * 0.7 * -ctl.throttle * dt;
+      if (v > 0) v = Math.max(0, v - k.brake * -ctl.throttle * dt);
+      else v -= k.accel * 0.7 * -ctl.throttle * dt;
     } else {
       const drag = (110 + Math.abs(v) * 0.7) * dt;
       v = Math.abs(v) <= drag ? 0 : v - Math.sign(v) * drag;
@@ -123,9 +161,9 @@ export class Car {
       const b = 950 * dt;
       v = Math.abs(v) <= b ? 0 : v - Math.sign(v) * b;
     }
-    this.speed = Math.max(-CAR.reverseMax, Math.min(CAR.max, v));
+    this.speed = Math.max(-k.reverseMax, Math.min(k.max, v));
     const grip = Math.min(1, Math.abs(this.speed) / 120);
-    this.angle += ctl.steer * CAR.steer * grip * Math.sign(this.speed) * dt;
+    this.angle += ctl.steer * k.steer * grip * Math.sign(this.speed) * dt;
     this.x += Math.cos(this.angle) * this.speed * dt;
     this.y += Math.sin(this.angle) * this.speed * dt;
   }
@@ -144,11 +182,24 @@ export class Car {
         this.faceUntil = 0;
         this.driverFace = "neutro";
       }
-      const p = local(4, -6);
       const view = Math.abs(c) > Math.abs(s) * 1.1 ? "s" : s > 0 ? "f" : "b";
-      this.driver.setTexture(tex.head(this.driverLook, view, this.driverFace));
-      this.driver.setScale((view === "s" && c < 0 ? -1 : 1) * (1 / RES.char) * 0.68, (1 / RES.char) * 0.68);
-      this.driver.setPosition(p.x, p.y - 9.1 + 2 + Math.sin(this.t * 18) * Math.min(1, Math.abs(this.speed) / 200) * 0.6);
+      const flipX = view === "s" && c < 0 ? -1 : 1;
+      if (this.torso) {
+        // piloto sentado no banco: tronco e cabeça por cima da moto, balançando com a velocidade
+        const p = local(-4, 0);
+        const bob = Math.sin(this.t * 16) * Math.min(1, Math.abs(this.speed) / 200) * 0.8;
+        this.torso.setTexture(tex.torso(this.driverLook, view));
+        this.torso.setScale(flipX * (1 / RES.char) * 0.8, (1 / RES.char) * 0.8);
+        this.torso.setPosition(p.x, p.y - 7 + bob);
+        this.driver.setTexture(tex.head(this.driverLook, view, this.driverFace));
+        this.driver.setScale(flipX * (1 / RES.char) * 0.72, (1 / RES.char) * 0.72);
+        this.driver.setPosition(p.x, p.y - 7 - 17 + bob);
+      } else {
+        const p = local(4, -6);
+        this.driver.setTexture(tex.head(this.driverLook, view, this.driverFace));
+        this.driver.setScale(flipX * (1 / RES.char) * 0.68, (1 / RES.char) * 0.68);
+        this.driver.setPosition(p.x, p.y - 9.1 + 2 + Math.sin(this.t * 18) * Math.min(1, Math.abs(this.speed) / 200) * 0.6);
+      }
     }
     if (this.cargo) {
       const p = local(-12, 5);

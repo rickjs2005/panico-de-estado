@@ -3,31 +3,39 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Puppet from "@/components/Puppet";
+import { FLAVIO } from "@/world/cidade/flavio";
+import { LULA } from "@/world/cidade/lula";
 import { LOOKS } from "@/world/looks";
-import { CHICOTE_EXPRESSO, missionsFor } from "@/world/mission";
-import { isDone } from "@/world/save";
 import type { HeroId } from "@/world/types";
 
-const HEROES: { id: HeroId; name: string; mission: string; color: string }[] = [
-  { id: "lula", name: "Lula", mission: "Cidade aberta · 6 distritos para explorar", color: "#ff3b4f" },
-  { id: "flavio", name: "Flávio Bolsonaro", mission: `Missão: ${CHICOTE_EXPRESSO.title}`, color: "#2fd27a" },
+const HEROES: { id: HeroId; name: string; mission: string; color: string; chave: string }[] = [
+  { id: "lula", name: "Lula", mission: "Cidade aberta · 6 distritos para explorar", color: "#ff3b4f", chave: LULA.chaveSave },
+  { id: "flavio", name: "Flávio Bolsonaro", mission: "Cidade aberta · 6 distritos para explorar", color: "#2fd27a", chave: FLAVIO.chaveSave },
 ];
 
-/** Escolha imediata do protagonista: um toque e o jogador já está no bairro. */
+/** Selos do Passaporte já conquistados numa cidade (lidos direto do save, sem montar a cidade). */
+function selosSalvos(chave: string): number {
+  try {
+    const d = JSON.parse(window.localStorage.getItem(chave) ?? "null") as { campanha?: { selos?: unknown } } | null;
+    const selos = d?.campanha?.selos;
+    return Array.isArray(selos) ? Math.min(6, selos.length) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Escolha imediata do protagonista: um toque e o jogador já está na cidade dele. */
 export default function CharacterSelect({ onPick }: { onPick: (hero: HeroId) => void }) {
   const [done, setDone] = useState<Record<HeroId, number>>({ lula: 0, flavio: 0 });
   useEffect(() => {
-    setDone({
-      lula: missionsFor("lula").filter((m) => isDone("lula", m.id)).length,
-      flavio: missionsFor("flavio").filter((m) => isDone("flavio", m.id)).length,
-    });
+    setDone({ lula: selosSalvos(LULA.chaveSave), flavio: selosSalvos(FLAVIO.chaveSave) });
   }, []);
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_0%,#2a2340,#0b0b0f_70%)] px-4 py-6 text-bone">
       <header className="text-center">
         <h1 className="title-glitch text-4xl font-black sm:text-5xl">Pânico de Estado</h1>
-        <p className="mt-2 max-w-md text-sm text-muted sm:text-base">Um bairro fictício onde os boatos políticos viraram realidade. Escolha quem vai sair na rua.</p>
+        <p className="mt-2 max-w-md text-sm text-muted sm:text-base">Dois Brasis fictícios onde os boatos políticos viraram realidade. Escolha quem vai sair na rua.</p>
       </header>
 
       <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:gap-5">
@@ -46,7 +54,7 @@ export default function CharacterSelect({ onPick }: { onPick: (hero: HeroId) => 
             <span className="mt-0.5 text-[11px] font-semibold leading-tight text-[#1e1424]/70 sm:text-xs">caricatura fictícia</span>
             <span className="mt-2 rounded-full px-2 py-1 text-[11px] font-bold leading-tight text-white sm:text-xs" style={{ background: h.color === "#2fd27a" ? "#1f8a4c" : "#c62835" }}>
               {h.mission}
-              {h.id === "flavio" && done.flavio > 0 ? ` · ${done.flavio}/${missionsFor("flavio").length} ✓` : ""}
+              {done[h.id] > 0 ? ` · ${done[h.id]}/6 selos` : ""}
             </span>
             <span className="mt-3 rounded-xl border-4 border-[#1e1424] bg-[#ffd23f] px-4 py-1.5 text-base font-black">Jogar</span>
           </button>

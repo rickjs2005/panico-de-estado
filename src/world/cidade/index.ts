@@ -1,14 +1,12 @@
-import type { Point, Rect } from "../types";
-import { CIVICO } from "./distritos/civico";
-import { COMERCIAL } from "./distritos/comercial";
-import { EDUCACIONAL } from "./distritos/educacional";
-import { INDUSTRIAL } from "./distritos/industrial";
-import { RESIDENCIAL } from "./distritos/residencial";
-import { TERMINAL } from "./distritos/terminal";
+import type { HeroId, Point, Rect } from "../types";
+import type { CidadeDef } from "./definicao";
 import { stalls } from "./helpers";
-import { entryLabel, interiorFor, interiorId } from "./interiores";
-import { CITY, DISTRICTS, LIMITS, ROADS, WORLD_H } from "./layout";
+import { interiorIdEm, montaInterior, rotuloEntrada } from "./interiores";
+import { WORLD_H } from "./layout";
+import { LULA } from "./lula";
+import { estadosIniciais, type PlaceDef, type PlaceId } from "./places";
 import type {
+  CachacaStop,
   CityBuilding,
   CityNpc,
   CityProp,
@@ -17,41 +15,87 @@ import type {
   DistrictContent,
   DistrictDef,
   DistrictId,
+  GroundDef,
   InteractionSpot,
   InteriorDef,
   InteriorPoster,
   InteriorProp,
+  ParkingDef,
   PlaceCondition,
   Poi,
+  RoadDef,
+  VehicleSpawn,
 } from "./types";
 
 /**
- * A cidade montada a partir dos distritos. Tudo o que a cena, o mapa e as checagens
- * precisam sai daqui.
+ * A cidade ativa, montada a partir dos distritos. Tudo o que a cena, o mapa e as checagens
+ * precisam sai daqui. Cada protagonista tem a sua cidade (`lula.ts`, `flavio/`); as exportações
+ * abaixo são ligações vivas que `definirCidade` refaz quando a cidade troca (`ativa.ts` cuida
+ * também do trânsito, da navegação a pé e das rotinas). Começa com a do Lula.
  */
 
-export { CITY, DISTRICTS, LIMITS, ROADS, WORLD_H, entryLabel, stalls };
+export { WORLD_H, stalls };
 
-export const DISTRICT_CONTENT: Record<DistrictId, DistrictContent> = {
-  residencial: RESIDENCIAL,
-  civico: CIVICO,
-  educacional: EDUCACIONAL,
-  industrial: INDUSTRIAL,
-  comercial: COMERCIAL,
-  terminal: TERMINAL,
-};
+type ComId = CityProp & { id: string };
 
-function all<K extends keyof DistrictContent>(k: K): DistrictContent[K] {
-  const out: unknown[] = [];
-  for (const c of Object.values(DISTRICT_CONTENT)) out.push(...(c[k] as unknown[]));
-  return out as DistrictContent[K];
+export let CIDADE: CidadeDef = LULA;
+export let CITY: CidadeDef["city"] = LULA.city;
+export let LIMITS: CidadeDef["limits"] = LULA.limits;
+export let ROADS: RoadDef[] = LULA.roads;
+export let DISTRICTS: DistrictDef[] = LULA.districts;
+export let DISTRICT_CONTENT: Record<DistrictId, DistrictContent> = LULA.content;
+/** Todos os prédios, cada um com o id do seu interior. */
+export let BUILDINGS: CityBuilding[] = [];
+/** Um interior por prédio: toda edificação da cidade pode ser visitada. */
+export let INTERIORS: InteriorDef[] = [];
+export let PARKING: ParkingDef[] = [];
+export let VEHICLES: VehicleSpawn[] = [];
+export let GROUNDS: GroundDef[] = [];
+export let DECALS: DecalDef[] = [];
+export let NPCS: CityNpc[] = [];
+/** Paradas de cachaça (energia de corrida) na rua. */
+export let STREET_CACHACA: CachacaStop[] = [];
+/** Todas as paradas: na rua e dentro de bares, padarias e afins. */
+export let CACHACA: CachacaStop[] = [];
+export let PROPS: ComId[] = [];
+/** Objetos de todos os interiores (só para gerar as texturas; a cena monta um interior por vez). */
+export let INTERIOR_PROPS: InteriorProp[] = [];
+export let POIS: Poi[] = [];
+/** Onde o protagonista começa. */
+export let SPAWN: { hero: Point } = { hero: LULA.spawn };
+/** Moradores genéricos da rua e as conversas por distrito. */
+export let AMBIENT: CityNpc[] = LULA.ambient;
+export let CHATTER: Record<DistrictId, string[]> = LULA.chatter;
+export let CAES: CidadeDef["caes"] = LULA.caes;
+export let BOLAS: CidadeDef["bolas"] = LULA.bolas;
+/** Lugares com estado persistente da cidade ativa. */
+export let PLACES: Record<PlaceId, PlaceDef> = LULA.places;
+/** Campanha de missões da cidade ativa. */
+export let CAMPANHA: CidadeDef["campanha"] = LULA.campanha;
+export let ITENS: CidadeDef["itens"] = LULA.itens;
+export let DECISOES: CidadeDef["decisoes"] = LULA.decisoes;
+export let SELO_FINAL: CidadeDef["seloFinal"] = LULA.seloFinal;
+/** Os seis selos do Passaporte, na ordem da campanha (o da cerimônia final é um extra). */
+export let SELOS: CidadeDef["seloFinal"][] = [];
+
+export type { PlaceId };
+
+export function isPlace(id: string): id is PlaceId {
+  return id in PLACES;
 }
 
-/** Todos os prédios, cada um com o id do seu interior. */
-export const BUILDINGS: CityBuilding[] = all("buildings").map((b) => ({ ...b, interior: interiorId(b) }));
+export function initialPlaces(): Record<PlaceId, string> {
+  return estadosIniciais(PLACES);
+}
 
-/** Um interior por prédio: toda edificação da cidade pode ser visitada. */
-export const INTERIORS: InteriorDef[] = BUILDINGS.map(interiorFor);
+export function interiorId(b: CityBuilding): string {
+  return interiorIdEm(CIDADE.catalogo, b);
+}
+
+/** Texto da ação de entrar: "Entrar na casa", "Entrar no mercadinho". */
+export function entryLabel(b: CityBuilding): string {
+  return rotuloEntrada(CIDADE.catalogo, b);
+}
 
 export function interiorById(id: string): InteriorDef | undefined {
   return INTERIORS.find((i) => i.id === id);
@@ -60,26 +104,82 @@ export function interiorById(id: string): InteriorDef | undefined {
 export function buildingById(id: string): CityBuilding | undefined {
   return BUILDINGS.find((b) => b.id === id);
 }
-export const PARKING = all("parking");
-export const VEHICLES = all("vehicles");
-export const GROUNDS = all("grounds");
-export const DECALS: DecalDef[] = Object.values(DISTRICT_CONTENT).flatMap((c) => c.decals ?? []);
-export const NPCS = all("npcs");
 
-/** Paradas de cachaça (energia de corrida) na rua. */
-export const STREET_CACHACA = all("cachaca");
-/** Todas as paradas: na rua e dentro de bares, padarias e afins. */
-export const CACHACA = [...STREET_CACHACA, ...INTERIORS.flatMap((i) => (i.cachaca ? [i.cachaca] : []))];
+function all<K extends keyof DistrictContent>(k: K): NonNullable<DistrictContent[K]> {
+  const out: unknown[] = [];
+  for (const c of Object.values(DISTRICT_CONTENT)) out.push(...((c[k] ?? []) as unknown[]));
+  return out as NonNullable<DistrictContent[K]>;
+}
+
+/** Troca a cidade ativa e refaz tudo o que sai dela. Use `ativaCidade` (ativa.ts), que refaz também trânsito, navegação e rotinas. */
+export function definirCidade(def: CidadeDef) {
+  CIDADE = def;
+  CITY = def.city;
+  LIMITS = def.limits;
+  ROADS = def.roads;
+  DISTRICTS = def.districts;
+  DISTRICT_CONTENT = def.content;
+  BUILDINGS = all("buildings").map((b) => ({ ...b, interior: interiorIdEm(def.catalogo, b) }));
+  INTERIORS = BUILDINGS.map((b) => montaInterior(b, def));
+  PARKING = all("parking");
+  VEHICLES = all("vehicles");
+  GROUNDS = all("grounds");
+  DECALS = all("decals");
+  NPCS = all("npcs");
+  STREET_CACHACA = def.energia ? all("cachaca") : [];
+  CACHACA = [...STREET_CACHACA, ...INTERIORS.flatMap((i) => (i.cachaca ? [i.cachaca] : []))];
+  PROPS = withIds([...all("props"), ...streetSigns(), ...avenueLights()]);
+  INTERIOR_PROPS = INTERIORS.flatMap((i) => i.props);
+  POIS = [
+    ...all("pois"),
+    ...STREET_CACHACA.map((c) => ({ id: c.id, name: `${c.name} · cachaça`, district: c.district, x: c.x, y: c.y, kind: "cachaca" as const, landmark: true })),
+    ...def.marcos,
+  ];
+  SPAWN = { hero: def.spawn };
+  AMBIENT = def.ambient;
+  CHATTER = def.chatter;
+  CAES = def.caes;
+  BOLAS = def.bolas;
+  PLACES = def.places;
+  CAMPANHA = def.campanha;
+  ITENS = def.itens;
+  DECISOES = def.decisoes;
+  SELO_FINAL = def.seloFinal;
+  SELOS = def.campanha.missoes.map((m) => m.selo);
+}
+
+/** Id da cidade ativa. */
+export function cidadeAtiva(): HeroId {
+  return CIDADE.id;
+}
 
 /** Placas com o nome das ruas, perto de onde cada uma começa e no meio. */
 function streetSigns(): CityProp[] {
   const out: CityProp[] = [];
+  // a placa não pode cair em cima de outra rua nem numa borda do mapa (água, morro, muro, mata)
+  const ruim = (px: number, py: number, r: RoadDef) =>
+    ROADS.some((o) => o !== r && px > o.rect.x - 20 && px < o.rect.x + o.rect.w + 20 && py > o.rect.y - 30 && py < o.rect.y + o.rect.h + 10) ||
+    Object.values(LIMITS).some((l) => px > l.x - 12 && px < l.x + l.w + 12 && py > l.y - 12 && py < l.y + l.h + 12);
+  const DESVIOS = [0, 160, -160, 320, -320];
   for (const r of ROADS) {
     const { x, y, w, h } = r.rect;
     if (w > h) {
-      for (const sx of w > 700 ? [x + 90, x + w / 2 + 40] : [x + 90]) out.push({ id: `placa-${r.id}-${Math.round(sx)}`, kind: "placaRua", x: sx, y: y + h + 26, text: r.name });
+      for (const sx0 of w > 700 ? [x + 90, x + w / 2 + 40] : [x + 90]) {
+        const sx = DESVIOS.map((d) => sx0 + d).find((sx) => sx > x + 40 && sx < x + w - 40 && !ruim(sx, y + h + 26, r));
+        if (sx !== undefined) out.push({ id: `placa-${r.id}-${Math.round(sx)}`, kind: "placaRua", x: sx, y: y + h + 26, text: r.name });
+      }
     } else {
-      for (const sy of h > 700 ? [y + 160, y + h / 2 + 60] : [y + 160]) out.push({ id: `placa-${r.id}-${Math.round(sy)}`, kind: "placaRua", x: x + w + 16, y: sy, text: r.name });
+      for (const sy0 of h > 700 ? [y + 160, y + h / 2 + 60] : [y + 160]) {
+        let pos: { x: number; y: number } | undefined;
+        for (const px of [x + w + 16, x - 16]) {
+          const sy = DESVIOS.map((d) => sy0 + d).find((sy) => sy > y + 60 && sy < y + h - 40 && !ruim(px, sy, r));
+          if (sy !== undefined) {
+            pos = { x: px, y: sy };
+            break;
+          }
+        }
+        if (pos) out.push({ id: `placa-${r.id}-${Math.round(pos.y)}`, kind: "placaRua", x: pos.x, y: pos.y, text: r.name });
+      }
     }
   }
   return out;
@@ -97,28 +197,17 @@ function avenueLights(): CityProp[] {
     if (w > h) {
       for (let px = x + 140; px < x + w - 80; px += 320) if (!nearDoor(px) && !naRua(px, y - 10)) out.push({ kind: "poste", x: px, y: y - 10 });
     } else {
-      for (let py = y + 200; py < y + h - 80; py += 320) if (!naRua(x - 12, py)) out.push({ kind: "poste", x: x - 12, y: py });
+      // na avenida vertical, o poste também pula as avenidas que cruzam (senão fica no meio do asfalto)
+      const naAvenida = (py: number) => ROADS.some((o) => o !== r && o.kind === "avenida" && py > o.rect.y - 24 && py < o.rect.y + o.rect.h + 24 && x - 12 > o.rect.x - 24 && x - 12 < o.rect.x + o.rect.w + 24);
+      for (let py = y + 200; py < y + h - 80; py += 320) if (!naRua(x - 12, py) && !naAvenida(py)) out.push({ kind: "poste", x: x - 12, y: py });
     }
   }
   return out;
 }
 
-function withIds(list: CityProp[]): (CityProp & { id: string })[] {
+function withIds(list: CityProp[]): ComId[] {
   return list.map((p) => ({ ...p, id: p.id ?? `${p.kind.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-${Math.round(p.x)}-${Math.round(p.y)}` }));
 }
-
-export const PROPS = withIds([...all("props"), ...streetSigns(), ...avenueLights()]);
-/** Objetos de todos os interiores (só para gerar as texturas; a cena monta um interior por vez). */
-export const INTERIOR_PROPS: InteriorProp[] = INTERIORS.flatMap((i) => i.props);
-
-export const POIS: Poi[] = [
-  ...all("pois"),
-  ...all("cachaca").map((c) => ({ id: c.id, name: `${c.name} · cachaça`, district: c.district, x: c.x, y: c.y, kind: "cachaca" as const, landmark: true })),
-  { id: "morro", name: "Morro do Letreiro", district: "residencial", x: 2400, y: 200, kind: "marco", landmark: true },
-];
-
-/** Onde o Lula começa: na calçada da praça, ao lado do carro oficial. */
-export const SPAWN = { hero: { x: 2400, y: 1206 } };
 
 /** Tamanho da área sólida de cada objeto: retângulo centrado em x, com a base em y. */
 export const PROP_SOLID: Record<CityPropKind, { w: number; h: number } | null> = {
@@ -253,10 +342,19 @@ export const PROP_SOLID: Record<CityPropKind, { w: number; h: number } | null> =
   ferramenta: null,
   caixaBrasil: { w: 52, h: 24 },
   etiquetadora: { w: 34, h: 16 },
+  // Brasil do Flávio
+  catraca: null,
+  palanque: { w: 200, h: 46 },
+  pinguim: { w: 24, h: 12 },
+  pombo: null,
+  urna: { w: 44, h: 22 },
+  calendario: null,
+  motoEstatua: { w: 96, h: 40 },
+  placaAluga: null,
 };
 
 /** Objetos pendurados na parede do fundo dos interiores (desenhados logo à frente da parede). */
-export const WALL_PROPS = new Set<CityPropKind>(["prateleira", "painelSenha", "quadro", "janela", "relogio", "lousa", "painelFerramentas", "painelLoteria", "telao", "vitral"]);
+export const WALL_PROPS = new Set<CityPropKind>(["prateleira", "painelSenha", "quadro", "janela", "relogio", "lousa", "painelFerramentas", "painelLoteria", "telao", "vitral", "calendario"]);
 /** Objetos rentes ao chão (desenhados por baixo de tudo). */
 export const FLAT_PROPS = new Set<CityPropKind>(["tapete", "colchao", "tapeteCorredor"]);
 
@@ -353,10 +451,8 @@ export type Solid = Rect & { tag?: string };
 /** Tudo o que é sólido na rua: limites, prédios e objetos. Os interiores têm `interiorSolids`. */
 export function citySolids(extra: Solid[] = []): Solid[] {
   const out: Solid[] = [
-    { ...LIMITS.morro, tag: "morro" },
-    { ...LIMITS.canal, tag: "canal" },
-    { ...LIMITS.baia, tag: "baia" },
-    { ...LIMITS.muro, tag: "muro" },
+    // bordas do mapa (morro, canal, baía, muro, mata…)
+    ...Object.entries(LIMITS).map(([tag, r]) => ({ ...r, tag })),
     // a parte de baixo do mundo (entre a cidade e os interiores) também é parede
     { x: 0, y: CITY.h, w: CITY.w, h: 3900 - CITY.h - 40, tag: "vazio" },
   ];
@@ -376,4 +472,5 @@ export function districtById(id: DistrictId): DistrictDef {
   return DISTRICTS.find((d) => d.id === id)!;
 }
 
-
+// a cidade do Lula é a ativa até alguém pedir outra
+definirCidade(LULA);

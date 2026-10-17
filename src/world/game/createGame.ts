@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import { ativaCidade, temCidade } from "../cidade/ativa";
 import type { HeroId } from "../types";
 import { BootScene } from "./BootScene";
 import { CityScene } from "./city/CityScene";
@@ -18,6 +19,8 @@ export function createGame(
   hero: HeroId,
   opts: { debug?: boolean; onProgress?: (p: number) => void; onError?: (msg: string) => void } = {},
 ): GameHandle {
+  // a cidade do protagonista vira a ativa antes de qualquer textura ou cena
+  if (temCidade(hero)) ativaCidade(hero);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = Math.max(1, parent.clientWidth);
   const h = Math.max(1, parent.clientHeight);

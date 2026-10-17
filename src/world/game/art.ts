@@ -270,7 +270,50 @@ export function carLayer(layer: CarLayer, body: string): Art {
   }
 }
 
+// ---------- moto (Brasil do Flávio): fatias como as do carro, frente para +x ----------
+
+export const MOTO_W = 54;
+export const MOTO_H = 22;
+
+export type MotoLayer = "sombra" | "base" | "lateral" | "topo";
+
+export function motoLayer(layer: MotoLayer, body: string): Art {
+  const w = MOTO_W;
+  const h = MOTO_H;
+  switch (layer) {
+    case "sombra":
+      return { w, h, body: `<ellipse cx="27" cy="12" rx="25" ry="8" fill="#000" fill-opacity="0.28"/>` };
+    case "base":
+      // rodas e o garfo
+      return { w, h, body: `<rect x="3" y="8" width="14" height="6" rx="3" fill="#16121b"/><rect x="38" y="8" width="14" height="6" rx="3" fill="#16121b"/><rect x="14" y="9.5" width="26" height="3" fill="#55555c"/>`, outline: 0.7 };
+    case "lateral":
+      return { w, h, body: `<rect x="12" y="5" width="28" height="12" rx="5" fill="${shade(body, -0.32)}"/>`, outline: 0.7 };
+    case "topo":
+      return {
+        w,
+        h,
+        body:
+          `<rect x="12" y="5" width="28" height="12" rx="5" fill="${body}"/>` +
+          `<rect x="13" y="7" width="12" height="8" rx="3" fill="#2a2230"/>` +
+          `<rect x="27" y="6" width="10" height="10" rx="4" fill="${shade(body, 0.18)}"/>` +
+          `<rect x="40" y="1" width="3" height="20" rx="1.4" fill="#55555c"/><rect x="39" y="0" width="5" height="3" rx="1" fill="#2a2230"/><rect x="39" y="19" width="5" height="3" rx="1" fill="#2a2230"/>` +
+          `<ellipse cx="48" cy="11" rx="3" ry="3.4" fill="#fff3a0"/><rect x="6" y="9.5" width="5" height="3" rx="1" fill="#e63946"/>`,
+        outline: 0.9,
+      };
+  }
+}
+
 // ---------- objetos pequenos ----------
+
+export function revolverArt(): Art {
+  // revólver de desenho animado, apontado para cima (o "tiro para o alto" do Flávio caricato)
+  return {
+    w: 22,
+    h: 34,
+    body: `<rect x="8" y="2" width="6" height="18" rx="2" fill="#55505c"/><rect x="5" y="16" width="12" height="7" rx="3" fill="#3a3640"/><path d="M8 22 L6 32 H13 L14 22 Z" fill="#7a4e2d"/><circle cx="11" cy="19" r="3" fill="#8a8494"/><rect x="9" y="0" width="4" height="3" fill="#2a2230"/>`,
+    outline: 1,
+  };
+}
 
 export function chicoteArt(): Art {
   return {

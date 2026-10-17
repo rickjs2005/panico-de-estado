@@ -7,6 +7,7 @@ import { sound } from "@/lib/sound";
 import { bus, resetTouchInput, touchInput, type DialogoState } from "@/world/bridge";
 import type { HeroId, HudState } from "@/world/types";
 import type { GameHandle } from "@/world/game/createGame";
+import { temaDe } from "@/world/game/city/temas";
 import CityMap from "./CityMap";
 import Joystick from "./Joystick";
 import { Dialogo, Passaporte, SeloCard } from "./Passaporte";
@@ -132,6 +133,9 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
   };
 
   const driving = hud?.mode === "carro";
+  const naMoto = hud?.veiculo === "moto";
+  /** Brasil do Flávio, na rua: o botão do tiro para o alto aparece. */
+  const podeTiro = hero === "flavio" && hasMap && !hud?.inside;
   const action = dialogo ? null : (hud?.action ?? null);
 
   return (
@@ -280,7 +284,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                 {soundOn ? "🔊" : "🔈"}
               </button>
               {hasMap && (
-                <button type="button" onClick={() => setPassaporte(true)} aria-label={`Passaporte do Absurdo: ${hud.selos?.length ?? 0} de 6 selos`} className="hud-btn relative">
+                <button type="button" onClick={() => setPassaporte(true)} aria-label={`${temaDe(hero).passaporte}: ${hud.selos?.length ?? 0} de 6 selos`} className="hud-btn relative">
                   🛂
                   <span className="absolute -bottom-2 -right-1.5 rounded-full border-2 border-[#1e1424] bg-[#ffd23f] px-1 text-[9px] font-black leading-tight">{hud.selos?.length ?? 0}/6</span>
                 </button>
@@ -319,10 +323,22 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
               {driving ? (
                 <>
                   <b>W/↑</b> acelerar · <b>S/↓</b> frear e ré · <b>A/D ←/→</b> virar · <b>Espaço</b> freio de mão · <b>H</b> buzina · <b>E</b> sair
+                  {podeTiro && (
+                    <>
+                      {" "}
+                      · <b>F</b> tiro pro alto
+                    </>
+                  )}
                 </>
               ) : (
                 <>
                   <b>WASD/setas</b> andar · <b>Shift</b> correr · <b>E</b> interagir
+                  {podeTiro && (
+                    <>
+                      {" "}
+                      · <b>F</b> tiro pro alto
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -349,7 +365,7 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                     bus.emit("horn");
                   }}
                 >
-                  Bi-bi
+                  {naMoto ? "Fom-fom" : "Bi-bi"}
                 </button>
                 <button
                   type="button"
@@ -371,6 +387,22 @@ export default function WorldView({ hero, onSwitch, onReset }: { hero: HeroId; o
                   Ré
                 </button>
               </div>
+            )}
+            {podeTiro && (
+              <button
+                type="button"
+                className="hud-round h-14 w-14 bg-white text-[10px] font-black leading-tight"
+                aria-label="Dar um tiro para o alto (F)"
+                title="Tiro para o alto (F): só barulho, sempre para cima"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  bus.emit("tiro");
+                }}
+              >
+                💥
+                <br />
+                Pro alto
+              </button>
             )}
             <button
               type="button"

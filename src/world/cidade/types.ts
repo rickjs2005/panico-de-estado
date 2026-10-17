@@ -216,6 +216,15 @@ export type CityPropKind =
   | "ferramenta"
   | "caixaBrasil"
   | "etiquetadora"
+  // Brasil do Flávio
+  | "catraca"
+  | "palanque"
+  | "pinguim"
+  | "pombo"
+  | "urna"
+  | "calendario"
+  | "motoEstatua"
+  | "placaAluga"
   // rua: personalidade dos bairros
   | "canteiro"
   | "horta"
@@ -269,6 +278,8 @@ export interface VehicleSpawn {
   y: number;
   angle: number;
   color: string;
+  /** Moto (Brasil do Flávio): mais leve, mais rápida e chama a motociata. Padrão: carro. */
+  tipo?: "carro" | "moto";
 }
 
 export interface CachacaStop extends Point {
@@ -432,7 +443,11 @@ export type TemplateId =
   | "almoxarifado"
   | "deposito-kits"
   | "alfandega"
-  | "despacho";
+  | "despacho"
+  // Brasil do Flávio
+  | "posto"
+  | "leilao"
+  | "tribunal";
 
 /** Objeto de interior que só aparece num estado do lugar (por exemplo, depósito abastecido). */
 export interface InteriorProp extends CityProp {
